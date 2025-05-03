@@ -1,0 +1,36 @@
+import { clsx, type ClassValue } from "clsx"
+import { twMerge } from "tailwind-merge"
+import { Role } from "@shared/permissions";
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs))
+}
+
+export const getDashboardPathForRole = (role: Role): string => {
+  switch (role) {
+    case "BUYER":
+      return "/buyer-dashboard";
+    case "SELLER":
+      return "/seller-dashboard";
+    case "SHOWROOM_BASIC":
+    case "SHOWROOM_PREMIUM":
+      return "/showroom-dashboard";
+    case "MODERATOR":
+    case "SENIOR_MODERATOR":
+      return "/moderator-dashboard";
+    case "ADMIN":
+      return "/admin";
+    case "SUPER_ADMIN":
+      return "/admin"; // or your super admin panel
+    default:
+      return "/";
+  }
+};
+
+export const redirectToCorrectDashboard = (userRole: Role, currentPath: string, navigate: (path: string) => void) => {
+  const correctDashboard = getDashboardPathForRole(userRole);
+  if (!currentPath.startsWith(correctDashboard)) {
+    navigate(correctDashboard);
+  }
+};
+
