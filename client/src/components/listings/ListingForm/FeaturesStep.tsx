@@ -17,6 +17,7 @@ export function FeaturesStep({ data, updateData, nextStep, prevStep }: StepProps
     (data?.features || []).map(Number)
   );
 
+
   const toggleFeature = (featureId: number) => {
     setSelectedFeatures(prev =>
       prev.includes(featureId)
@@ -30,7 +31,7 @@ export function FeaturesStep({ data, updateData, nextStep, prevStep }: StepProps
     updateData({ features: selectedFeatures.map(String) });
     nextStep();
   };
-
+  
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <h3 className="font-medium">Select Features</h3>

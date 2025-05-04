@@ -1,8 +1,7 @@
-import { useFormContext } from "react-hook-form";
 import { Label } from "@/components/ui/label";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
-import { ListingFormData, StepProps } from "@shared/schema";
+import {PromotionPackage, StepProps } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 
 export function ReviewStep({
@@ -13,8 +12,7 @@ export function ReviewStep({
   handleSubmit,
 }: StepProps) {
   const { t } = useTranslation();
-  const { watch } = useFormContext<ListingFormData>();
-  const formData = watch();
+  const formData = data;
 
   const { data: makes = [] } = useQuery({
     queryKey: ["car-makes"],
@@ -34,16 +32,30 @@ export function ReviewStep({
     queryKey: ["car-features"],
     queryFn: () => fetch("/api/car-features").then((res) => res.json()),
   });
+  
+  const { data: promotionPackage } = useQuery<PromotionPackage>({
+    queryKey: ['promotion-package', formData.package?.packageId],
+    queryFn: async () => {
+      const response = await fetch(`/api/promotion-packages/${formData.package?.packageId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch package');
+      }
+      return response.json();
+    },
+    enabled: !!formData.package?.packageId,
+  });
 
   const selectedMake = makes.find(
-    (m: any) => m.id === formData.specifications?.makeId
+    (m: any) => String(m.id) === formData.specifications?.makeId
   );
   const selectedModel = models.find(
-    (m: any) => m.id === formData.specifications?.modelId
+    (m: any) => String(m.id) === formData.specifications?.modelId
   );
-  const selectedFeatures = features.filter((f: any) =>
-    formData.features?.includes(f.id)
+  
+  const selectedFeatures = features.filter((f) =>
+    (formData.features as string[]).includes(String(f.id))
   );
+  
 
   return (
     <div className="space-y-6">
@@ -53,18 +65,18 @@ export function ReviewStep({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <Label>{t("listing.title")}</Label>
-            <p>{formData.basicInfo?.title}</p>
+            <p className="font-medium">{formData.basicInfo?.title || t("listing.notSpecified")}</p>
           </div>
           <div>
             <Label>{t("listing.price")}</Label>
-            <p>
-              {formData.pricing?.price} {formData.pricing?.currency}
+            <p className="font-medium">
+              {formData.basicInfo?.price ? `${formData.basicInfo?.price} ${t("listing.currency")}` : t("listing.notSpecified")}
             </p>
           </div>
-          <div>
+          <div className="md:col-span-2">
             <Label>{t("listing.description")}</Label>
             <p className="whitespace-pre-line">
-              {formData.basicInfo?.description}
+              {formData.basicInfo?.description || t("listing.noDescription")}
             </p>
           </div>
         </div>
@@ -76,27 +88,39 @@ export function ReviewStep({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <Label>{t("listing.make")}</Label>
-            <p>{selectedMake?.name || "-"}</p>
+            <p>{selectedMake?.name || t("listing.notSpecified")}</p>
           </div>
           <div>
             <Label>{t("listing.model")}</Label>
-            <p>{selectedModel?.name || "-"}</p>
+            <p>{selectedModel?.name || t("listing.notSpecified")}</p>
           </div>
           <div>
             <Label>{t("listing.year")}</Label>
-            <p>{formData.specifications?.year}</p>
+            <p>{formData.specifications?.year || t("listing.notSpecified")}</p>
           </div>
           <div>
             <Label>{t("listing.mileage")}</Label>
-            <p>{formData.specifications?.mileage}</p>
+            <p>{formData.specifications?.mileage ? `${formData.specifications.mileage} km` : t("listing.notSpecified")}</p>
+          </div>
+          <div>
+            <Label>{t("listing.fuelType")}</Label>
+            <p>{formData.specifications?.fuelType || t("listing.notSpecified")}</p>
+          </div>
+          <div>
+            <Label>{t("listing.transmission")}</Label>
+            <p>{formData.specifications?.transmission || t("listing.notSpecified")}</p>
+          </div>
+          <div>
+            <Label>{t("listing.color")}</Label>
+            <p>{formData.specifications?.color || t("listing.notSpecified")}</p>
           </div>
         </div>
       </div>
 
       {/* Features */}
-      {selectedFeatures.length > 0 && (
-        <div className="space-y-4">
-          <h3 className="font-medium">{t("listing.features")}</h3>
+      <div className="space-y-4">
+        <h3 className="font-medium">{t("listing.features")}</h3>
+        {selectedFeatures && selectedFeatures.length > 0 ? (
           <div className="flex flex-wrap gap-2">
             {selectedFeatures.map((feature: any) => (
               <span
@@ -107,42 +131,66 @@ export function ReviewStep({
               </span>
             ))}
           </div>
+        ) : (
+          <p>{t("listing.noFeaturesSelected")}</p>
+        )}
+      </div>
+
+      {/* Promotion Package */}
+      {promotionPackage && (
+        <div className="space-y-4">
+          <h3 className="font-medium">{t("listing.promotionPackage")}</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label>{t("listing.packageName")}</Label>
+              <p>{promotionPackage.name || t("listing.notSpecified")}</p>
+            </div>
+            <div>
+              <Label>{t("listing.packageDuration")}</Label>
+              <p>{promotionPackage.duration_days ? `${promotionPackage.duration_days} ${t("listing.days")}` : t("listing.notSpecified")}</p>
+            </div>
+            <div>
+              <Label>{t("listing.packagePrice")}</Label>
+              <p>{promotionPackage.price ? `${promotionPackage.price} ${promotionPackage.currency}` : t("listing.notSpecified")}</p>
+            </div>
+            
+          </div>
         </div>
       )}
 
       {/* Media (Images) */}
-      {(formData.media?.length ?? 0) > 0 && (
-        <div className="space-y-4">
-          <h3 className="font-medium">{t("listing.images")}</h3>
+      <div className="space-y-4">
+        <h3 className="font-medium">{t("listing.images")}</h3>
+        {(formData.media?.length ?? 0) > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {formData.media?.map((mediaItem, index) => (
               <div key={index}>
                 {typeof mediaItem === "string" ? (
-                  // If it's a string (URL), render an <img> tag
                   <img
                     src={mediaItem}
                     alt={`Preview ${index + 1}`}
                     className="rounded-md aspect-square object-cover"
                   />
                 ) : (
-                  // If it's a File, render a placeholder for file (could be a file icon or something else)
                   <div className="flex justify-center items-center text-gray-500">
-                    <span>File {index + 1}</span>
+                    <span>{t("listing.file")} {index + 1}</span>
                   </div>
                 )}
               </div>
             ))}
           </div>
-        </div>
-      )}
+        ) : (
+          <p>{t("listing.noImages")}</p>
+        )}
+      </div>
 
       {/* Review Action Buttons */}
       <div className="flex justify-between pt-4">
         <Button variant="outline" type="button" onClick={prevStep}>
-          Back
+          {t("listing.back")}
         </Button>
         <Button type="button" onClick={handleSubmit}>
-          Submit Listing
+          {t("listing.submitListing")}
         </Button>
       </div>
     </div>

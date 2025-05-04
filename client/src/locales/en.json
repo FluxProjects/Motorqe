@@ -312,6 +312,30 @@
     "allServices": "All Services",
     "noShowroomsFound": "No Showroom Found"
   },
+  "listing": {
+    "basicInfo": "Basic Information",
+    "title": "Title",
+    "price": "Price",
+    "description": "Description",
+    "specifications": "Specifications",
+    "make": "Make",
+    "model": "Model",
+    "year": "Year",
+    "mileage": "Mileage",
+    "images": "Images",
+    "packageName": "Package Name",
+    "transmission" : "Transmission",
+    "fuelType" :"Fuel Type",
+    "packagePrice" : "Package Price",
+    "color": "Body Color",
+    "packageDuration" : "Package Duration",
+    "promotionPackage" : "Promotion Package",
+    "back": "Back",
+    "submitListing" : "Submit Listing",
+    "features" : "Features",
+    "notSpecified" : "Not notSpecified"
+
+  },
   "seller": {
     "myListings": "My Listings",
     "addNewListing": "Add New Listing",

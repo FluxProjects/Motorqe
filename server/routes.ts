@@ -1007,6 +1007,15 @@ app.delete("/api/services/:id", async (req, res) => {
     }
   });
 
+  app.get("/api/promotion-packages/:packageId", async (req, res) => {
+    try {
+      const promotions = await storage.getPromotionPackage(Number(req.params.packageId));
+      res.json(promotions);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch package promotions", error });
+    }
+  });
+
   // ... (add similar CRUD routes for promotion packages like we did for subscription plans)
 
   /**

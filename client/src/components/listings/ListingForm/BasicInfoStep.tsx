@@ -4,22 +4,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
+import { StepProps } from '@shared/schema';
 
-export function BasicInfoStep({
-  data,
-  updateData,
-  nextStep,
-  prevStep,
-}: {
-  data: any;
-  updateData: (data: any) => void;
-  nextStep: () => void;
-  prevStep: () => void;
-}) {
+export function BasicInfoStep({ data, updateData, nextStep, prevStep }: StepProps) {
   const [formData, setFormData] = useState({
     title: data?.basicInfo?.title || '',
     description: data?.basicInfo?.description || '',
     location: data?.basicInfo?.location || '',
+    price: data?.basicInfo?.price || '', // <-- Added price
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -27,11 +19,13 @@ export function BasicInfoStep({
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    updateData(formData);
-    nextStep();
-  };
+ // Inside BasicInfoStep.tsx
+
+const handleSubmit = (e: React.FormEvent) => {
+  e.preventDefault();
+  updateData({ basicInfo: formData }); // ✅ pass the correct data
+  nextStep();
+};
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -57,6 +51,19 @@ export function BasicInfoStep({
           required
           rows={4}
           placeholder="Describe your vehicle in detail..."
+        />
+      </div>
+      <div>
+        <Label htmlFor="price">Price (QAR)*</Label>
+        <Input
+          id="price"
+          name="price"
+          type="number"
+          value={formData.price}
+          onChange={handleChange}
+          required
+          placeholder="e.g. 15000"
+          min={0}
         />
       </div>
 

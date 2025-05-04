@@ -8,8 +8,13 @@ import { ReviewStep } from "./ReviewStep";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { ListingFormData } from "@shared/schema";
+import { useForm, FormProvider } from "react-hook-form";
+
 
 const steps = ["Basic Info", "Specifications", "Features", "Media", "Pricing", "Review"];
+
+
+
 
 export function ListingForm() {
   const [step, setStep] = useState(0);
@@ -101,13 +106,19 @@ export function ListingForm() {
     }
   };
 
+  const methods = useForm<ListingFormData>({
+    defaultValues: formData,
+  });
+
   return (
-    <Card className="mx-auto mt-8">
-      <div className="mb-4">
-        <h2 className="text-2xl font-bold">{steps[step]}</h2>
-        <Progress value={(step / (steps.length - 1)) * 100} className="mt-2" />
-      </div>
-      {renderStep()}
-    </Card>
+    <FormProvider {...methods}>
+  <Card className="mx-auto mt-8">
+    <div className="mb-4">
+      <h2 className="text-2xl font-bold">{steps[step]}</h2>
+      <Progress value={(step / (steps.length - 1)) * 100} className="mt-2" />
+    </div>
+    {renderStep()}
+  </Card>
+</FormProvider>
   );
 }

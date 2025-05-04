@@ -848,9 +848,10 @@ export type ListingPromotion = typeof listingPromotions.$inferSelect;
 // Listing Form
 export type ListingFormData = {
   basicInfo?: {
-    title?: string;
+    title: string;
     description?: string;
     location?: string;
+    price?: string;
   };
   specifications?: {
     makeId?: string;
