@@ -715,8 +715,7 @@ export const userSubscriptions = pgTable("user_subscriptions", {
   endDate: timestamp("end_date").notNull(),
   isActive: boolean("is_active").default(true),
   autoRenew: boolean("auto_renew").default(false),
-  paymentMethod: text("payment_method"),          // 'credit_card', 'paypal', etc.
-  paymentId: text("payment_id"),                  // Payment processor ID
+  transactionId: integer("transaction_id").references(() => transactions.id),  // Payment processor ID
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -727,8 +726,7 @@ export const insertUserSubscriptionSchema = createInsertSchema(userSubscriptions
   endDate: true,
   isActive: true,
   autoRenew: true,
-  paymentMethod: true,
-  paymentId: true,
+  transactionId: true,
 });
 
 export type InsertUserSubscription = z.infer<typeof insertUserSubscriptionSchema>;
@@ -741,7 +739,6 @@ export type UserSubscription = typeof userSubscriptions.$inferSelect;
 export const transactions = pgTable("transactions", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id).notNull(),
-  subscriptionId: integer("subscription_id").references(() => userSubscriptions.id),
   amount: integer("amount").notNull(),            // Amount in smallest currency unit
   currency: text("currency").default("USD").notNull(),          // Currency code
   description: text("description").notNull(),     // Transaction description
@@ -754,7 +751,6 @@ export const transactions = pgTable("transactions", {
 
 export const insertTransactionSchema = createInsertSchema(transactions).pick({
   userId: true,
-  subscriptionId: true,
   amount: true,
   currency: true,
   description: true,
@@ -766,6 +762,26 @@ export const insertTransactionSchema = createInsertSchema(transactions).pick({
 
 export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
 export type Transaction = typeof transactions.$inferSelect;
+
+// =============================================
+// STRIPE CUSTOMERS TABLE
+// Links users to Stripe customer IDs
+// =============================================
+export const stripeCustomers = pgTable("stripe_customers", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().unique().references(() => users.id),
+  stripeCustomerId: text("stripe_customer_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertStripeCustomerSchema = createInsertSchema(stripeCustomers).pick({
+  userId: true,
+  stripeCustomerId: true,
+});
+
+export type InsertStripeCustomer = z.infer<typeof insertStripeCustomerSchema>;
+export type StripeCustomer = typeof stripeCustomers.$inferSelect;
+
 
 // =============================================
 // PROMOTION PACKAGES TABLE
@@ -828,66 +844,6 @@ export const insertListingPromotionSchema = createInsertSchema(listingPromotions
 
 export type InsertListingPromotion = z.infer<typeof insertListingPromotionSchema>;
 export type ListingPromotion = typeof listingPromotions.$inferSelect;
-
-// =============================================
-// SERVICE PACKAGES TABLE
-// Stores service packages for showrooms
-// =============================================
-export const servicePackages = pgTable("service_packages", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  nameAr: text("name_ar"),
-  description: text("description"),
-  descriptionAr: text("description_ar"),
-  price: integer("price").notNull(),
-  currency: text("currency").default("USD"),
-  durationDays: integer("duration_days").notNull(),
-  serviceLimit: integer("service_limit"),         // Max services allowed
-  isActive: boolean("is_active").default(true),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
-export const insertServicePackageSchema = createInsertSchema(servicePackages).pick({
-  name: true,
-  nameAr: true,
-  description: true,
-  descriptionAr: true,
-  price: true,
-  currency: true,
-  durationDays: true,
-  serviceLimit: true,
-  isActive: true,
-});
-
-export type InsertServicePackage = z.infer<typeof insertServicePackageSchema>;
-export type ServicePackage = typeof servicePackages.$inferSelect;
-
-// =============================================
-// SHOWROOM SERVICE SUBSCRIPTIONS TABLE
-// Stores showroom service subscriptions
-// =============================================
-export const showroomServiceSubscriptions = pgTable("showroom_service_subscriptions", {
-  id: serial("id").primaryKey(),
-  showroomId: integer("showroom_id").references(() => showrooms.id).notNull(),
-  packageId: integer("package_id").references(() => servicePackages.id).notNull(),
-  startDate: timestamp("start_date").notNull().defaultNow(),
-  endDate: timestamp("end_date").notNull(),
-  transactionId: integer("transaction_id").references(() => transactions.id),
-  isActive: boolean("is_active").default(true),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
-export const insertShowroomServiceSubscriptionSchema = createInsertSchema(showroomServiceSubscriptions).pick({
-  showroomId: true,
-  packageId: true,
-  startDate: true,
-  endDate: true,
-  transactionId: true,
-  isActive: true,
-});
-
-export type InsertShowroomServiceSubscription = z.infer<typeof insertShowroomServiceSubscriptionSchema>;
-export type ShowroomServiceSubscription = typeof showroomServiceSubscriptions.$inferSelect;
 
 // Listing Form
 export type ListingFormData = {

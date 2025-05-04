@@ -141,3 +141,11 @@ export async function registerUser({
     user: publicUser
   };
 }
+
+export function verifyToken(token: string): any {
+  try {
+    return jwt.verify(token, config.JWT_SECRET);
+  } catch (error) {
+    return null;
+  }
+};

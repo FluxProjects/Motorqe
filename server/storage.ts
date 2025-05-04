@@ -8,7 +8,10 @@ import {
   type CarFeature, type InsertCarFeature, type CarListingFeature, type InsertCarListingFeature,
   type Showroom, type InsertShowroom, type UserRoleSwitch, type InsertUserRoleSwitch,
   type CarService, type InsertCarService, type ShowroomService, type InsertShowroomService,
-  type ServiceBooking, type InsertServiceBooking, type ShowroomMake, type InsertShowroomMake,
+  type ServiceBooking, 
+  InsertServiceBooking, 
+  ShowroomMake, 
+  InsertShowroomMake,
   SubscriptionPlan,
   InsertSubscriptionPlan,
   Transaction,
@@ -19,11 +22,12 @@ import {
   PromotionPackage,
   ListingPromotion,
   InsertListingPromotion,
-  ServicePackage,
-  InsertServicePackage,
-  InsertShowroomServiceSubscription,
-  ShowroomServiceSubscription,
-  SmsConfig
+  SmsConfig,
+  EmailConfig,
+  GoogleMapsConfig,
+  IntegrationSettings,
+  StripeCustomer,
+  InsertStripeCustomer,
 } from "@shared/schema";
 import { db } from "./db";
 import bcrypt from "bcryptjs";
@@ -237,6 +241,7 @@ export interface IStorage {
     status: 'pending' | 'completed' | 'failed' | 'refunded',
     options?: { error?: string }
   ): Promise<void>;
+
   // Promotion Package operations
   getAllPromotionPackages(activeOnly?: boolean): Promise<PromotionPackage[]>;
   getPromotionPackage(id: number): Promise<PromotionPackage | undefined>;
@@ -250,17 +255,9 @@ export interface IStorage {
   deactivateListingPromotion(id: number): Promise<void>;
   getFeaturedListings(): Promise<CarListing[]>;
 
-  // Service Package operations
-  getAllServicePackages(activeOnly?: boolean): Promise<ServicePackage[]>;
-  getServicePackage(id: number): Promise<ServicePackage | undefined>;
-  createServicePackage(pkg: InsertServicePackage): Promise<ServicePackage>;
-  updateServicePackage(id: number, updates: Partial<InsertServicePackage>): Promise<ServicePackage | undefined>;
-  deleteServicePackage(id: number): Promise<void>;
-
-  // Showroom Service Subscription operations
-  getShowroomServiceSubscriptions(showroomId: number, activeOnly?: boolean): Promise<ShowroomServiceSubscription[]>;
-  createShowroomServiceSubscription(subscription: InsertShowroomServiceSubscription): Promise<ShowroomServiceSubscription>;
-  deactivateShowroomServiceSubscription(id: number): Promise<void>;
+  // Stripe Customers
+  getStripeCustomerId(userId: number): Promise<string | null>;
+  saveStripeCustomerId(userId: number, stripeCustomerId: string): Promise<void>;
 
 }
 
@@ -1487,7 +1484,7 @@ export class DatabaseStorage implements IStorage {
 
   async createServiceBooking(booking: InsertServiceBooking): Promise<ServiceBooking> {
     const result = await db.query(
-      'INSERT INTO service_bookings (user_id, showroom_service_id, scheduled_at, status, notes) ' +
+      'INSERT INTO service_bookings (user_id, service_id, scheduled_at, status, notes) ' +
       'VALUES ($1, $2, $3, $4, $5) RETURNING *',
       [
         booking.userId,
@@ -1511,7 +1508,7 @@ export class DatabaseStorage implements IStorage {
       paramIndex++;
     }
     if (updates.serviceId !== undefined) {
-      fields.push(`showroom_service_id = $${paramIndex}`);
+      fields.push(`service_id = $${paramIndex}`);
       values.push(updates.serviceId);
       paramIndex++;
     }
@@ -1734,6 +1731,21 @@ export class DatabaseStorage implements IStorage {
     return await db.query(query, [userId]);
   }
 
+  async getUserSubscription(subscriptionId: number, activeOnly: boolean = true): Promise<UserSubscription | null> {
+    let query = 'SELECT * FROM user_subscriptions WHERE id = $1';
+    const values: any[] = [subscriptionId];
+  
+    if (activeOnly) {
+      query += ' AND is_active = true';
+    }
+  
+    query += ' ORDER BY start_date DESC LIMIT 1';
+  
+    const result = await db.query(query, values);
+    return result[0] || null;
+  }
+  
+
   async getUserActiveSubscription(userId: number): Promise<UserSubscription | undefined> {
     const result = await db.query(
       'SELECT * FROM user_subscriptions WHERE user_id = $1 AND is_active = true LIMIT 1',
@@ -1744,8 +1756,8 @@ export class DatabaseStorage implements IStorage {
 
   async createUserSubscription(subscription: InsertUserSubscription): Promise<UserSubscription> {
     const result = await db.query(
-      'INSERT INTO user_subscriptions (user_id, plan_id, start_date, end_date, is_active, auto_renew, payment_method, payment_id) ' +
-      'VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
+      'INSERT INTO user_subscriptions (user_id, plan_id, start_date, end_date, is_active, auto_renew, transaction_id) ' +
+      'VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
       [
         subscription.userId,
         subscription.planId,
@@ -1753,8 +1765,7 @@ export class DatabaseStorage implements IStorage {
         subscription.endDate,
         subscription.isActive,
         subscription.autoRenew,
-        subscription.paymentMethod,
-        subscription.paymentId
+        subscription.transactionId,
       ]
     );
     return result[0];
@@ -1789,13 +1800,9 @@ export class DatabaseStorage implements IStorage {
       fields.push(`auto_renew = $${paramIndex++}`);
       values.push(updates.autoRenew);
     }
-    if (updates.paymentMethod !== undefined) {
-      fields.push(`payment_method = $${paramIndex++}`);
-      values.push(updates.paymentMethod);
-    }
-    if (updates.paymentId !== undefined) {
+    if (updates.transactionId !== undefined) {
       fields.push(`payment_id = $${paramIndex++}`);
-      values.push(updates.paymentId);
+      values.push(updates.transactionId);
     }
   
     if (fields.length === 0) {
@@ -1872,13 +1879,12 @@ export class DatabaseStorage implements IStorage {
   
     const result: Transaction[] = await db.query(
       `INSERT INTO transactions (
-        user_id, subscription_id, amount, currency, description,
+        user_id, amount, currency, description,
         payment_method, payment_id, status, metadata
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       RETURNING *`,
       [
         transaction.userId,
-        transaction.subscriptionId,
         transaction.amount,
         transaction.currency || 'usd',
         transaction.description || 'One-time payment',
@@ -1892,8 +1898,6 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
   
-  
-
   async updateTransactionStatus(id: number, status: 'pending' | 'completed' | 'failed' | 'refunded', options?: { error?: string }): Promise<void> {
     await db.query('UPDATE transactions SET status = $1 WHERE id = $2', [status, id]);
   }
@@ -2052,144 +2056,18 @@ export class DatabaseStorage implements IStorage {
     `);
   }
 
-  // =============================================
-  // SERVICE PACKAGE OPERATIONS
-  // =============================================
-
-  async getAllServicePackages(activeOnly: boolean = true): Promise<ServicePackage[]> {
-    let query = 'SELECT * FROM service_packages';
-    if (activeOnly) {
-      query += ' WHERE is_active = true';
-    }
-    query += ' ORDER BY price ASC';
-    return await db.query(query);
+  async getStripeCustomerId(userId: number): Promise<string | null> {
+    const record = await db.query(`SELECT stripe_customer_id FROM stripe_customers WHERE user_id = $1`, [userId]);
+    return record[0]?.stripe_customer_id || null;
   }
 
-  async getServicePackage(id: number): Promise<ServicePackage | undefined> {
-    const result = await db.query('SELECT * FROM service_packages WHERE id = $1 LIMIT 1', [id]);
-    return result[0];
+  async saveStripeCustomerId(userId: number, stripeCustomerId: string): Promise<void> {
+    await db.query(`
+      INSERT INTO stripe_customers (user_id, stripe_customer_id)
+      VALUES ($1, $2)
+      ON CONFLICT (user_id) DO UPDATE SET stripe_customer_id = EXCLUDED.stripe_customer_id
+    `, [userId, stripeCustomerId]);
   }
-
-  async createServicePackage(pkg: InsertServicePackage): Promise<ServicePackage> {
-    const result = await db.query(
-      'INSERT INTO service_packages (name, name_ar, description, description_ar, price, currency, duration_days, service_limit, is_active) ' +
-      'VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *',
-      [
-        pkg.name,
-        pkg.nameAr,
-        pkg.description,
-        pkg.descriptionAr,
-        pkg.price,
-        pkg.currency,
-        pkg.durationDays,
-        pkg.serviceLimit,
-        pkg.isActive
-      ]
-    );
-    return result[0];
-  }
-
-  async updateServicePackage(id: number, updates: Partial<InsertServicePackage>): Promise<ServicePackage | undefined> {
-    const fields = [];
-    const values = [];
-    let paramIndex = 1;
-
-    if (updates.name !== undefined) {
-      fields.push(`name = $${paramIndex}`);
-      values.push(updates.name);
-      paramIndex++;
-    }
-    if (updates.nameAr !== undefined) {
-      fields.push(`name_ar = $${paramIndex}`);
-      values.push(updates.nameAr);
-      paramIndex++;
-    }
-    if (updates.description !== undefined) {
-      fields.push(`description = $${paramIndex}`);
-      values.push(updates.description);
-      paramIndex++;
-    }
-    if (updates.descriptionAr !== undefined) {
-      fields.push(`description_ar = $${paramIndex}`);
-      values.push(updates.descriptionAr);
-      paramIndex++;
-    }
-    if (updates.price !== undefined) {
-      fields.push(`price = $${paramIndex}`);
-      values.push(updates.price);
-      paramIndex++;
-    }
-    if (updates.currency !== undefined) {
-      fields.push(`currency = $${paramIndex}`);
-      values.push(updates.currency);
-      paramIndex++;
-    }
-    if (updates.durationDays !== undefined) {
-      fields.push(`duration_days = $${paramIndex}`);
-      values.push(updates.durationDays);
-      paramIndex++;
-    }
-    if (updates.serviceLimit !== undefined) {
-      fields.push(`service_limit = $${paramIndex}`);
-      values.push(updates.serviceLimit);
-      paramIndex++;
-    }
-    if (updates.isActive !== undefined) {
-      fields.push(`is_active = $${paramIndex}`);
-      values.push(updates.isActive);
-      paramIndex++;
-    }
-
-    if (fields.length === 0) {
-      return this.getServicePackage(id);
-    }
-
-    values.push(id);
-    const query = `UPDATE service_packages SET ${fields.join(', ')} WHERE id = $${paramIndex} RETURNING *`;
-    const result = await db.query(query, values);
-    return result[0];
-  }
-
-  async deleteServicePackage(id: number): Promise<void> {
-    await db.query('DELETE FROM service_packages WHERE id = $1', [id]);
-  }
-
-  // =============================================
-  // SHOWROOM SERVICE SUBSCRIPTION OPERATIONS
-  // =============================================
-
-  async getShowroomServiceSubscriptions(showroomId: number, activeOnly: boolean = true): Promise<ShowroomServiceSubscription[]> {
-    let query = 'SELECT * FROM showroom_service_subscriptions WHERE showroom_id = $1';
-    if (activeOnly) {
-      query += ' AND is_active = true AND end_date > NOW()';
-    }
-    query += ' ORDER BY start_date DESC';
-    return await db.query(query, [showroomId]);
-  }
-
-  async createShowroomServiceSubscription(subscription: InsertShowroomServiceSubscription): Promise<ShowroomServiceSubscription> {
-    const result = await db.query(
-      'INSERT INTO showroom_service_subscriptions (showroom_id, package_id, start_date, end_date, transaction_id, is_active) ' +
-      'VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-      [
-        subscription.showroomId,
-        subscription.packageId,
-        subscription.startDate,
-        subscription.endDate,
-        subscription.transactionId,
-        subscription.isActive !== undefined ? subscription.isActive : true
-      ]
-    );
-    return result[0];
-  }
-
-  async deactivateShowroomServiceSubscription(id: number): Promise<void> {
-    await db.query(
-      'UPDATE showroom_service_subscriptions SET is_active = false WHERE id = $1',
-      [id]
-    );
-  }
-
 }
 
 export const storage = new DatabaseStorage();

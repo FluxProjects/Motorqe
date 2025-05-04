@@ -2,22 +2,29 @@ import { create } from "zustand";
 
 interface AuthState {
   user: any | null;
-  token: string | null;
   isAuthenticated: boolean;
-  login: (token: string, user: any) => void;
-  logout: () => void;
+  setUser: (user: any) => void;
+  logout: () => Promise<void>;
 }
 
 export const useAuth = create<AuthState>((set) => ({
   user: null,
-  token: null,
   isAuthenticated: false,
-  login: (token, user) => {
-    localStorage.setItem("token", token);
-    set({ token, user, isAuthenticated: true });
+
+  setUser: (user) => {
+    set({ user, isAuthenticated: !!user });
   },
-  logout: () => {
-    localStorage.removeItem("token");
-    set({ token: null, user: null, isAuthenticated: false });
+
+  logout: async () => {
+    try {
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch (err) {
+      console.error("Logout failed", err);
+    } finally {
+      set({ user: null, isAuthenticated: false });
+    }
   },
 }));

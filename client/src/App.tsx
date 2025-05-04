@@ -53,12 +53,10 @@ function App() {
   const [error, setError] = useState<Error | null>(null);
   const { i18n } = useTranslation();
   const [location] = useLocation();
-  const { login } = useAuth();
 
   const isAdminRoute = location.startsWith("/admin");
 
   // Authentication State
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<any>(null);
 
   // --- Auth Modal State ---
@@ -91,31 +89,22 @@ function App() {
 
   // --- Handle User Authentication ---
   useEffect(() => {
-    const token = localStorage.getItem("authToken");
-    const userData = localStorage.getItem("user");
-
-    // Debug: Check if localStorage values are correctly set
-    console.log("AuthToken from localStorage: ", token);
-    console.log("User data from localStorage: ", userData);
-
-    if (token && userData) {
-      const parsedUser = JSON.parse(userData);
-      login(token, parsedUser);
-      setIsAuthenticated(true);
-      setUser(parsedUser);
-    } else {
-      console.log("User is not authenticated, no token found.");
-      setIsAuthenticated(false);
-      setUser(null);
-    }
+    const fetchUser = async () => {
+      try {
+        const res = await fetch("/api/auth/me", {
+          credentials: "include",
+        });
+        const user = await res.json();
+        useAuth.getState().setUser(user);
+      } catch (err) {
+        console.error("Auth check failed", err);
+        useAuth.getState().setUser(null);
+      }
+    };
+  
+    fetchUser();
   }, []);
-
-  const handleLogout = () => {
-    localStorage.removeItem("authToken");
-    localStorage.removeItem("user");
-    setIsAuthenticated(false);
-    setUser(null);
-  };
+    
 
   // Role-specific profile components with proper typing
   const BuyerProfileWrapper = () => <ManageProfile userRole="BUYER" />;

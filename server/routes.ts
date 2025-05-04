@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { notificationService } from "./services/notification";
 import { paymentService } from "./services/payment";
 import { loginUser, registerUser } from "./services/auth";
+import { verifyToken } from "./services/auth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize database with dummy data
@@ -13,44 +14,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
    */
   app.get("/api/auth/me", async (req: Request, res: Response) => {
     try {
-      console.log("Req:", req);
-      console.log("Cookies:", req.cookies);
-      console.log("Authorization header:", req.headers.authorization);
-
       const token = req.cookies?.token || req.headers.authorization?.split(' ')[1];
-      console.log("Token used for verification:", token);
-
+  
       if (!token) {
         return res.status(200).json(null);
       }
-
-      const user = await verifyToken(token);
-      console.log("User after verifyToken:", user);
-
+  
+      const decoded = verifyToken(token);
+      if (!decoded || !decoded.id) {
+        return res.status(200).json(null);
+      }
+  
+      const user = await storage.getUser(decoded.id); // Assuming this returns user details
       if (!user) {
         return res.status(200).json(null);
       }
-
-      res.cookie('token', token, {
-        httpOnly: true,
-        secure: false, //process.env.NODE_ENV === 'production', // Enable secure cookie in production
-        sameSite: 'strict', // Adjust as needed
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      });
-
+  
       res.status(200).json(user);
     } catch (error) {
       console.error("Authentication error:", error);
       res.status(500).json({ message: "Failed to authenticate", error });
     }
   });
-
-
+  
   app.post("/api/auth/login", async (req, res) => {
     const { email, password } = req.body;
     console.log("Login request recieved from", email);
     try {
       const { token, user } = await loginUser(email, password);
+      res.cookie('token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      });
+      
       res.json({ token, user });
     } catch (err: any) {
       res.status(401).json({ message: err.message });
@@ -80,7 +78,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         password,
         role,
       });
-
+      res.cookie('token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      });
+      
       res.status(201).json({ token, user });
     } catch (err: any) {
       console.error("Registration error:", err);
@@ -137,9 +141,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to fetch users", error });
     }
   });
-
-
-
 
   app.get("/api/users/username/:username", async (req, res) => {
     try {
@@ -679,7 +680,7 @@ app.delete("/api/services/:id", async (req, res) => {
     try {
       const { key, value } = req.body;
       if (!key || value === undefined) return res.status(400).json({ message: "key and value required" });
-      const updated = await storage.updateSettings(key, value);
+      const updated = await storage.updateSettings({ [key]: value }); 
       res.json(updated);
     } catch (error) {
       res.status(500).json({ message: "Failed to update setting", error });
@@ -833,40 +834,122 @@ app.delete("/api/services/:id", async (req, res) => {
   });
 
   app.post("/api/user-subscriptions", async (req, res) => {
+    const { userId, planId, paymentMethodId, customerId } = req.body;
+  
+    if (!userId || !planId || !paymentMethodId) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+  
     try {
-      const newSubscription = await storage.createUserSubscription(req.body);
-      res.status(201).json(newSubscription);
+  
+      const result = await paymentService.createSubscription(
+        userId,
+        planId,
+        paymentMethodId
+      );
+  
+      res.status(200).json({
+        message: "Subscription initiated",
+        subscriptionId: result.subscriptionId,
+        clientSecret: result.clientSecret,
+        userSubscription: result.userSubscription
+      });
     } catch (error) {
-      res.status(500).json({ message: "Failed to create user subscription", error });
+      console.error("Failed to create subscription:", error);
+      res.status(500).json({ message: "Failed to create subscription", error });
     }
   });
+  
 
   app.put("/api/user-subscriptions/:id", async (req, res) => {
     try {
-      const updated = await storage.updateUserSubscription(Number(req.params.id), req.body);
-      updated ? res.json(updated) : res.status(404).json({ message: "Subscription not found" });
+      const id = Number(req.params.id);
+      const updates = req.body;
+  
+      // Optional: restrict fields that can be updated manually
+      const allowedFields = ['autoRenew', 'isActive'];
+      const sanitizedUpdates: Record<string, any> = {};
+  
+      for (const key of allowedFields) {
+        if (updates.hasOwnProperty(key)) {
+          sanitizedUpdates[key] = updates[key];
+        }
+      }
+  
+      const updated = await storage.updateUserSubscription(id, sanitizedUpdates);
+  
+      if (!updated) {
+        return res.status(404).json({ message: "Subscription not found" });
+      }
+  
+      res.json(updated);
     } catch (error) {
+      console.error("Failed to update user subscription:", error);
       res.status(500).json({ message: "Failed to update user subscription", error });
     }
   });
+  
 
   app.post("/api/user-subscriptions/:id/cancel", async (req, res) => {
     try {
-      await storage.cancelUserSubscription(Number(req.params.id));
+      const subscriptionId = Number(req.params.id);
+      const subscription = await storage.getUserSubscription(subscriptionId);
+  
+      if (!subscription) {
+        return res.status(404).json({ message: "Subscription not found" });
+      }
+  
+      // Fetch associated transaction to get Stripe subscription ID
+      let paymentId: string | undefined;
+  
+      if (subscription.transactionId) {
+        const transaction = await storage.getTransaction(subscription.transactionId);
+        paymentId = transaction?.paymentId;
+      }
+  
+      // Cancel on Stripe if paymentId is a Stripe subscription ID
+      if (paymentId) {
+        await paymentService.cancelSubscription(paymentId);
+      }
+  
+      await storage.cancelUserSubscription(subscriptionId);
       res.json({ message: "Subscription cancelled successfully" });
     } catch (error) {
+      console.error("Cancel subscription error:", error);
       res.status(500).json({ message: "Failed to cancel subscription", error });
     }
   });
-
+  
   app.post("/api/user-subscriptions/:id/renew", async (req, res) => {
     try {
-      const renewed = await storage.renewUserSubscription(Number(req.params.id));
-      res.json(renewed);
+      const subscriptionId = Number(req.params.id);
+      const subscription = await storage.getUserSubscription(subscriptionId);
+  
+      if (!subscription) {
+        return res.status(404).json({ message: "Subscription not found" });
+      }
+  
+      const user = await storage.getUser(subscription.userId);
+      const plan = await storage.getSubscriptionPlan(subscription.planId);
+  
+      if (!user || !plan) {
+        return res.status(400).json({ message: "User or plan not found" });
+      }
+  
+      const newSubscription = await paymentService.createSubscription(
+        user.id,
+        plan.id,
+        req.body.paymentMethodId, // Or retrieve a saved method
+      );
+  
+      res.status(201).json(newSubscription);
     } catch (error) {
+      console.error("Renewal error:", error);
       res.status(500).json({ message: "Failed to renew subscription", error });
     }
   });
+  
+  
 
   /**
    * TRANSACTIONS
@@ -937,15 +1020,34 @@ app.delete("/api/services/:id", async (req, res) => {
       res.status(500).json({ message: "Failed to fetch listing promotions", error });
     }
   });
-
+  
   app.post("/api/listing-promotions", async (req, res) => {
+    const { userId, listingId, packageId } = req.body;
+  
+    if (!userId || !listingId || !packageId) {
+      return res.status(400).json({ message: "Missing userId, listingId, or packageId" });
+    }
+  
     try {
-      const newPromotion = await storage.createListingPromotion(req.body);
-      res.status(201).json(newPromotion);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to create listing promotion", error });
+      // Initiate promotion payment (creates Stripe payment intent + pending transaction)
+      const paymentResult = await paymentService.createListingPromotionPayment(
+        userId,
+        listingId,
+        packageId
+      );
+  
+      res.status(200).json({
+        message: "Payment intent created",
+        clientSecret: paymentResult.clientSecret,
+        paymentIntentId: paymentResult.paymentIntentId
+      });
+    } catch (error: any) {
+      console.error("Failed to initiate promotion payment:", error);
+      res.status(500).json({ message: "Failed to initiate promotion payment", error: error.message });
     }
   });
+  
+  
 
   app.post("/api/listing-promotions/:id/deactivate", async (req, res) => {
     try {
@@ -962,55 +1064,6 @@ app.delete("/api/services/:id", async (req, res) => {
       res.json(listings);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch featured listings", error });
-    }
-  });
-
-  /**
-   * SERVICE PACKAGES
-   */
-  app.get("/api/service-packages", async (req, res) => {
-    try {
-      const activeOnly = req.query.activeOnly !== 'false'; // Defaults to true
-      const packages = await storage.getAllServicePackages(activeOnly);
-      res.json(packages);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch service packages", error });
-    }
-  });
-
-  // ... (add similar CRUD routes for service packages)
-
-  /**
-   * SHOWROOM SERVICE SUBSCRIPTIONS
-   */
-  app.get("/api/showroom-service-subscriptions/:showroomId", async (req, res) => {
-    try {
-      const activeOnly = req.query.activeOnly !== 'false'; // Defaults to true
-      const subscriptions = await storage.getShowroomServiceSubscriptions(
-        Number(req.params.showroomId),
-        activeOnly
-      );
-      res.json(subscriptions);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch service subscriptions", error });
-    }
-  });
-
-  app.post("/api/showroom-service-subscriptions", async (req, res) => {
-    try {
-      const newSubscription = await storage.createShowroomServiceSubscription(req.body);
-      res.status(201).json(newSubscription);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to create service subscription", error });
-    }
-  });
-
-  app.post("/api/showroom-service-subscriptions/:id/deactivate", async (req, res) => {
-    try {
-      await storage.deactivateShowroomServiceSubscription(Number(req.params.id));
-      res.json({ message: "Service subscription deactivated successfully" });
-    } catch (error) {
-      res.status(500).json({ message: "Failed to deactivate service subscription", error });
     }
   });
 
