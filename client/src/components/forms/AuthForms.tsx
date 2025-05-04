@@ -190,6 +190,7 @@ export const AuthForms = ({
 
       console.log("data", data);
       console.log("data.user.roleId:", data.user.roleId);
+      setUser(data.user); 
 
       // Adjusting redirection logic based on roleId
       console.log("🛣️ Determining navigation path based on role...");

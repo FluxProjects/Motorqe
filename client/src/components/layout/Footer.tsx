@@ -87,7 +87,7 @@ const Footer = () => {
               </p>
               <p className={`text-white flex items-center ${direction === 'rtl' ? 'flex-row-reverse space-x-reverse' : ''}`}>
                 <Mail className="mr-2 rtl:ml-2 rtl:mr-0 h-4 w-4" /> 
-                <span>info@carmarket.com</span>
+                <span>info@motorqe.com</span>
               </p>
             </div>
           </div>
