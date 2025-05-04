@@ -864,8 +864,9 @@ export type ListingFormData = {
   };
   features?: string[];
   media?: File[] | string[]; // Files before upload or URLs after upload
-  pricing?: {
-    packages?: PromotionPackage[];
+  
+  package?: {
+    packageId: number;
   };
 };
 

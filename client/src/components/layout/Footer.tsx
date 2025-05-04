@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Car, Send, MapPin, Phone, Mail, Facebook, Twitter, Instagram, Linkedin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import logoFooter from "@/assets/logo-white.png";
 
 const Footer = () => {
   const { t } = useTranslation();
@@ -16,8 +17,7 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
             <div className={`flex items-center gap-2 mb-6 ${direction === 'rtl' ? 'flex-row-reverse' : ''}`}>
-              <Car className={`h-8 w-8 text-primary ${direction === 'rtl' ? 'flip-x' : ''}`} />
-              <span className="text-2xl font-bold">{t('common.appName')}</span>
+            <img src={logoFooter} alt="Logo" />
             </div>
             <p className="text-white mb-6">
               {t('footer.subscribeText')}

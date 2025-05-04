@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
+import logo from "@/assets/logo.png";
 import {
   Car,
   Globe,
@@ -168,8 +168,7 @@ const Header = ({ openAuthModal }: HeaderProps) => {
             href="/"
             className="text-primary font-bold text-2xl flex items-center gap-2"
           >
-            <Car className="h-8 w-8" />
-            <span>{t("common.appName")}</span>
+            <img src={logo} alt="Logo" />
           </Link>
         </div>
 
