@@ -333,7 +333,8 @@
     "back": "Back",
     "submitListing" : "Submit Listing",
     "features" : "Features",
-    "notSpecified" : "Not notSpecified"
+    "notSpecified" : "Not notSpecified",
+    "currency" : "Currency"
 
   },
   "seller": {

@@ -10,11 +10,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { CarMake, CarModel } from "@shared/schema";
+import { CarCategory, CarMake, CarModel } from "@shared/schema";
 import { StepProps } from "@shared/schema";
 
 export function SpecsStep({ data, updateData, nextStep, prevStep }: StepProps) {
   const [formData, setFormData] = useState({
+    categoryId: data?.specifications?.categoryId || "",
     makeId: data?.specifications?.makeId || "",
     modelId: data?.specifications?.modelId || "",
     year: data?.specifications?.year || "",
@@ -23,6 +24,11 @@ export function SpecsStep({ data, updateData, nextStep, prevStep }: StepProps) {
     transmission: data?.specifications?.transmission || "",
     color: data?.specifications?.color || "",
     condition: data?.specifications?.condition || "used",
+  });
+
+  const { data: categories = [] } = useQuery<CarCategory[]>({
+    queryKey: ["car-categories"],
+    queryFn: () => fetch("/api/car-categories").then((res) => res.json()),
   });
 
   const { data: makes = [] } = useQuery<CarMake[]>({
@@ -54,6 +60,28 @@ export function SpecsStep({ data, updateData, nextStep, prevStep }: StepProps) {
       onSubmit={handleSubmit}
       className="grid grid-cols-1 md:grid-cols-2 gap-4"
     >
+      {/* Category */}
+      <div>
+        <Label>Category*</Label>
+        <Select
+          value={formData.categoryId}
+          onValueChange={(value) => {
+            setFormData((prev) => ({ ...prev, categoryId: value }));
+          }}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select Category" />
+          </SelectTrigger>
+          <SelectContent>
+            {categories?.map((cat) => (
+              <SelectItem key={cat.id} value={cat.id.toString()}>
+                {cat.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
       {/* Make */}
       <div>
         <Label>Make*</Label>

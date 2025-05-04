@@ -845,6 +845,10 @@ export const insertListingPromotionSchema = createInsertSchema(listingPromotions
 export type InsertListingPromotion = z.infer<typeof insertListingPromotionSchema>;
 export type ListingPromotion = typeof listingPromotions.$inferSelect;
 
+export type CarListingWithFeatures = CarListing & {
+  features: CarFeature[];
+};
+
 // Listing Form
 export type ListingFormData = {
   basicInfo?: {
@@ -854,6 +858,7 @@ export type ListingFormData = {
     price?: string;
   };
   specifications?: {
+    categoryId?: string;
     makeId?: string;
     modelId?: string;
     year?: string;

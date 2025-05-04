@@ -28,6 +28,7 @@ import {
   IntegrationSettings,
   StripeCustomer,
   InsertStripeCustomer,
+  CarListingWithFeatures,
 } from "@shared/schema";
 import { db } from "./db";
 import bcrypt from "bcryptjs";
@@ -89,7 +90,7 @@ export interface IStorage {
 
   // Car Listing operations
   getAllCarListings(filter?: Partial<CarListing>, sortBy?: keyof CarListing, sortOrder?: 'asc' | 'desc'): Promise<CarListing[]>;
-  getCarListingById(id: number): Promise<CarListing | undefined>;
+  getCarListingById(id: number): Promise<CarListingWithFeatures | undefined> ;
   createCarListing(listing: InsertCarListing): Promise<CarListing>;
   updateCarListing(id: number, updates: Partial<InsertCarListing>): Promise<CarListing | undefined>;
   deleteCarListing(id: number): Promise<void>;
@@ -102,6 +103,7 @@ export interface IStorage {
   getFeaturesForListing(listingId: number): Promise<CarListingFeature[]>;
   addFeatureToListing(listingId: number, featureId: number): Promise<CarListingFeature>;
   removeFeatureFromListing(listingId: number, featureId: number): Promise<void>;
+  clearFeaturesForListing(listingId: number): Promise<void>;
   bulkAddFeaturesToListing(listingId: number, featureIds: number[]): Promise<void>;
 
   // Favorite operations
@@ -710,10 +712,20 @@ export class DatabaseStorage implements IStorage {
     return await db.query(baseQuery, values);
   }
 
-  async getCarListingById(id: number): Promise<CarListing | undefined> {
-    const result = await db.query('SELECT * FROM car_listings WHERE id = $1 LIMIT 1', [id]);
-    return result[0];
+   async getCarListingById(id: number): Promise<CarListingWithFeatures | undefined> {
+    const listingResult = await db.query(`SELECT * FROM car_listings WHERE id = $1`, [id]);
+    const listing = listingResult[0];
+    if (!listing) return undefined;
+  
+    const features = await db.query(`
+      SELECT f.* FROM car_features f
+      JOIN car_listing_features clf ON clf.feature_id = f.id
+      WHERE clf.listing_id = $1
+    `, [id]);
+  
+    return { ...listing, features };
   }
+  
 
   async createCarListing(listing: InsertCarListing): Promise<CarListing> {
     const fields = Object.keys(listing);
@@ -772,12 +784,24 @@ export class DatabaseStorage implements IStorage {
     );
   }
 
+  async clearFeaturesForListing(listingId: number): Promise<void> {
+    await db.query(`DELETE FROM car_listing_features WHERE listing_id = $1`, [listingId]);
+  }
+  
+
   async bulkAddFeaturesToListing(listingId: number, featureIds: number[]): Promise<void> {
     if (!featureIds.length) return;
 
-    const values = featureIds.map((id, index) => `($${index * 2 + 1}, $${index * 2 + 2})`)
-      .join(', ');
-    const params = featureIds.flatMap(id => [listingId, id]);
+    const validFeatures = featureIds
+    .filter((id) => typeof id === 'number' && !isNaN(id));
+
+    if (validFeatures.length === 0) return;
+
+    const values = validFeatures
+      .map((featureId, i) => `($1, $${i + 2})`)
+      .join(", ");
+  
+    const params = [listingId, ...validFeatures];
 
     await db.query(
       `INSERT INTO car_listing_features (listing_id, feature_id) VALUES ${values}`,

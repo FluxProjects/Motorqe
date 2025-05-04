@@ -369,6 +369,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Car Listings
   app.get("/api/car-listings", async (req, res) => {
     try {
       const filters: any = {};
@@ -418,21 +419,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/car-listings", async (req, res) => {
     try {
-      const created = await storage.createCarListing(req.body);
-      res.status(201).json(created);
+      const { featureIds = [], ...listingData } = req.body;
+      const created = await storage.createCarListing(listingData);
+      if (featureIds.length) {
+        await storage.bulkAddFeaturesToListing(created.id, featureIds);
+      }
+      const fullListing = await storage.getCarListingById(created.id);
+      res.status(201).json(fullListing);
     } catch (error) {
       res.status(500).json({ message: "Failed to create listing", error });
     }
   });
+  
 
   app.put("/api/car-listings/:id", async (req, res) => {
     try {
-      const updated = await storage.updateCarListing(Number(req.params.id), req.body);
-      updated ? res.json(updated) : res.status(404).json({ message: "Listing not found" });
+      const id = Number(req.params.id);
+      const { featureIds = [], ...updates } = req.body;
+  
+      const updated = await storage.updateCarListing(id, updates);
+      if (!updated) return res.status(404).json({ message: "Listing not found" });
+  
+      // Clear existing features and add new ones
+      await storage.clearFeaturesForListing(id);
+      if (featureIds.length) {
+        await storage.bulkAddFeaturesToListing(id, featureIds);
+      }
+  
+      const fullListing = await storage.getCarListingById(id);
+      res.json(fullListing);
     } catch (error) {
       res.status(500).json({ message: "Failed to update listing", error });
     }
   });
+  
 
   app.delete("/api/car-listings/:id", async (req, res) => {
     try {
@@ -1038,17 +1058,44 @@ app.delete("/api/services/:id", async (req, res) => {
     }
   
     try {
+
+       // 1. Get promotion package details
+    const promotionPackage = await storage.getPromotionPackage(packageId);
+    if (!promotionPackage) {
+      return res.status(404).json({ message: "Promotion package not found" });
+    }
       // Initiate promotion payment (creates Stripe payment intent + pending transaction)
-      const paymentResult = await paymentService.createListingPromotionPayment(
-        userId,
-        listingId,
-        packageId
-      );
+
+      // const paymentResult = await paymentService.createListingPromotionPayment(
+      //   userId,
+      //   listingId,
+      //   packageId
+      // );
+
+      //dummy paymentid
+      const paymentId = `ST${Math.floor(10000000 + Math.random() * 90000000)}`;
+
+      const transaction = await storage.createTransaction({
+        userId: userId,
+        amount: promotionPackage.price,
+        currency: promotionPackage.currency || "QAR",
+        description: `Listing promotion (${promotionPackage.name}) for listing #${listingId}`,
+        paymentMethod: "stripe",
+        paymentId: paymentId,
+        status: "pending",
+        metadata: {
+          listingId,
+          packageId,
+          packageName: promotionPackage.name,
+          durationDays: promotionPackage.duration_days
+        }
+      });
   
       res.status(200).json({
-        message: "Payment intent created",
-        clientSecret: paymentResult.clientSecret,
-        paymentIntentId: paymentResult.paymentIntentId
+        message: "Payment intent and transaction created",
+      clientSecret: paymentId, // paymentResult.clientSecret,
+      paymentIntentId: transaction.id,  // paymentResult.paymentIntentId,
+      transaction
       });
     } catch (error: any) {
       console.error("Failed to initiate promotion payment:", error);

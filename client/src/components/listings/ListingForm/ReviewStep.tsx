@@ -1,7 +1,7 @@
 import { Label } from "@/components/ui/label";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
-import {PromotionPackage, StepProps } from "@shared/schema";
+import {CarCategory, PromotionPackage, StepProps } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 
 export function ReviewStep({
@@ -13,6 +13,11 @@ export function ReviewStep({
 }: StepProps) {
   const { t } = useTranslation();
   const formData = data;
+
+  const { data: categories = [] } = useQuery<CarCategory[]>({
+      queryKey: ["car-categories"],
+      queryFn: () => fetch("/api/car-categories").then((res) => res.json()),
+    });
 
   const { data: makes = [] } = useQuery({
     queryKey: ["car-makes"],
@@ -44,6 +49,10 @@ export function ReviewStep({
     },
     enabled: !!formData.package?.packageId,
   });
+
+  const selectedCategory = categories.find(
+    (m: any) => String(m.id) === formData.specifications?.categoryId
+  );
 
   const selectedMake = makes.find(
     (m: any) => String(m.id) === formData.specifications?.makeId
@@ -86,6 +95,10 @@ export function ReviewStep({
       <div className="space-y-4">
         <h3 className="font-medium">{t("listing.specifications")}</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+            <Label>{t("listing.category")}</Label>
+            <p>{selectedCategory?.name || t("listing.notSpecified")}</p>
+          </div>
           <div>
             <Label>{t("listing.make")}</Label>
             <p>{selectedMake?.name || t("listing.notSpecified")}</p>
