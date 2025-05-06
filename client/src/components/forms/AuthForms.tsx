@@ -193,29 +193,23 @@ export const AuthForms = ({
       setUser(data.user); 
 
       // Adjusting redirection logic based on roleId
-      console.log("🛣️ Determining navigation path based on role...");
-      setIsSubmitting(false);
-      if (data.user.roleId === 1) {
-        console.log("👔 Navigating to buyer dashboard (roleId: 1)");
-        navigate("/buyer-dashboard");
-      } else if (data.user.roleId === 2) {
-        console.log("🛒 Navigating to seller dashboard (roleId: 2)");
-        navigate("/seller-dashboard");
-      } else if (data.user.roleId === 3 || data.user.roleId === 4) {
-        console.log("👑 Navigating to Showroom Dashboard (roleId: 3 or 4)");
-        navigate("/showroom-dashboard");
-      } else if ([5, 6, 7, 8].includes(data.user.roleId)) {
-        console.log("👑 Navigating to admin dashboard (roleId: 5, 6, 7 or 8)");
-        navigate("/admin");
-      } else {
-        console.log(
-          "❓ Unknown role, navigating to home (roleId:",
-          data.user.roleId,
-          ")"
-        );
-        navigate("/");
-      }
-
+      const dashboardByRole = {
+        BUYER: "/buyer-dashboard",
+        SELLER: "/seller-dashboard",
+        SHOWROOM_BASIC: "/showroom-dashboard",
+        SHOWROOM_PREMIUM: "/showroom-dashboard",
+        MODERATOR: "/admin",
+        ADMIN: "/admin",
+        SUPER_ADMIN: "/admin",
+      } as const;
+      
+      type RoleKey = keyof typeof dashboardByRole; // 'BUYER' | 'SELLER' | 'ADMIN' | 'SHOWROOM'
+      
+      // Make sure user.roleId is cast correctly:
+      const role = data.user?.roleId as RoleKey; // Or use a type guard
+      
+      const dashboardPath = dashboardByRole[role];
+      navigate(dashboardPath);
       onClose();
     } catch (error) {
       console.error("🔥 Login error caught:", error);

@@ -163,9 +163,9 @@ const DashboardSidebar = ({ type }: SidebarProps) => {
           >
             <i className={`${link.icon} mr-3 text-lg`}></i>
             <span>{link.label}</span>
-            {link.badge && (
+            {link.icon && (
               <span className="ml-auto bg-primary text-white text-xs px-2 py-1 rounded-full">
-                {link.badge}
+                {link.icon}
               </span>
             )}
           </Link>

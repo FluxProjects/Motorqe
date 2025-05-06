@@ -40,7 +40,7 @@ export const db = {
     } catch (error: any) {
       console.error('Error executing query:', error); // Detailed error log
       console.error('Error stack trace:', error.stack); // Log the stack trace
-      throw new Error('Failed to fetch salons: ' + error.message);
+      throw new Error('Failed to fetch data: ' + error.message);
     } finally {
       client.release(); // Release the client back to the pool
     }

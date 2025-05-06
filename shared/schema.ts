@@ -887,7 +887,29 @@ export type StepProps = {
 };
 
 // Filter Interface
-export interface Filters {
+export interface AdminCarListingFilters {
+  make: string;
+  model: string;
+  minPrice: string;
+  maxPrice: string;
+  category: string;
+  location: string[];
+  year?: number[];
+  fuel_type: string[];
+  transmission: string[];
+  isFeatured: boolean | null;
+  status: string;
+  sort: string;
+  page: number;
+  limit: number;
+  dateRange: { from: string; to: string };
+  dateRangePreset?: string;
+  yearRange?: { from: string; to: string };
+  milesRange?: { from: string; to: string };
+  user_id?: number;
+}
+
+export interface CarListingFilters {
   make: string;
   model: string;
   minPrice: string;
@@ -898,10 +920,61 @@ export interface Filters {
   fuel_type: string[];
   transmission: string[];
   isFeatured: boolean | null;
+  status: string;
   sort: string;
   page: number;
   limit: number;
 }
+
+export interface AdminCarListing {
+  id: number;
+  title: string;
+  titleAr?: string;
+  price: number;
+  fuel_type: string;
+  transmission: string;
+  year: number;
+  mileage: number;
+  color: string;
+  condition: string;
+  description?: string;
+  descriptionAr?: string;
+  location: string;
+  locationAr?: string;
+  status: 'draft' | 'active' | 'pending' | 'reject' | 'sold';
+  is_featured: boolean;
+  is_active: boolean;
+  views?: number;
+  contact_number?: string;
+  created_at: string;
+  updated_at?: string;
+  images?: string[];
+  user_id: number;
+  make_id: number;
+  model_id: number;
+  category_id?: number;
+  seller?: {
+    id: number;
+    username: string;
+    avatar?: string;
+    created_at?: string;
+  };
+  make?: {
+    id: number;
+    name: string;
+  };
+  model?: {
+    id: number;
+    name: string;
+  };
+  category?: {
+    id: number;
+    name: string;
+  };
+  features?: CarFeature[];
+}
+
+export type AdminCarListingAction = 'publish' | 'edit' | 'approve' | 'reject' | 'feature' | 'delete' | 'sold';
 
 // Car Services Filter Interface
 export interface CarServiceFilters {

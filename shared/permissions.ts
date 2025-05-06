@@ -17,14 +17,16 @@ export const Permission = {
   VIEW_LISTING_ANALYTICS: "view_listing_analytics",
   RESPOND_TO_INQUIRIES: "respond_to_inquiries",
   MANAGE_SELLER_PROFILE: "manage_seller_profile",
+  MARK_AS_SOLD: "mark_as_sold",
 
   // Showroom/Dealer Permissions
   CREATE_SHOWROOM_PROFILE: "create_showroom_profile",
   MANAGE_SHOWROOM_LISTINGS: "manage_showroom_listings",
+  MANAGE_SHOWROOM_PROFILE: "manage_showroom_profile",
   USE_BULK_UPLOAD: "use_bulk_upload",
   ACCESS_SHOWROOM_ANALYTICS: "access_showroom_analytics",
   MANAGE_SHOWROOM_STAFF: "manage_showroom_staff",
-  CREATE_PROMOTIONS: "create_promotions",
+  
   VERIFIED_SELLER_BADGE: "verified_seller_badge",
 
   // Moderator Permissions
@@ -44,6 +46,7 @@ export const Permission = {
   MANAGE_CONTENT: "manage_content",
   MANAGE_SUPPORT_TICKETS: "manage_support_tickets",
   MANAGE_PAYMENTS: "manage_payments",
+  CREATE_PROMOTIONS: "create_promotions",
   MANAGE_PROMOTIONS: "manage_promotions",
   MANAGE_VERIFICATIONS: "manage_verifications",
 } as const;
@@ -52,12 +55,18 @@ export const Permission = {
 // STEP 1: Move basic roles outside
 // -------------------------------
 
+
 const SHOWROOM_BASIC = [
   Permission.CREATE_SHOWROOM_PROFILE,
   Permission.MANAGE_SHOWROOM_LISTINGS,
   Permission.ACCESS_SHOWROOM_ANALYTICS,
+  Permission.MANAGE_SHOWROOM_PROFILE,
   Permission.RESPOND_TO_INQUIRIES,
   Permission.BROWSE_LISTINGS,
+  Permission.CREATE_LISTINGS,
+  Permission.MANAGE_OWN_LISTINGS,
+  Permission.MANAGE_SELLER_PROFILE,
+  Permission.SAVE_FAVORITES,
 ];
 
 const MODERATOR_BASIC = [
@@ -73,7 +82,7 @@ const MODERATOR_BASIC = [
 // STEP 2: Now define Roles
 // -------------------------------
 
-export const Roles = {
+export const Roles: Record<Role, readonly PermissionType[]> = {
   // Buyer Roles
   BUYER: [
     Permission.BROWSE_LISTINGS,
@@ -87,12 +96,12 @@ export const Roles = {
 
   // Seller Roles
   SELLER: [
+    Permission.BROWSE_LISTINGS,
     Permission.CREATE_LISTINGS,
     Permission.MANAGE_OWN_LISTINGS,
     Permission.VIEW_LISTING_ANALYTICS,
     Permission.RESPOND_TO_INQUIRIES,
     Permission.MANAGE_SELLER_PROFILE,
-    Permission.BROWSE_LISTINGS,
     Permission.SAVE_FAVORITES,
   ],
 
@@ -101,6 +110,11 @@ export const Roles = {
 
   SHOWROOM_PREMIUM: [
     ...SHOWROOM_BASIC,
+    Permission.BROWSE_LISTINGS,
+    Permission.CREATE_LISTINGS,
+    Permission.MANAGE_OWN_LISTINGS,
+    Permission.VIEW_LISTING_ANALYTICS,
+    Permission.RESPOND_TO_INQUIRIES,
     Permission.USE_BULK_UPLOAD,
     Permission.CREATE_PROMOTIONS,
     Permission.VERIFIED_SELLER_BADGE,
@@ -118,6 +132,7 @@ export const Roles = {
 
   // Admin Roles
   ADMIN: [
+    Permission.APPROVE_LISTINGS,
     Permission.MANAGE_ALL_LISTINGS,
     Permission.MANAGE_ALL_USERS,
     Permission.MANAGE_SHOWROOMS,
@@ -128,10 +143,8 @@ export const Roles = {
     Permission.BROWSE_LISTINGS,
   ],
 
-  SUPER_ADMIN: [
-    ...Object.values(Permission)
-  ],
-} as const;
+  SUPER_ADMIN: Object.values(Permission),
+};
 
 // Zod schema for role validation
 export const roleSchema = z.enum([
@@ -160,6 +173,21 @@ export const roleMapping: Record<number, Role> = {
   8: "SUPER_ADMIN", // roleId 8 maps to 'SUPER_ADMIN'
 };
 // Helper function to check if a role has a specific permission
-export const hasPermission = (role: Role, permission: PermissionType): boolean => {
-  return Roles[role].includes(permission as any);
+// export const hasPermission = (role: Role, permission: PermissionType): boolean => {
+//   return Roles[role].includes(permission as any);
+// };
+
+export const hasPermission = (role: Role | undefined, permission: PermissionType): boolean => {
+  if (!role || !(role in Roles)) {
+    console.warn(`Invalid or missing role: "${role}"`);
+    return false;
+  }
+
+  const permissions = Roles[role];
+  if (!Array.isArray(permissions)) {
+    console.warn(`Permissions for role "${role}" are not an array`);
+    return false;
+  }
+
+  return permissions.includes(permission);
 };

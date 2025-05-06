@@ -44,11 +44,8 @@ import {
 
 type UserRole = z.infer<typeof roleSchema>;
 
-interface ManageMessagesProps {
-  userRole: UserRole;
-}
 
-const ManageMessages = ({ userRole }: ManageMessagesProps) => {
+const ManageMessages = () => {
   const { t } = useTranslation();
   const { user, isAuthenticated } = useAuth();
   const [formData, setFormData] = useState<Partial<Message>>({});

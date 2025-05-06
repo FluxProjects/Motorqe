@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { useMutation } from "@tanstack/react-query";
 import { BasicInfoStep } from "./BasicInfoStep";
@@ -9,9 +9,11 @@ import { PricingStep } from "./PricingStep";
 import { ReviewStep } from "./ReviewStep";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { ListingFormData } from "@shared/schema";
+import { AdminCarListing, ListingFormData } from "@shared/schema";
 import { useForm, FormProvider } from "react-hook-form";
 import { useAuth } from "@/contexts/AuthContext";
+import { Permission } from "@shared/permissions";
+import { PermissionGuard } from "@/components/PermissionGuard";
 
 const steps = [
   "Basic Info",
@@ -22,7 +24,12 @@ const steps = [
   "Review",
 ];
 
-export const useCreateListing = () => {
+interface ListingFormProps {
+  listing?: AdminCarListing | null;
+  onSuccess?: () => void;
+}
+
+export const useCreateListingtest = () => {
   const auth = useAuth();
   const user = auth?.user;
   const [, navigate] = useLocation();
@@ -88,11 +95,83 @@ export const useCreateListing = () => {
   });
 };
 
-export function ListingForm() {
+export function ListingForm({ listing, onSuccess }: ListingFormProps) {
   const [step, setStep] = useState(0);
   const [formData, setFormData] = useState<ListingFormData>({});
+  const auth = useAuth();
+  const user = auth?.user;
+  const [, navigate] = useLocation();
 
-  const { mutate: createListing } = useCreateListing();
+  // Initialize form with listing data if editing
+  useEffect(() => {
+    if (listing) {
+      setFormData({
+        basicInfo: {
+          title: listing.title,
+          description: listing.description,
+          price: listing.price?.toString(),
+          location: listing.location,
+        },
+        specifications: {
+          categoryId: listing.category_id?.toString(),
+          makeId: listing.make_id?.toString(),
+          modelId: listing.model_id?.toString(),
+          year: listing.year?.toString(),
+          mileage: listing.mileage?.toString(),
+          fuelType: listing.fuel_type,
+          transmission: listing.transmission,
+          color: listing.color,
+          condition: listing.condition,
+        },
+        media: listing.images || [],
+        features: listing.features?.map((f: { id: number }) => f.id.toString()) ?? [],
+      });
+    }
+  }, [listing]);
+
+  const { mutate: createListing } = useMutation({
+    mutationFn: async (formData: ListingFormData) => {
+      const payload = {
+        title: formData.basicInfo?.title,
+        title_ar: formData.basicInfo?.title,
+        description: formData.basicInfo?.description,
+        price: formData.basicInfo?.price,
+        location: formData.basicInfo?.location,
+        category_id: formData.specifications?.categoryId,
+        make_id: formData.specifications?.makeId,
+        model_id: formData.specifications?.modelId,
+        year: formData.specifications?.year,
+        mileage: formData.specifications?.mileage,
+        fuel_type: formData.specifications?.fuelType,
+        transmission: formData.specifications?.transmission,
+        color: formData.specifications?.color,
+        condition: formData.specifications?.condition,
+        images: formData.media ?? [],
+        featureIds: formData.features?.map((id: string) => Number(id)) ?? [],
+        user_id: user?.id,
+      };
+
+      const method = listing ? "PATCH" : "POST";
+      const url = listing
+        ? `/api/car-listings/${listing.id}`
+        : "/api/car-listings";
+
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) throw new Error("Failed to save listing");
+      return await res.json();
+    },
+    onSuccess: (data) => {
+      if (formData.package?.packageId) {
+        // Handle promotion if needed
+      }
+      onSuccess?.();
+    },
+  });
 
   const updateData = (newData: Partial<ListingFormData>) => {
     setFormData((prev) => ({ ...prev, ...newData }));
@@ -174,7 +253,7 @@ export function ListingForm() {
 
   return (
     <FormProvider {...methods}>
-      <Card className="mx-auto mt-8">
+      <Card className="mx-auto mt-2">
         <div className="mb-4">
           <h2 className="text-2xl font-bold">{steps[step]}</h2>
           <Progress
@@ -182,7 +261,9 @@ export function ListingForm() {
             className="mt-2"
           />
         </div>
-        {renderStep()}
+        <PermissionGuard permission={Permission.CREATE_LISTINGS}>
+          {renderStep()}
+        </PermissionGuard>
       </Card>
     </FormProvider>
   );

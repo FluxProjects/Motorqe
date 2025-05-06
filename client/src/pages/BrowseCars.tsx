@@ -36,7 +36,7 @@ import {
 } from "lucide-react";
 import { queryClient } from "@/lib/queryClient";
 import {
-  Filters,
+  CarListingFilters,
   CarCategory,
   CarMake,
   CarsData,
@@ -49,7 +49,7 @@ const BrowseCars = () => {
   const { t } = useTranslation();
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid"); // Default to grid view
   const [searchParams, setSearchParams] = useState<URLSearchParams>();
-  const [filters, setFilters] = useState<Filters>({
+  const [filters, setFilters] = useState<CarListingFilters>({
     make: "all",
     model: "all",
     minPrice: "all",
@@ -59,10 +59,11 @@ const BrowseCars = () => {
     year: [1990, new Date().getFullYear()],
     fuel_type: [],
     transmission: [],
-    isFeatured: null,
+    isFeatured: false,
     sort: "newest",
     page: 1,
-    limit: 9,
+    limit: 10,
+    status: "active",
   });
   const [filtersOpen, setFiltersOpen] = useState(false);
 
@@ -191,7 +192,7 @@ const BrowseCars = () => {
 
   const filterCars = (
     allCars: CarListing[],
-    filters: Filters
+    filters: CarListingFilters
   ): CarListing[] => {
     return allCars.filter((car) => {
       console.log("Evaluating car:", car);
@@ -354,7 +355,8 @@ const BrowseCars = () => {
       isFeatured: null,
       sort: "newest",
       page: 1,
-      limit: 9,
+      limit: 10,
+      status: "active",
     });
 
     // Clear URL params and navigate to /browse

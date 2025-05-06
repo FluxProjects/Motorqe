@@ -96,7 +96,7 @@ export interface IStorage {
   deleteCarListing(id: number): Promise<void>;
   getListingsBySeller(sellerId: number): Promise<CarListing[]>;
   incrementListingViews(id: number): Promise<void>;
-  updateListingStatus(id: number, status: 'draft' | 'pending' | 'active' | 'sold' | 'expired' | 'rejected'): Promise<void>;
+  updateListingStatus(id: number, status: 'draft' | 'pending' | 'active' | 'sold' | 'expired' | 'reject'): Promise<void>;
 
   // Car Listing Features operations
   getCarFeaturedListings(filter?: Partial<CarListing>, sortBy?: keyof CarListing, sortOrder?: 'asc' | 'desc'): Promise<CarListing[]>;
@@ -657,36 +657,150 @@ export class DatabaseStorage implements IStorage {
   // CAR LISTING OPERATIONS
   // =============================================
 
-  async getAllCarListings(filter: Partial<CarListing> = {}, sortBy?: keyof CarListing, sortOrder: 'asc' | 'desc' = 'asc'): Promise<CarListing[]> {
+  async getAllCarListings(
+    filter: Partial<CarListing> & {
+      updated_from?: string;
+      updated_to?: string;
+      year_from?: number;
+      year_to?: number;
+      isFeatured?: boolean;
+      miles_from?: number | string;
+      miles_to?: number | string;
+      user_id?: number;
+    } = {},
+    sortBy?: keyof CarListing,
+    sortOrder: 'asc' | 'desc' = 'asc'
+  ): Promise<CarListing[]> {
+    console.log('--- START: getAllCarListings ---');
+    console.log('Incoming filter parameters:', JSON.stringify(filter, null, 2));
+    console.log('Incoming sort parameters:', { sortBy, sortOrder });
+
     let baseQuery = 'SELECT * FROM car_listings';
     const whereClauses: string[] = [];
     const values: any[] = [];
     let paramIndex = 1;
-
+  
+    // Process filters
     for (const key in filter) {
       if (Object.prototype.hasOwnProperty.call(filter, key)) {
-        const typedKey = key as keyof typeof filter;
-        const value = filter[typedKey];
-
-        if (value !== undefined) {
-          whereClauses.push(`${key} = $${paramIndex}`);
-          values.push(value);
-          paramIndex++;
+        const value = filter[key as keyof typeof filter];
+        
+        console.log(`Processing filter: ${key} =`, value);
+    
+        if (value !== undefined && value !== null) {
+          switch (key) {
+            case 'updated_from': {
+              if (typeof value === 'string' || value instanceof Date) {
+                const date = new Date(value);
+                if (!isNaN(date.getTime())) {
+                  whereClauses.push(`updated_at >= $${paramIndex}`);
+                  values.push(date.toISOString());
+                  console.log(`Added date filter: updated_at >= ${date.toISOString()}`);
+                  paramIndex++;
+                }
+              }
+              break;
+            }
+            case 'updated_to': {
+              if (typeof value === 'string' || value instanceof Date) {
+                const date = new Date(value);
+                if (!isNaN(date.getTime())) {
+                  date.setUTCHours(23, 59, 59, 999);
+                  whereClauses.push(`updated_at <= $${paramIndex}`);
+                  values.push(date.toISOString());
+                  console.log(`Added date filter: updated_at <= ${date.toISOString()}`);
+                  paramIndex++;
+                }
+              }
+              break;
+            }
+            case 'year_from':
+              whereClauses.push(`year >= $${paramIndex}`);
+              values.push(Number(value));
+              console.log(`Added year filter: year >= ${Number(value)}`);
+              paramIndex++;
+              break;
+            case 'year_to':
+              whereClauses.push(`year <= $${paramIndex}`);
+              values.push(Number(value));
+              console.log(`Added year filter: year <= ${Number(value)}`);
+              paramIndex++;
+              break;
+            case 'isFeatured':
+              whereClauses.push(`is_featured = $${paramIndex}`);
+              values.push(value);
+              console.log(`Added featured filter: is_featured = ${value}`);
+              paramIndex++;
+              break;
+            case 'user_id':
+              whereClauses.push(`user_id = $${paramIndex}`);
+              values.push(value);
+              console.log(`Added featured filter: user_id = ${value}`);
+              paramIndex++;
+              break;
+            case 'miles_from':
+              whereClauses.push(`mileage >= $${paramIndex}`);
+              values.push(Number(value));
+              console.log(`Added mileage filter: mileage >= ${Number(value)}`);
+              paramIndex++;
+              break;
+            case 'miles_to':
+              whereClauses.push(`mileage <= $${paramIndex}`);
+              values.push(Number(value));
+              console.log(`Added mileage filter: mileage <= ${Number(value)}`);
+              paramIndex++;
+              break;
+            default:
+              whereClauses.push(`${key} = $${paramIndex}`);
+              values.push(value);
+              console.log(`Added generic filter: ${key} = ${value}`);
+              paramIndex++;
+              break;
+          }
+        } else {
+          console.log(`Skipping filter ${key} - value is undefined or null`);
         }
       }
     }
-
-    if (whereClauses.length) {
+    
+    // Build WHERE clause
+    if (whereClauses.length > 0) {
       baseQuery += ' WHERE ' + whereClauses.join(' AND ');
+      console.log('Final WHERE clause:', whereClauses.join(' AND '));
+      console.log('Query parameters:', values);
+    } else {
+      console.log('No filters applied - using base query');
     }
-
-    if (sortBy) {
+  
+    // Handle sorting
+    const validSortFields: (keyof CarListing)[] = [
+      'id', 'title', 'price', 'year', 'mileage', 'status', 'updated_at', 'created_at'
+    ];
+  
+    if (sortBy && validSortFields.includes(sortBy)) {
       baseQuery += ` ORDER BY ${sortBy} ${sortOrder.toUpperCase()}`;
+      console.log(`Applying sort: ORDER BY ${sortBy} ${sortOrder.toUpperCase()}`);
+    } else if (sortBy) {
+      console.log(`Invalid sort field: ${sortBy} - skipping sort`);
     }
-
-    return await db.query(baseQuery, values);
+  
+    console.log('Final SQL query:', baseQuery);
+    
+    try {
+      const result = await db.query(baseQuery, values);
+      console.log('Query successful. Retrieved rows:', result.length);
+      console.log('First 3 rows (sample):', result.slice(0, 3));
+      
+      console.log('--- END: getAllCarListings ---');
+      return result;
+    } catch (error) {
+      console.error('Database query failed:', error);
+      console.log('--- END: getAllCarListings (with error) ---');
+      throw error;
+    }
   }
-
+  
+  
   async getCarFeaturedListings(filter: Partial<CarListing> = {}, sortBy?: keyof CarListing, sortOrder: 'asc' | 'desc' = 'asc'): Promise<CarListing[]> {
     let baseQuery = 'SELECT * FROM car_listings WHERE is_featured = true';
     const values: any[] = [];
@@ -757,7 +871,7 @@ export class DatabaseStorage implements IStorage {
     await db.query('UPDATE car_listings SET views = views + 1 WHERE id = $1', [id]);
   }
 
-  async updateListingStatus(id: number, status: 'draft' | 'pending' | 'active' | 'sold' | 'expired' | 'rejected'): Promise<void> {
+  async updateListingStatus(id: number, status: 'draft' | 'pending' | 'active' | 'sold' | 'expired' | 'reject'): Promise<void> {
     await db.query('UPDATE car_listings SET status = $1 WHERE id = $2', [status, id]);
   }
 

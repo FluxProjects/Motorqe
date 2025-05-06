@@ -1,32 +1,50 @@
-// src/components/ProtectedRoute.tsx
-import { useEffect } from "react";
-import { useLocation } from "wouter";
-import { useAuth } from "@/contexts/AuthContext"; // Adjust your auth context import
-import { redirectToCorrectDashboard } from "@/lib/utils"; // Helper function to redirect
+import { Redirect } from "wouter";
+import { useAuth } from "@/contexts/AuthContext";
+import { roleMapping, Roles } from "@shared/permissions";
 
-interface ProtectedRouteProps {
-  allowedRoles: string[]; // Roles allowed to access this route
-  children: React.ReactNode; // Route content
-}
+export const ProtectedRoute = ({
+  children,
+  permissions = [],
+  fallback = "/",
+}: {
+  children: React.ReactNode;
+  permissions: string[];
+  fallback?: string;
+}) => {
+  const { user, isAuthenticated, isLoading } = useAuth();
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles, children }) => {
-  const { user } = useAuth();
-  const [currentPath, navigate] = useLocation();
+  console.log("✅ Auth State:", { user, isAuthenticated, isLoading });
 
-  useEffect(() => {
-    if (!user) {
-      // If user isn't logged in, you can redirect them to login page (if necessary)
-      navigate("/");
-      return;
-    }
+  const userRole = roleMapping[user?.roleId] || "BUYER";
+  console.log("✅ Mapped Role:", user?.roleId, "→", userRole);
 
-    if (!allowedRoles.includes(user.role)) {
-      // If the user's role isn't in allowedRoles, redirect them to their own dashboard
-      redirectToCorrectDashboard(user.role as any, currentPath, navigate);
-    }
-  }, [user, allowedRoles, currentPath, navigate]);
+  const rolePermissions = Roles[userRole] || [];
+  console.log("✅ Role Permissions:", rolePermissions);
 
-  return <>{children}</>;
+  // if (isLoading) {
+  //   return <LoadingScreen />;
+  // }
+
+  if (permissions?.length === 0) {
+    console.log("✅ No permissions required, rendering children.");
+    return <>{children}</>;
+  }
+
+  console.log("🔍 Required Permissions:", permissions);
+
+  const hasAccess = permissions?.some((permission) =>
+    rolePermissions.includes(permission as any)
+  );
+
+  console.log("🔐 Access Check:", { hasAccess });
+
+  if (hasAccess) {
+    console.log("✅ Access granted. Rendering protected content.");
+    return <>{children}</>;
+  } else {
+    console.warn("⛔ Access denied. Redirecting to fallback:", fallback);
+    return <Redirect to={fallback} />;
+  }
 };
 
 export default ProtectedRoute;

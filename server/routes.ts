@@ -15,28 +15,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/auth/me", async (req: Request, res: Response) => {
     try {
       const token = req.cookies?.token || req.headers.authorization?.split(' ')[1];
-  
+
       if (!token) {
         return res.status(200).json(null);
       }
-  
+
       const decoded = verifyToken(token);
       if (!decoded || !decoded.id) {
         return res.status(200).json(null);
       }
-  
+
       const user = await storage.getUser(decoded.id); // Assuming this returns user details
       if (!user) {
         return res.status(200).json(null);
       }
-  
+
       res.status(200).json(user);
     } catch (error) {
       console.error("Authentication error:", error);
       res.status(500).json({ message: "Failed to authenticate", error });
     }
   });
-  
+
   app.post("/api/auth/login", async (req, res) => {
     const { email, password } = req.body;
     console.log("Login request recieved from", email);
@@ -48,7 +48,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         sameSite: 'strict',
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       });
-      
+
       res.json({ token, user });
     } catch (err: any) {
       res.status(401).json({ message: err.message });
@@ -84,7 +84,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         sameSite: 'strict',
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       });
-      
+
       res.status(201).json({ token, user });
     } catch (err: any) {
       console.error("Registration error:", err);
@@ -371,28 +371,116 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Car Listings
   app.get("/api/car-listings", async (req, res) => {
+    console.log("Received request to /api/car-listings with query:", req.query);
     try {
       const filters: any = {};
+      console.log("Initial filters object:", filters);
 
-      if (req.query.make) {
+      // Make
+      if (req.query.make && req.query.make !== "all") {
+        console.log("Processing make filter with value:", req.query.make);
         const makeId = parseInt(req.query.make as string, 10);
-        if (!isNaN(makeId)) filters.make_id = makeId;
+        if (!isNaN(makeId)) {
+          filters.make_id = makeId;
+          console.log("Added make_id filter:", makeId);
+        } else {
+          console.log("Invalid make_id - not a number");
+        }
+      } else {
+        console.log("No make filter or 'all' selected");
       }
 
-      // Repeat as needed for other filterable fields (e.g., category, status)
-      if (req.query.category) {
+      // Category
+      if (req.query.category && req.query.category !== "all") {
+        console.log("Processing category filter with value:", req.query.category);
         const catId = parseInt(req.query.category as string, 10);
-        if (!isNaN(catId)) filters.category_id = catId;
+        if (!isNaN(catId)) {
+          filters.category_id = catId;
+          console.log("Added category_id filter:", catId);
+        } else {
+          console.log("Invalid category_id - not a number");
+        }
+      } else {
+        console.log("No category filter or 'all' selected");
       }
 
-      if (req.query.status) {
+      // Status
+      if (req.query.status && req.query.status !== "all") {
+        console.log("Processing status filter with value:", req.query.status);
         filters.status = req.query.status;
+        console.log("Added status filter:", req.query.status);
+      } else {
+        console.log("No status filter or 'all' selected");
       }
 
+      // isFeatured
+      if (req.query.isFeatured) {
+        console.log("Processing isFeatured filter with value:", req.query.isFeatured);
+        filters.isFeatured = req.query.isFeatured === "true";
+        console.log("Added isFeatured filter:", filters.isFeatured);
+      } else {
+        console.log("No isFeatured filter");
+      }
+
+      // Date Range
+      if (req.query.updated_from && req.query.updated_to) {
+        console.log("Processing date range filter with values:", req.query.updated_from, "to", req.query.updated_to);
+        filters.updated_from = req.query.updated_from;
+        filters.updated_to = req.query.updated_to;
+        console.log("Added date range filter:", filters.updated_from, "to", filters.updated_to);
+      } else {
+        console.log("No date range filter or incomplete range");
+      }
+
+      // Year Range
+      if (req.query.year_from && req.query.year_to) {
+        console.log("Processing year range filter with values:", req.query.year_from, "to", req.query.year_to);
+        const year_from = req.query.year_from;
+        const year_to = req.query.year_to;
+
+        const parsedYearFrom = Number(year_from);
+        const parsedYearTo = Number(year_to);
+                
+        if (
+          (year_from && isNaN(parsedYearFrom)) ||
+          (year_to && isNaN(parsedYearTo))
+        ) {
+          console.log("Invalid year filter - not a number");
+          return res.status(400).json({ message: 'Invalid year filter' });
+        }
+
+        filters.year_from = parsedYearFrom;
+        filters.year_to = parsedYearTo;
+        console.log("Added year range filter:", filters.year_from, "to", filters.year_to);
+      } else {
+        console.log("No year range filter or incomplete range");
+      }
+
+      // Miles Range
+      if (req.query.miles_from && req.query.miles_to) {
+        console.log("Processing miles range filter with values:", req.query.miles_from, "to", req.query.miles_to);
+        filters.miles_from = req.query.miles_from;
+        filters.miles_to = req.query.miles_to;
+        console.log("Added miles range filter:", filters.miles_from, "to", filters.miles_to);
+      } else {
+        console.log("No miles range filter or incomplete range");
+      }
+
+      // User Id
+      if (req.query.user_id) {
+        console.log("Processing userid filter with value:", req.query.user_id);
+        filters.user_id = req.query.user_id;
+        console.log("Added user filter:", filters.user_id);
+      } else {
+        console.log("No userid filter");
+      }
+
+      console.log("Final filters object before querying storage:", filters);
       const listings = await storage.getAllCarListings(filters);
+      console.log("Retrieved listings from storage (count):", listings.length);
       res.json(listings);
     } catch (error) {
-      console.error("Failed to fetch listings:", error);  // Add logging
+      console.error("Failed to fetch listings:", error);
       res.status(500).json({ message: "Failed to fetch listings", error });
     }
   });
@@ -430,29 +518,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to create listing", error });
     }
   });
-  
+
 
   app.put("/api/car-listings/:id", async (req, res) => {
     try {
       const id = Number(req.params.id);
-      const { featureIds = [], ...updates } = req.body;
-  
+      const { featureIds = [], action, ...updates } = req.body;
+
       const updated = await storage.updateCarListing(id, updates);
       if (!updated) return res.status(404).json({ message: "Listing not found" });
-  
+
       // Clear existing features and add new ones
       await storage.clearFeaturesForListing(id);
       if (featureIds.length) {
         await storage.bulkAddFeaturesToListing(id, featureIds);
       }
-  
+
       const fullListing = await storage.getCarListingById(id);
       res.json(fullListing);
     } catch (error) {
       res.status(500).json({ message: "Failed to update listing", error });
     }
   });
-  
+
 
   app.delete("/api/car-listings/:id", async (req, res) => {
     try {
@@ -499,68 +587,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
   /**
  * SERVICE DATA
  */
-app.get("/api/services", async (_req, res) => {
-  try {
-    const services = await storage.getAllServices();
-    res.json(services);
-  } catch (error) {
-    console.error("❌ Error fetching services:", error);
-    res.status(500).json({ message: "Failed to fetch services" });
-  }
-});
+  app.get("/api/services", async (_req, res) => {
+    try {
+      const services = await storage.getAllServices();
+      res.json(services);
+    } catch (error) {
+      console.error("❌ Error fetching services:", error);
+      res.status(500).json({ message: "Failed to fetch services" });
+    }
+  });
 
-app.get("/api/services/:id", async (req, res) => {
-  try {
-    const id = Number(req.params.id);
-    if (isNaN(id)) return res.status(400).json({ message: "Invalid service ID" });
+  app.get("/api/services/:id", async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid service ID" });
 
-    const service = await storage.getService(id);
-    if (!service) return res.status(404).json({ message: "Service not found" });
+      const service = await storage.getService(id);
+      if (!service) return res.status(404).json({ message: "Service not found" });
 
-    res.json(service);
-  } catch (error) {
-    console.error("❌ Error fetching service:", error);
-    res.status(500).json({ message: "Failed to fetch service" });
-  }
-});
+      res.json(service);
+    } catch (error) {
+      console.error("❌ Error fetching service:", error);
+      res.status(500).json({ message: "Failed to fetch service" });
+    }
+  });
 
-app.post("/api/services", async (req, res) => {
-  try {
-    const newService = await storage.createService(req.body);
-    res.status(201).json(newService);
-  } catch (error) {
-    console.error("❌ Error creating service:", error);
-    res.status(500).json({ message: "Failed to create service" });
-  }
-});
+  app.post("/api/services", async (req, res) => {
+    try {
+      const newService = await storage.createService(req.body);
+      res.status(201).json(newService);
+    } catch (error) {
+      console.error("❌ Error creating service:", error);
+      res.status(500).json({ message: "Failed to create service" });
+    }
+  });
 
-app.put("/api/services/:id", async (req, res) => {
-  try {
-    const id = Number(req.params.id);
-    if (isNaN(id)) return res.status(400).json({ message: "Invalid service ID" });
+  app.put("/api/services/:id", async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid service ID" });
 
-    const updated = await storage.updateService(id, req.body);
-    if (!updated) return res.status(404).json({ message: "Service not found" });
+      const updated = await storage.updateService(id, req.body);
+      if (!updated) return res.status(404).json({ message: "Service not found" });
 
-    res.json(updated);
-  } catch (error) {
-    console.error("❌ Error updating service:", error);
-    res.status(500).json({ message: "Failed to update service" });
-  }
-});
+      res.json(updated);
+    } catch (error) {
+      console.error("❌ Error updating service:", error);
+      res.status(500).json({ message: "Failed to update service" });
+    }
+  });
 
-app.delete("/api/services/:id", async (req, res) => {
-  try {
-    const id = Number(req.params.id);
-    if (isNaN(id)) return res.status(400).json({ message: "Invalid service ID" });
+  app.delete("/api/services/:id", async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid service ID" });
 
-    await storage.deleteService(id);
-    res.status(204).send();
-  } catch (error) {
-    console.error("❌ Error deleting service:", error);
-    res.status(500).json({ message: "Failed to delete service" });
-  }
-});
+      await storage.deleteService(id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("❌ Error deleting service:", error);
+      res.status(500).json({ message: "Failed to delete service" });
+    }
+  });
 
 
   /**
@@ -700,7 +788,7 @@ app.delete("/api/services/:id", async (req, res) => {
     try {
       const { key, value } = req.body;
       if (!key || value === undefined) return res.status(400).json({ message: "key and value required" });
-      const updated = await storage.updateSettings({ [key]: value }); 
+      const updated = await storage.updateSettings({ [key]: value });
       res.json(updated);
     } catch (error) {
       res.status(500).json({ message: "Failed to update setting", error });
@@ -855,19 +943,19 @@ app.delete("/api/services/:id", async (req, res) => {
 
   app.post("/api/user-subscriptions", async (req, res) => {
     const { userId, planId, paymentMethodId, customerId } = req.body;
-  
+
     if (!userId || !planId || !paymentMethodId) {
       return res.status(400).json({ message: "Missing required fields" });
     }
-  
+
     try {
-  
+
       const result = await paymentService.createSubscription(
         userId,
         planId,
         paymentMethodId
       );
-  
+
       res.status(200).json({
         message: "Subscription initiated",
         subscriptionId: result.subscriptionId,
@@ -879,59 +967,59 @@ app.delete("/api/services/:id", async (req, res) => {
       res.status(500).json({ message: "Failed to create subscription", error });
     }
   });
-  
+
 
   app.put("/api/user-subscriptions/:id", async (req, res) => {
     try {
       const id = Number(req.params.id);
       const updates = req.body;
-  
+
       // Optional: restrict fields that can be updated manually
       const allowedFields = ['autoRenew', 'isActive'];
       const sanitizedUpdates: Record<string, any> = {};
-  
+
       for (const key of allowedFields) {
         if (updates.hasOwnProperty(key)) {
           sanitizedUpdates[key] = updates[key];
         }
       }
-  
+
       const updated = await storage.updateUserSubscription(id, sanitizedUpdates);
-  
+
       if (!updated) {
         return res.status(404).json({ message: "Subscription not found" });
       }
-  
+
       res.json(updated);
     } catch (error) {
       console.error("Failed to update user subscription:", error);
       res.status(500).json({ message: "Failed to update user subscription", error });
     }
   });
-  
+
 
   app.post("/api/user-subscriptions/:id/cancel", async (req, res) => {
     try {
       const subscriptionId = Number(req.params.id);
       const subscription = await storage.getUserSubscription(subscriptionId);
-  
+
       if (!subscription) {
         return res.status(404).json({ message: "Subscription not found" });
       }
-  
+
       // Fetch associated transaction to get Stripe subscription ID
       let paymentId: string | undefined;
-  
+
       if (subscription.transactionId) {
         const transaction = await storage.getTransaction(subscription.transactionId);
         paymentId = transaction?.paymentId;
       }
-  
+
       // Cancel on Stripe if paymentId is a Stripe subscription ID
       if (paymentId) {
         await paymentService.cancelSubscription(paymentId);
       }
-  
+
       await storage.cancelUserSubscription(subscriptionId);
       res.json({ message: "Subscription cancelled successfully" });
     } catch (error) {
@@ -939,37 +1027,37 @@ app.delete("/api/services/:id", async (req, res) => {
       res.status(500).json({ message: "Failed to cancel subscription", error });
     }
   });
-  
+
   app.post("/api/user-subscriptions/:id/renew", async (req, res) => {
     try {
       const subscriptionId = Number(req.params.id);
       const subscription = await storage.getUserSubscription(subscriptionId);
-  
+
       if (!subscription) {
         return res.status(404).json({ message: "Subscription not found" });
       }
-  
+
       const user = await storage.getUser(subscription.userId);
       const plan = await storage.getSubscriptionPlan(subscription.planId);
-  
+
       if (!user || !plan) {
         return res.status(400).json({ message: "User or plan not found" });
       }
-  
+
       const newSubscription = await paymentService.createSubscription(
         user.id,
         plan.id,
         req.body.paymentMethodId, // Or retrieve a saved method
       );
-  
+
       res.status(201).json(newSubscription);
     } catch (error) {
       console.error("Renewal error:", error);
       res.status(500).json({ message: "Failed to renew subscription", error });
     }
   });
-  
-  
+
+
 
   /**
    * TRANSACTIONS
@@ -1049,21 +1137,21 @@ app.delete("/api/services/:id", async (req, res) => {
       res.status(500).json({ message: "Failed to fetch listing promotions", error });
     }
   });
-  
+
   app.post("/api/listing-promotions", async (req, res) => {
     const { userId, listingId, packageId } = req.body;
-  
+
     if (!userId || !listingId || !packageId) {
       return res.status(400).json({ message: "Missing userId, listingId, or packageId" });
     }
-  
+
     try {
 
-       // 1. Get promotion package details
-    const promotionPackage = await storage.getPromotionPackage(packageId);
-    if (!promotionPackage) {
-      return res.status(404).json({ message: "Promotion package not found" });
-    }
+      // 1. Get promotion package details
+      const promotionPackage = await storage.getPromotionPackage(packageId);
+      if (!promotionPackage) {
+        return res.status(404).json({ message: "Promotion package not found" });
+      }
       // Initiate promotion payment (creates Stripe payment intent + pending transaction)
 
       // const paymentResult = await paymentService.createListingPromotionPayment(
@@ -1090,20 +1178,20 @@ app.delete("/api/services/:id", async (req, res) => {
           durationDays: promotionPackage.duration_days
         }
       });
-  
+
       res.status(200).json({
         message: "Payment intent and transaction created",
-      clientSecret: paymentId, // paymentResult.clientSecret,
-      paymentIntentId: transaction.id,  // paymentResult.paymentIntentId,
-      transaction
+        clientSecret: paymentId, // paymentResult.clientSecret,
+        paymentIntentId: transaction.id,  // paymentResult.paymentIntentId,
+        transaction
       });
     } catch (error: any) {
       console.error("Failed to initiate promotion payment:", error);
       res.status(500).json({ message: "Failed to initiate promotion payment", error: error.message });
     }
   });
-  
-  
+
+
 
   app.post("/api/listing-promotions/:id/deactivate", async (req, res) => {
     try {

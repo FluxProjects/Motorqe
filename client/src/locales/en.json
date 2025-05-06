@@ -444,6 +444,10 @@
     "noUsersFound": "No Users Found",
     "noUsersFoundDesc": "No users match your search criteria",
     "allListings": "All Listings",
+    "allMakes" : "All Makes",
+    "allCategories" :"All Categories",
+    "allDates" : "All Dates",
+    "createListing" : "Add New Listing",
     "activeListings": "Active Listings",
     "rejectedListings": "Rejected Listings",
     "searchListings": "Search Listings",
@@ -570,7 +574,18 @@
     "preferences": "Preferences",
     "preferencesPlaceholder": "Enter your preferences...",
     "searchMessages": "Search Messages",
-    "noMessagesFound" : "No Messages Found"
+    "noMessagesFound" : "No Messages Found",
+    "nonFeatured": "All Ads",
+    "featuredOnly": "Featured Only",
+    "soldListing": "Sold Listings",
+    "soldListingDesc": "View and manage all sold vehicle listings",
+    "soldOwnListingWarning": "Warning: This will permanently mark your own listing as sold",
+    "markSoldListing": "Mark as Sold",
+    "markSoldListingDesc": "Mark this vehicle listing as sold",
+    "markSoldOwnListingWarning": "Warning: You are about to mark your own listing as sold",
+    "markSoldListingWarning": "Warning: You are about to mark listing as sold",
+    "reject":"Reject",
+    "approve": "Approve"
   },
   "profile": {
     "profileInfo": "Profile Information",
@@ -601,5 +616,26 @@
     "lastName": "Last Name",
     "email": "Email",
     "phone": "Phone Number"
+  },
+  "status": {
+    "draft": "Draft",
+    "pending": "Pending",
+    "active": "Active",
+    "sold": "Sold",
+    "expired": "Expired",
+    "rejected": "Rejected",
+    "confirmed": "Confirmed",
+    "complete": "Complete",
+    "completed": "Completed",
+    "failed": "Failed",
+    "refunded": "Refunded",
+    "reviewed": "Reviewed",
+    "resolved": "Resolved",
+    "sent": "Sent",
+    "read": "Read",
+    "unread": "Unread",
+    "inactive": "Inactive",
+    "suspended": "Suspended",
+    "removed": "Removed"
   }
 }

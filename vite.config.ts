@@ -22,6 +22,10 @@ export default defineConfig({
       : []),
   ],
   server: {
+    middlewareMode: true,
+    watch: {
+      usePolling: true // If files aren't being detected
+    },
     host: 'localhost',
     port: 5173,
     proxy: {

@@ -154,11 +154,6 @@ const Header = ({ openAuthModal }: HeaderProps) => {
     }
   };
 
-
-  if (loading) {
-    return null; // ⏳ Wait until authentication is ready
-  }
-
   return (
     <div className="w-full mx-auto px-4 sm:px-6 lg:px-32 xl:px-32">
       <div className="flex justify-between items-center h-16">
