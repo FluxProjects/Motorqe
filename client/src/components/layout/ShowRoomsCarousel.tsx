@@ -3,23 +3,28 @@ import { Swiper, SwiperSlide } from 'swiper/react';
 import { Navigation } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/navigation';
-
-const showrooms = [
-  'https://placehold.co/400x400',
-  'https://placehold.co/400x400',
-  'https://placehold.co/400x400',
-  'https://placehold.co/400x400',
-  'https://placehold.co/400x400',
-  'https://placehold.co/400x400',
-  'https://placehold.co/400x400',
-  'https://placehold.co/400x400',
-  'https://placehold.co/400x400',
-  'https://placehold.co/400x400','https://placehold.co/400x400',
-  'https://placehold.co/400x400',
-];
+import { Showroom } from '@shared/schema';
+import { apiRequest } from '@/lib/queryClient';
+import { useQuery } from '@tanstack/react-query';
+import { Link } from 'wouter';
 
 const ShowRoomsCarousel = () => {
   const { t } = useTranslation();
+
+  const { data: showrooms, isLoading } = useQuery<Showroom[]>({
+    queryKey: ["/api/showrooms"],
+    queryFn: () =>
+      apiRequest("GET", "/api/showrooms").then((res) => res.json()),
+    select: (data) => data.filter(showroom => showroom.is_featured === true)
+  });
+
+  if (isLoading) {
+    return <div className="bg-white py-10">Loading...</div>;
+  }
+
+  if (!showrooms || showrooms.length === 0) {
+    return <div className="bg-white py-10">No featured showrooms available</div>;
+  }
 
   return (
     <section className="bg-white py-10">
@@ -31,7 +36,7 @@ const ShowRoomsCarousel = () => {
         <Swiper
           modules={[Navigation]}
           spaceBetween={40}
-          slidesPerView={6}
+          slidesPerView={5}
           navigation
           loop
           breakpoints={{
@@ -43,13 +48,21 @@ const ShowRoomsCarousel = () => {
           }}
           className="relative"
         >
-          {showrooms.map((src, idx) => (
-            <SwiperSlide key={idx} className="flex justify-center">
-              <img
-                src={src}
-                alt="Dealer Logo"
-                className="h-30 grayscale hover:grayscale-0 transition"
-              />
+          {showrooms && showrooms.map((showroom) => (
+            <SwiperSlide key={showroom.id} className="flex justify-center">
+               <Link href={`/showrooms/${showroom.id}`}>
+                <a className="block cursor-pointer">
+                  <img
+                    src={showroom.logo || '/placeholder-logo.png'}
+                    alt={showroom.name}
+                    className="h-30 grayscale hover:grayscale-0 transition"
+                  />
+                  <p className="mt-2 text-sm font-medium text-gray-700 hover:text-blue-600">
+                    {showroom.name}
+                  </p>
+                </a>
+              </Link>
+             
             </SwiperSlide>
           ))}
         </Swiper>

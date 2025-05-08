@@ -45,6 +45,8 @@ CREATE TABLE showrooms (
   user_id INTEGER NOT NULL REFERENCES users(id),
   name TEXT NOT NULL,
   name_ar TEXT,
+  description TEXT,
+  description_ar TEXT,
   is_main_branch BOOLEAN DEFAULT FALSE,
   parent_id INTEGER REFERENCES showrooms(id) ON DELETE SET NULL,
   address TEXT,
@@ -399,6 +401,33 @@ INSERT INTO showrooms (user_id, name, name_ar, is_main_branch, parent_id, addres
 (10, 'DriveSmart Motors', 'محركات القيادة الذكية', false, 7, '222 Palestine St, Jeddah', '222 شارع فلسطين، جدة', '21.5125, 39.2041', '+966508901234', 'https://placehold.co/400x400'),
 (10, 'Metro Car Plaza', 'ساحة مترو للسيارات', false, 7, '333 Corniche Rd, Dammam', '333 كورنيش الدمام', '26.4366, 50.1033', '+966509012345', 'https://placehold.co/400x400'),
 (10, 'AutoLux Center', 'مركز أوتو لوكس', false, 7, '777 King Khalid St, Taif', '777 شارع الملك خالد، الطائف', '21.2828, 40.3829', '+966500123456', 'https://placehold.co/400x400');
+
+UPDATE public.showrooms SET
+  description = CASE id
+    WHEN 1 THEN 'Premium showroom offering a wide selection of luxury vehicles.'
+    WHEN 2 THEN 'Comprehensive car dealership with diverse inventory.'
+    WHEN 3 THEN 'High-performance vehicles for speed enthusiasts.'
+    WHEN 4 THEN 'Exclusive gallery for luxury and exotic cars.'
+    WHEN 5 THEN 'Trusted dealership for city-ready vehicles.'
+    WHEN 6 THEN 'Desert-ready 4x4s and rugged performance vehicles.'
+    WHEN 7 THEN 'Central hub for elite auto brands and services.'
+    WHEN 8 THEN 'Smart vehicle dealership for modern drivers.'
+    WHEN 9 THEN 'Conveniently located plaza for metro area car buyers.'
+    WHEN 10 THEN 'Luxurious cars with a focus on comfort and elegance.'
+  END,
+  description_ar = CASE id
+    WHEN 1 THEN 'معرض فاخر يقدم مجموعة واسعة من السيارات الفخمة.'
+    WHEN 2 THEN 'وكالة سيارات شاملة بمخزون متنوع.'
+    WHEN 3 THEN 'سيارات عالية الأداء لعشاق السرعة.'
+    WHEN 4 THEN 'معرض حصري للسيارات الفاخرة والنادرة.'
+    WHEN 5 THEN 'وكالة موثوقة للسيارات المناسبة للمدن.'
+    WHEN 6 THEN 'سيارات دفع رباعي جاهزة للصحراء وأداء قوي.'
+    WHEN 7 THEN 'مركز رئيسي لعلامات السيارات المميزة والخدمات.'
+    WHEN 8 THEN 'وكالة سيارات ذكية للسائقين العصريين.'
+    WHEN 9 THEN 'ساحة سيارات في موقع مناسب لعملاء المنطقة الحضرية.'
+    WHEN 10 THEN 'سيارات فاخرة مع تركيز على الراحة والأناقة.'
+  END
+WHERE id IN (1,2,3,4,5,6,7,8,9,10);
 
 -- Showroom Makes
 INSERT INTO showroom_service_makes (showroom_id, make_id) VALUES (1, 1), (1, 2), (1, 3);

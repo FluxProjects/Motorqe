@@ -32,6 +32,7 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import bcrypt from "bcryptjs";
+import { Description } from "@radix-ui/react-toast";
 
 export interface IStorage {
   // User operations
@@ -184,7 +185,10 @@ export interface IStorage {
 
   // Service operations
   getAllServices(): Promise<CarService[]>;
-  getService(id: number): Promise<CarService | undefined>;
+  getAllFeaturedServices(): Promise<CarService[]> 
+  getShowroomServiceByServiceId(id: number): Promise<any>;
+  getService(id: number): Promise<any>
+  getServicesByMake(makeId: number): Promise<ShowroomService[]>
   createService(service: InsertCarService): Promise<CarService>;
   updateService(id: number, updates: Partial<InsertCarService>): Promise<CarService | undefined>;
   deleteService(id: number): Promise<void>;
@@ -214,7 +218,8 @@ export interface IStorage {
   completeServiceBooking(id: number): Promise<void>;
 
   // Showroom Service Make operations
-  getShowroomMakes(serviceId: number): Promise<ShowroomMake[]>;
+  getShowroomMakes(serviceId: number): Promise<(ShowroomMake & { make?: CarMake })[]>;
+  getAllShowroomsMakes(): Promise<any>;
   addShowroomMake(serviceId: number, makeId: number): Promise<ShowroomMake>;
   removeShowroomMake(serviceId: number, makeId: number): Promise<void>;
   bulkAddShowroomMakes(serviceId: number, makeIds: number[]): Promise<void>;
@@ -611,7 +616,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCarFeature(id: number): Promise<CarFeature | undefined> {
-    const result = await db.query('SELECT * FROM car_features WHERE id = $1 LIMIT 1', [id]);
+    const result = await db.query('SELECT * FROM car_features WHERE id = $1', [id]);
     return result[0];
   }
 
@@ -666,6 +671,8 @@ export class DatabaseStorage implements IStorage {
       isFeatured?: boolean;
       miles_from?: number | string;
       miles_to?: number | string;
+      price_from?: number | string;
+      price_to?: number | string;
       user_id?: number;
     } = {},
     sortBy?: keyof CarListing,
@@ -750,6 +757,18 @@ export class DatabaseStorage implements IStorage {
               console.log(`Added mileage filter: mileage <= ${Number(value)}`);
               paramIndex++;
               break;
+              case 'price_from':
+                whereClauses.push(`price >= $${paramIndex}`);
+                values.push(Number(value));
+                console.log(`Added price filter: price >= ${Number(value)}`);
+                paramIndex++;
+                break;
+              case 'price_to':
+                whereClauses.push(`price <= $${paramIndex}`);
+                values.push(Number(value));
+                console.log(`Added price filter: price <= ${Number(value)}`);
+                paramIndex++;
+                break;
             default:
               whereClauses.push(`${key} = $${paramIndex}`);
               values.push(value);
@@ -879,8 +898,8 @@ export class DatabaseStorage implements IStorage {
   // CAR LISTING FEATURES OPERATIONS
   // =============================================
 
-  async getFeaturesForListing(listingId: number): Promise<CarListingFeature[]> {
-    return await db.query('SELECT * FROM car_listing_features WHERE listing_id = $1', [listingId]);
+  async getFeaturesForListing(listing_id: number): Promise<CarListingFeature[]> {
+    return await db.query('SELECT * FROM car_listing_features WHERE listing_id = $1', [listing_id]);
   }
 
   async addFeatureToListing(listingId: number, featureId: number): Promise<CarListingFeature> {
@@ -1244,8 +1263,8 @@ export class DatabaseStorage implements IStorage {
 
   async createShowroom(showroom: InsertShowroom): Promise<Showroom> {
     const result = await db.query(
-      'INSERT INTO showrooms (user_id, name, name_ar, is_main_branch, parent_id, address, address_ar, location, phone, logo) ' +
-      'VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *',
+      'INSERT INTO showrooms (user_id, name, name_ar, is_main_branch, parent_id, address, address_ar, location, phone, logo, is_featured) ' +
+      'VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *',
       [
         showroom.userId,
         showroom.name,
@@ -1255,7 +1274,9 @@ export class DatabaseStorage implements IStorage {
         showroom.address,
         showroom.addressAr,
         showroom.location,
-        showroom.phone
+        showroom.phone,
+        showroom.logo,
+        showroom.isFeatured,
       ]
     );
     return result[0];
@@ -1309,6 +1330,12 @@ export class DatabaseStorage implements IStorage {
     if (updates.phone !== undefined) {
       fields.push(`phone = $${paramIndex}`);
       values.push(updates.phone);
+      paramIndex++;
+    }
+
+    if (updates.isFeatured !== undefined) {
+      fields.push(`is_featured = $${paramIndex}`);
+      values.push(updates.isFeatured);
       paramIndex++;
     }
 
@@ -1405,10 +1432,231 @@ export class DatabaseStorage implements IStorage {
     return await db.query('SELECT * FROM car_services ORDER BY name');
   }
 
-  async getService(id: number): Promise<CarService | undefined> {
-    const result = await db.query('SELECT * FROM car_services WHERE id = $1 LIMIT 1', [id]);
-    return result[0];
+  async getAllFeaturedServices(): Promise<any[]> {
+    return await db.query(`SELECT
+  ss.id AS showroom_service_id,
+  ss.is_featured,
+  ss.price,
+  ss.currency,
+  ss.description,
+  ss.description_ar,
+  cs.id AS service_id,
+  cs.name AS service_name,
+  cs.name_ar AS service_nameAr,
+  s.id AS showroom_id,
+  s.name AS showroom_name,
+  s.location AS showroom_location
+FROM showroom_services ss
+JOIN car_services cs ON ss.service_id = cs.id
+JOIN showrooms s ON ss.showroom_id = s.id
+WHERE ss.is_featured = true
+`);
   }
+  
+
+  async getServicesByMake(makeId: number): Promise<ShowroomService[]> {
+    const query = `
+      SELECT ss.*, cs.*, s.* 
+FROM showroom_services ss
+JOIN car_services cs ON ss.service_id = cs.id
+JOIN showrooms s ON ss.showroom_id = s.id
+JOIN showroom_service_makes ssm ON ss.showroom_id = ssm.showroom_id
+WHERE ssm.make_id = :makeId
+    `;
+    
+    return await db.query(query, [makeId]);
+  }
+
+  async getShowroomServiceByServiceId(id: number): Promise<any | undefined> {
+    const query = `
+      SELECT 
+        cs.id AS service_id,
+        cs.name AS service_name,
+        cs.name_ar AS service_name_ar,
+        cs.image AS service_image,
+        ss.description AS service_description,
+        ss.description_ar AS service_description_ar,
+        ss.price,
+        ss.currency,
+        ss.is_featured,
+  
+        sr.id AS showroom_id,
+        sr.name AS showroom_name,
+        sr.name_ar AS showroom_name_ar,
+        sr.logo,
+        sr.is_featured,
+        sr.description AS showroom_description,
+        sr.description_ar AS showroom_description_ar,
+        sr.address,
+        sr.address_ar,
+        sr.location,
+        sr.phone,
+        sr.is_main_branch,
+  
+        cm.id AS make_id,
+        cm.name AS make_name,
+        cm.name_ar AS make_name_ar,
+        cm.image AS make_image
+  
+      FROM showroom_services ss
+      JOIN car_services cs ON ss.service_id = cs.id
+      JOIN showrooms sr ON ss.showroom_id = sr.id
+      LEFT JOIN showroom_service_makes ssm ON ssm.showroom_id = sr.id
+      LEFT JOIN car_makes cm ON ssm.make_id = cm.id
+      WHERE cs.id = $1;
+    `;
+  
+    try {
+      const result = await db.query(query, [id]);
+  
+      if (result.length === 0) return undefined;
+  
+      const firstRow = result[0];
+  
+      const makes = result
+        .filter(row => row.make_id) // ignore null joins
+        .map(row => ({
+          id: row.make_id,
+          name: row.make_name,
+          nameAr: row.make_name_ar,
+          image: row.make_image
+        }));
+  
+      return {
+        service: {
+          id: firstRow.service_id,
+          name: firstRow.service_name,
+          nameAr: firstRow.service_name_ar,
+          image: firstRow.service_image,
+          description: firstRow.service_description,
+          descriptionAr: firstRow.service_description_ar
+        },
+        showroom: {
+          id: firstRow.showroom_id,
+          name: firstRow.showroom_name,
+          nameAr: firstRow.showroom_name_ar,
+          logo: firstRow.logo,
+          description: firstRow.showroom_description,
+          descriptionAr: firstRow.showroom_description_ar,
+          isMainBranch: firstRow.is_main_branch,
+          address: firstRow.address,
+          addressAr: firstRow.address_ar,
+          location: firstRow.location,
+          phone: firstRow.phone
+        },
+        makes,
+        price: firstRow.price,
+        currency: firstRow.currency,
+        description: firstRow.description,
+        descriptionAr: firstRow.description_ar,
+        isFeatured: firstRow.is_featured
+      };
+    } catch (error) {
+      console.error('Error fetching service:', error);
+      throw new Error('Failed to fetch service');
+    }
+  }
+
+  async getService(id: number): Promise<any | undefined> {
+    const query = `
+      SELECT 
+        cs.id AS service_id,
+        cs.name AS service_name,
+        cs.name_ar AS service_name_ar,
+        cs.image AS service_image,
+  
+        ss.description AS service_description,
+        ss.description_ar AS service_description_ar,
+        ss.price,
+        ss.currency,
+        ss.is_featured,
+  
+        sr.id AS showroom_id,
+        sr.name AS showroom_name,
+        sr.name_ar AS showroom_name_ar,
+        sr.logo,
+        sr.description AS showroom_description,
+        sr.description_ar AS showroom_description_ar,
+        sr.address,
+        sr.address_ar,
+        sr.location,
+        sr.phone,
+        sr.is_main_branch,
+  
+        cm.id AS make_id,
+        cm.name AS make_name,
+        cm.name_ar AS make_name_ar,
+        cm.image AS make_image
+  
+      FROM showroom_services ss
+      JOIN car_services cs ON ss.service_id = cs.id
+      JOIN showrooms sr ON ss.showroom_id = sr.id
+      LEFT JOIN showroom_service_makes ssm ON ssm.showroom_id = sr.id
+      LEFT JOIN car_makes cm ON ssm.make_id = cm.id
+      WHERE cs.id = $1;
+    `;
+  
+    try {
+      const result = await db.query(query, [id]);
+  
+      if (result.length === 0) return undefined;
+  
+      const firstRow = result[0];
+  
+      const showroomMap = new Map<number, any>();
+  
+      for (const row of result) {
+        const showroomId = row.showroom_id;
+        if (!showroomMap.has(showroomId)) {
+          showroomMap.set(showroomId, {
+            id: showroomId,
+            name: row.showroom_name,
+            nameAr: row.showroom_name_ar,
+            logo: row.logo,
+            description: row.showroom_description,
+            descriptionAr: row.showroom_description_ar,
+            isMainBranch: row.is_main_branch,
+            address: row.address,
+            addressAr: row.address_ar,
+            location: row.location,
+            phone: row.phone,
+            price: row.price,
+            currency: row.currency,
+            isFeatured: row.is_featured,
+            description: row.service_description,
+            descriptionAr: row.service_description_ar,
+            makes: []
+          });
+        }
+  
+        if (row.make_id) {
+          showroomMap.get(showroomId).makes.push({
+            id: row.make_id,
+            name: row.make_name,
+            nameAr: row.make_name_ar,
+            image: row.make_image
+          });
+        }
+      }
+  
+      return {
+        service: {
+          id: firstRow.service_id,
+          name: firstRow.service_name,
+          nameAr: firstRow.service_name_ar,
+          image: firstRow.service_image,
+          description: firstRow.service_description,
+          descriptionAr: firstRow.service_description_ar
+        },
+        showrooms: Array.from(showroomMap.values())
+      };
+    } catch (error) {
+      console.error('Error fetching service:', error);
+      throw new Error('Failed to fetch service');
+    }
+  }
+  
+   
 
   async createService(service: InsertCarService): Promise<CarService> {
     const result = await db.query(
@@ -1503,30 +1751,59 @@ export class DatabaseStorage implements IStorage {
     filter?: Partial<ShowroomService>,
     sortBy?: keyof ShowroomService,
     sortOrder: 'asc' | 'desc' = 'asc'
-  ): Promise<ShowroomService[]> {
-    let baseQuery = 'SELECT * FROM showroom_services WHERE showroom_id = $1';
+  ): Promise<(ShowroomService & { service?: CarService })[]> {
+    // Start with base query and include service data in a single join
+    let baseQuery = `
+      SELECT ss.*, cs.* 
+      FROM showroom_services ss
+      LEFT JOIN car_services cs ON ss.service_id = cs.id
+      WHERE ss.showroom_id = $1
+    `;
+    
     const values: any[] = [showroomId];
-    let paramIndex = 2; // Start from 2 because $1 is showroomId
-
-    for (const key in filter) {
-      if (Object.prototype.hasOwnProperty.call(filter, key)) {
-        const typedKey = key as keyof typeof filter;
-        const value = filter[typedKey];
-
-        if (value !== undefined) {
-          baseQuery += ` AND ${key} = $${paramIndex}`;
-          values.push(value);
-          paramIndex++;
+    let paramIndex = 2;
+  
+    // Apply filters
+    if (filter) {
+      for (const key in filter) {
+        if (Object.prototype.hasOwnProperty.call(filter, key)) {
+          const typedKey = key as keyof typeof filter;
+          const value = filter[typedKey];
+  
+          if (value !== undefined) {
+            baseQuery += ` AND ss.${key} = $${paramIndex}`;
+            values.push(value);
+            paramIndex++;
+          }
         }
       }
     }
-
+  
+    // Apply sorting
     if (sortBy) {
-      baseQuery += ` ORDER BY ${sortBy} ${sortOrder.toUpperCase()}`;
+      baseQuery += ` ORDER BY ss.${sortBy} ${sortOrder.toUpperCase()}`;
     }
-
-    return await db.query(baseQuery, values);
+  
+    // Execute single query
+    const results = await db.query(baseQuery, values);
+  
+    // Map results to combine showroom service and car service data
+    return results.map((record) => {
+      const { id, created_at, updated_at, ...serviceData } = record;
+      const service = serviceData.id ? {
+        id: serviceData.id,
+        created_at: serviceData.created_at,
+        updated_at: serviceData.updated_at,
+        ...serviceData
+      } : undefined;
+      
+      return {
+        ...record,
+        service
+      };
+    });
   }
+  
 
   async createShowroomService(service: InsertShowroomService): Promise<ShowroomService> {
     const result = await db.query(
@@ -1694,12 +1971,27 @@ export class DatabaseStorage implements IStorage {
   // SHOWROOM SERVICE MAKE OPERATIONS
   // =============================================
 
-  async getShowroomMakes(serviceId: number): Promise<ShowroomMake[]> {
-    return await db.query(
-      'SELECT * FROM showroom_makes WHERE showroom_service_id = $1',
-      [serviceId]
-    );
+  async getAllShowroomsMakes(): Promise<any[]> {
+    return await db.query('SELECT * FROM showroom_service_makes');
   }
+  
+  async getShowroomMakes(
+    showroomId: number
+  ): Promise<(ShowroomMake & { make?: CarMake })[]> {
+    const showroomMakes = await db.query(
+      'SELECT * FROM showroom_service_makes WHERE showroom_id = $1',
+      [showroomId]
+    );
+  
+    const enrichedMakes = await Promise.all(
+      showroomMakes.map(async (item) => {
+        const make = await this.getCarMake(item.make_id); // Assuming `make_id` refers to `car_makes.id`
+        return { ...item, make };
+      })
+    );
+  
+    return enrichedMakes;
+  }  
 
   async addShowroomMake(serviceId: number, makeId: number): Promise<ShowroomMake> {
     const result = await db.query(

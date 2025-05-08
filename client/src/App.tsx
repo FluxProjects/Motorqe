@@ -28,6 +28,10 @@ import { RoleSpecificRoute } from "@/components/RoleSpecificRoute";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { useEffect, useState } from "react";
 import { ProtectedRoute } from "@/components/ProtectedRoute"
+import ShowroomDetails from "./pages/ShowroomDetails";
+import BrowseServices from "./pages/BrowseServices";
+import ServiceDetails from "./pages/ServiceDetail";
+import ShowroomServiceDetails from "./pages/ShowroomServiceDetail";
 
 function App() {
   const [error, setError] = useState<Error | null>(null);
@@ -84,7 +88,11 @@ function App() {
           <Route path="/" component={Home} />
           <Route path="/browse" component={BrowseCars} />
           <Route path="/browse-showrooms" component={BrowseShowrooms} />
+          <Route path="/browse-services" component={BrowseServices} />
           <Route path="/cars/:id" component={CarDetails} />
+          <Route path="/showrooms/:id" component={ShowroomDetails} />
+          <Route path="/services/:id" component={ServiceDetails} />
+          <Route path="/showroom-services/:id" component={ShowroomServiceDetails} />
           
           {/* Sell Car - Protected by CREATE_LISTINGS permission */}
           <Route path="/sell-car">

@@ -253,6 +253,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/showrooms/service/makes", async (_req, res) => {
+    try {
+      const showroomsmakes = await storage.getAllShowroomsMakes();
+      res.json(showroomsmakes);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch showrooms service makes", error });
+    }
+  });
+
   app.get("/api/showrooms/user/:userId", async (req, res) => {
     try {
       const showrooms = await storage.getShowroomsByUser(Number(req.params.userId));
@@ -270,6 +279,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to fetch showroom", error });
     }
   });
+
+  // Get all services for a showroom
+  app.get("/api/showrooms/:id/services", async (req, res) => {
+    const showroomId = Number(req.params.id);
+    console.log(`Fetching services for showroom ID: ${showroomId}`);
+
+    try {
+      const services = await storage.getShowroomServicesByShowroomId(showroomId);
+      console.log(`Retrieved ${services.length} services for showroom ID ${showroomId}`);
+      res.json(services);
+    } catch (error) {
+      console.error("Failed to fetch showroom services:", error);
+      res.status(500).json({ message: "Failed to fetch showroom services", error });
+    }
+  });
+
+  //Get all makes/brands for a showroom
+  app.get("/api/showrooms/:id/makes", async (req, res) => {
+    const showroomId = Number(req.params.id);
+    console.log(`Fetching makes for showroom ID: ${showroomId}`);
+
+    try {
+      const makes = await storage.getShowroomMakes(showroomId);
+      console.log(`Retrieved ${makes.length} makes for showroom ID ${showroomId}`);
+      res.json(makes);
+    } catch (error) {
+      console.error("Failed to fetch showroom makes:", error);
+      res.status(500).json({ message: "Failed to fetch showroom makes", error });
+    }
+  });
+
+  // Get showroom car listings
+  app.get("/api/showrooms/:id/cars", async (req, res) => {
+    const showroomId = Number(req.params.id);
+    console.log(`Fetching car listings for showroom ID: ${showroomId}`);
+
+    try {
+      const listings = await storage.getAllCarListings({ id: showroomId });
+      console.log(`Retrieved ${listings.length} car listings for showroom ID ${showroomId}`);
+      res.json(listings);
+    } catch (error) {
+      console.error("Failed to fetch showroom car listings:", error);
+      res.status(500).json({ message: "Failed to fetch showroom car listings", error });
+    }
+  });
+
+
 
   /**
    * CAR DATA
@@ -440,7 +496,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         const parsedYearFrom = Number(year_from);
         const parsedYearTo = Number(year_to);
-                
+
         if (
           (year_from && isNaN(parsedYearFrom)) ||
           (year_to && isNaN(parsedYearTo))
@@ -464,6 +520,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log("Added miles range filter:", filters.miles_from, "to", filters.miles_to);
       } else {
         console.log("No miles range filter or incomplete range");
+      }
+
+      // Price Range
+      if (req.query.price_from && req.query.price_to) {
+        console.log("Processing price range filter with values:", req.query.price_from, "to", req.query.price_to);
+        filters.price_from = req.query.price_from;
+        filters.price_to = req.query.price_to;
+        console.log("Added price range filter:", filters.price_from, "to", filters.price_to);
+      } else {
+        console.log("No price range filter or incomplete range");
       }
 
       // User Id
@@ -554,12 +620,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Car Listing Features
   app.get("/api/car-listings/:id/features", async (req, res) => {
     try {
-      const features = await storage.getFeaturesForListing(Number(req.params.id));
-      res.json(features);
+      // Get the list of feature IDs associated with the car listing
+      const featureIds = await storage.getFeaturesForListing(Number(req.params.id));
+
+      // Fetch the feature details for each feature ID
+      const featuresWithDetails = await Promise.all(
+        featureIds.map(async (featureObject) => {
+          // Ensure we're using the featureId (not the entire object)
+          const features = await storage.getCarFeature(featureObject.id);
+          if (features) {
+            return {
+              id: features.id,
+              name: features.name,
+              nameAr: features.nameAr,
+            };
+          }
+          return null;
+        })
+      );
+
+      // Filter out any null values in case any feature was not found
+      const filteredFeatures = featuresWithDetails.filter((feature) => feature !== null);
+
+      // Return the features with details
+      res.json(filteredFeatures);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch listing features", error });
     }
   });
+
+
 
   app.post("/api/car-listings/:id/features", async (req, res) => {
     try {
@@ -594,6 +684,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("❌ Error fetching services:", error);
       res.status(500).json({ message: "Failed to fetch services" });
+    }
+  });
+
+  app.get("/api/services/featured", async (_req, res) => {
+    try {
+      const services = await storage.getAllFeaturedServices();
+      res.json(services);
+    } catch (error) {
+      console.error("❌ Error fetching services:", error);
+      res.status(500).json({ message: "Failed to fetch services" });
+    }
+  });
+
+  app.get("/api/showroom/services/:id", async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid service ID" });
+
+      const service = await storage.getShowroomServiceByServiceId(id);
+      if (!service) return res.status(404).json({ message: "Service not found" });
+
+      res.json(service);
+    } catch (error) {
+      console.error("❌ Error fetching service:", error);
+      res.status(500).json({ message: "Failed to fetch service" });
     }
   });
 
@@ -650,6 +765,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get all services for a specific make
+  app.get("/api/services/makes/:id", async (req, res) => {
+    const makeId = Number(req.params.id);
+    console.log(`Fetching services for make ID: ${makeId}`);
+
+    try {
+      const services = await storage.getServicesByMake(makeId);
+      console.log(`Retrieved ${services.length} services for make ID ${makeId}`);
+      res.json(services);
+    } catch (error) {
+      console.error("Failed to fetch services for make:", error);
+      res.status(500).json({
+        message: "Failed to fetch services for make",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  app.post("/api/service-bookings", async (req, res) => {
+    try {
+      const { userId, serviceId, scheduledAt, status, notes } = req.body;
+      console.log("Received new service booking request:", req.body);
+
+      const booking = await storage.createServiceBooking({ userId, serviceId, scheduledAt, status, notes });
+      console.log("Created service booking:", booking);
+
+      res.status(201).json(booking);
+    } catch (error) {
+      console.error("Failed to create service booking:", error);
+      res.status(500).json({ message: "Failed to create service booking", error });
+    }
+  });
 
   /**
    * FAVORITES

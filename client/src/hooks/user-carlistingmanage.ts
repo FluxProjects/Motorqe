@@ -35,8 +35,6 @@ export const useCarListingManage = () => {
     const [filters, setFilters] = useState<AdminCarListingFilters>({
         make: "all",
         model: "all",
-        minPrice: "all",
-        maxPrice: "all",
         category: "all",
         location: [],
         year: [1900, new Date().getFullYear()],
@@ -145,6 +143,14 @@ export const useCarListingManage = () => {
                 searchParams.append("miles_to", filters.milesRange.to);
             }
 
+             // ✅ Price range
+             if (filters.priceRange?.from) {
+                searchParams.append("price_from", filters.priceRange.from);
+            }
+            if (filters.priceRange?.to) {
+                searchParams.append("price_to", filters.priceRange.to);
+            }
+
             const finalUrl = `/api/car-listings?${searchParams.toString()}`;
             console.log("[DEBUG] Final API URL:", finalUrl);
 
@@ -199,7 +205,7 @@ export const useCarListingManage = () => {
                 // Fetch models
                 Promise.all(
                     uniqueModelIds.map(async (id) => {
-                        console.log(`[DEBUG] Fetching model ${id}`);
+                        console.log(`[DEBUG] Fetching models`);
                         try {
                             const res = await fetch(`/api/car-models/${id}`);
                             if (!res.ok) {
@@ -216,7 +222,7 @@ export const useCarListingManage = () => {
                 // Fetch makes
                 Promise.all(
                     uniqueMakeIds.map(async (id) => {
-                        console.log(`[DEBUG] Fetching make ${id}`);
+                        console.log(`[DEBUG] Fetching makes `);
                         try {
                             const res = await fetch(`/api/car-makes/${id}`);
                             if (!res.ok) {
@@ -298,17 +304,32 @@ export const useCarListingManage = () => {
 
             // Check permissions before performing actions
             const roleName = roleMapping[user?.role || 0];
+            const isListingOwner = currentListing?.user_id === user?.id;
 
-            if (action === "active") {
+            if (action === "publish" && currentListing?.status === "draft") {
+                if(
+                    isListingOwner &&
+                    roleName !== "BUYER"
+                ){
+                    await apiRequest("PUT", `/api/car-listings/${id}`, {
+                        action,
+                        reason,
+                    });
+                    return;
+                }
+                   
+                
+                
+            }
+
+            if (action === "publish") {
                 if ( 
                     roleName === "SUPER_ADMIN" ||
                     roleName === "ADMIN" ||
                     roleName === "MODERATOR" ||
                     roleName === "SENIOR_MODERATOR") {
                     await apiRequest("PUT", `/api/car-listings/${id}`, {
-                        action,
-                        reason,
-                        featured
+                        action: "active",
                     });
                     return;
                 }
@@ -382,6 +403,9 @@ export const useCarListingManage = () => {
             let message = "";
 
             switch (actionType) {
+                case "publish":
+                    message = t("admin.listingPublished");
+                    break;
                 case "approve":
                     message = t("admin.listingApproved");
                     break;
@@ -429,8 +453,6 @@ export const useCarListingManage = () => {
         setFilters({
             make: "all",
             model: "all",
-            minPrice: "all",
-            maxPrice: "all",
             category: "all",
             location: [],
             year: [1990, new Date().getFullYear()],
@@ -445,6 +467,7 @@ export const useCarListingManage = () => {
             dateRangePreset: "all",
             yearRange: { from: "", to: "" },
             milesRange: { from: "", to: "" },
+            priceRange: { from: "", to: "" },
             user_id: user?.id,
         });
         refetch();
@@ -465,6 +488,7 @@ export const useCarListingManage = () => {
         if (!currentListing) return;
 
         switch (actionType) {
+            case "publish":
             case "approve":
                 performAction.mutate({ id: currentListing.id, action: "approve" });
                 break;

@@ -11,7 +11,7 @@ interface ListingsTableProps {
   resetFilters: () => void;
   handleViewListing: (listing: AdminCarListing) => void;
   handleEditListing: (listing: AdminCarListing) => void;
-  handleAction: (listing: AdminCarListing, action: 'edit' |'approve' | 'reject' | 'feature' | 'delete' | 'sold') => void;
+  handleAction: (listing: AdminCarListing, action: 'publish' | 'edit' |'approve' | 'reject' | 'feature' | 'delete' | 'sold') => void;
   getStatusBadge: (status: string) => React.ReactNode;
 }
 
@@ -44,6 +44,7 @@ export const CarListingTable = ({
       <TableHeader>
         <TableRow className="bg-neutral-500 hover:bg-neutral-700 border-neutral-50">
           <TableHead className="text-white">{t("car.carDetails")}</TableHead>
+          <TableHead className="text-white">{t("car.price")}</TableHead>
           <TableHead className="text-white">{t("car.makeModel")}</TableHead>
           <TableHead className="text-white">{t("car.year")}</TableHead>
           <TableHead className="text-white">{t("car.mileage")}</TableHead>

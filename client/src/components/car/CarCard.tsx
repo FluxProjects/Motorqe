@@ -3,13 +3,14 @@ import { useState } from "react";
 import { Link } from "wouter";
 import i18n, { resources } from "@/lib/i18n";
 import { useTranslation } from "react-i18next";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Heart, MapPin, Calendar, Fuel, Gauge, Cog } from "lucide-react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { User } from "@shared/schema";
 
 interface CarCardProps {
   car: {
@@ -76,6 +77,30 @@ const CarCard = ({ car, isFavorited = false }: CarCardProps) => {
     },
   });
 
+   const {
+      data: seller,
+      error,
+      isLoading,
+    } = useQuery<User>({
+      queryKey: ["/api/users", car?.user_id],
+      queryFn: async () => {
+        console.log("Car User ID:", car?.user_id);
+  
+        try {
+          const res = await fetch(`/api/users/${car?.user_id}`);
+          console.log("Response received:", res);
+  
+          const data = await res.json();
+          console.log("Fetched seller data:", data);
+          return data;
+        } catch (err) {
+          console.error("Error in query function:", err);
+          throw err;
+        }
+      },
+      enabled: !!car?.user_id, // Only fetch when car data is available
+    });
+
   const handleFavoriteToggle = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -91,7 +116,7 @@ const CarCard = ({ car, isFavorited = false }: CarCardProps) => {
 
     toggleFavorite.mutate();
   };
-
+console.log("Car data", car);
   return (
     <Card
       className={`overflow-hidden hover:shadow-md transition-shadow duration-300 ${
@@ -185,21 +210,21 @@ const CarCard = ({ car, isFavorited = false }: CarCardProps) => {
 
       <CardFooter className="border-t pt-4 flex justify-between items-center">
         <div className="flex items-center">
-          {car.seller ? (
+          {seller ? (
             <>
-              {car.seller.avatar ? (
+              {seller.avatar ? (
                 <img
-                  src={car.seller.avatar}
-                  alt={car.seller.username}
+                  src={seller.avatar}
+                  alt={seller.username}
                   className="w-8 h-8 rounded-full mr-2 object-cover"
                 />
               ) : (
                 <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mr-2">
-                  {car.seller.username.charAt(0).toUpperCase()}
+                  {seller.username.charAt(0).toUpperCase()}
                 </div>
               )}
               <span className="text-sm text-slate-600">
-              {car.seller.username.slice(0, 10)}
+              {seller.username.slice(0, 10)}
               </span>
             </>
           ) : (

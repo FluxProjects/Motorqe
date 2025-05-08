@@ -57,12 +57,17 @@ export const CarListingRows = ({
           </div>
           <div>
             <div className="font-medium">{listing.title}</div>
-            <div className="text-sm">${listing.price.toLocaleString()}</div>
+            
             <div className="text-xs text-slate-500 mt-1">
               {t(`car.fuelTypes.${listing.fuel_type}`)} •{" "}
               {t(`car.transmissions.${listing.transmission}`)}
             </div>
           </div>
+        </div>
+      </TableCell>
+      <TableCell>
+        <div>
+        <div className="text-sm">${listing.price.toLocaleString()}</div>
         </div>
       </TableCell>
       <TableCell>
@@ -193,6 +198,20 @@ export const CarListingRows = ({
                   >
                     <CheckCircle className="mr-2 h-4 w-4 text-blue-500" />
                     {t("admin.markAsSold")}
+                  </DropdownMenuItem>
+                </PermissionGuard>
+              </>
+            )}
+
+            {listing.status === "draft" && (
+              <>
+                <PermissionGuard permission={Permission.MANAGE_OWN_LISTINGS}>
+                  <DropdownMenuItem
+                    className="hover:bg-slate-700 focus:bg-slate-700"
+                    onClick={() => handleAction(listing, "publish")}
+                  >
+                    <CheckCircle className="mr-2 h-4 w-4 text-blue-500" />
+                    {t("admin.publishListing")}
                   </DropdownMenuItem>
                 </PermissionGuard>
               </>

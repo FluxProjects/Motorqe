@@ -106,6 +106,7 @@ export const showrooms = pgTable("showrooms", {
   location: text("location"),                     // Geographic location
   phone: text("phone"),                            // Contact phone number
   logo: text("logo"),
+  isFeatured: boolean('is_featured').default(false),
 });
 
 export const insertShowroomSchema = createInsertSchema(showrooms).pick({
@@ -119,6 +120,7 @@ export const insertShowroomSchema = createInsertSchema(showrooms).pick({
   location: true,
   phone: true,
   logo: true,
+  isFeatured: true,
 });
 
 export type InsertShowroom = z.infer<typeof insertShowroomSchema>;
@@ -890,8 +892,6 @@ export type StepProps = {
 export interface AdminCarListingFilters {
   make: string;
   model: string;
-  minPrice: string;
-  maxPrice: string;
   category: string;
   location: string[];
   year?: number[];
@@ -906,6 +906,7 @@ export interface AdminCarListingFilters {
   dateRangePreset?: string;
   yearRange?: { from: string; to: string };
   milesRange?: { from: string; to: string };
+  priceRange?: { from: string; to: string };
   user_id?: number;
 }
 

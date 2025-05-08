@@ -7,7 +7,7 @@ import { CarMake, CarCategory, AdminCarListingFilters } from "@shared/schema";
 import { Tabs, TabsList, TabsTrigger } from "../ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 
-type DateRange = { from: Number | string; to: Number | string };
+type FilterRange = { from: Number | string; to: Number | string };
 
 interface FiltersSectionProps {
   currentTab: string;
@@ -19,10 +19,11 @@ interface FiltersSectionProps {
     category: string;
     make: string;
     isFeatured: boolean;
-    dateRange?: DateRange;
+    dateRange?: FilterRange;
     dateRangePreset?: string;
-    yearRange?: DateRange;
-    milesRange?: DateRange;
+    yearRange?: FilterRange;
+    milesRange?: FilterRange;
+    priceRange?: FilterRange;
     user_id?: number;
   };
   setFilters: (filters: any) => void;
@@ -50,7 +51,7 @@ export const CarListingFilters = ({
 }: FiltersSectionProps) => {
   const { t } = useTranslation();
 
- 
+  const { user } = useAuth();
 
   const getDateRangeFromKeyword = (preset: string): { from: string; to: string } => {
     const today = new Date();
@@ -79,7 +80,7 @@ export const CarListingFilters = ({
     value: AdminCarListingFilters[K]
   ) => {
     setFilters((prev: AdminCarListingFilters) => {
-      const { user } = useAuth();
+      
       const updatedFilters = { ...prev };
       updatedFilters.user_id = user?.id;
       if (key === "dateRangePreset" && typeof value === "string") {
@@ -135,6 +136,12 @@ export const CarListingFilters = ({
             className="data-[state=active]:bg-blue-900 hover:bg-blue-600 hover:text-white data-[state=active]:text-white"
           >
             {t("admin.rejectedListings")}
+          </TabsTrigger>
+          <TabsTrigger
+            value="sold"
+            className="data-[state=active]:bg-blue-900 hover:bg-blue-600 hover:text-white data-[state=active]:text-white"
+          >
+            {t("admin.soldListings")}
           </TabsTrigger>
         </TabsList>
       </Tabs>
@@ -262,6 +269,48 @@ export const CarListingFilters = ({
                 <SelectItem value="false">{t("admin.nonFeatured")}</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          {/* Price Range Dropdown - Fixed */}
+          <div>
+          <select
+              value={(filters.priceRange?.from)?.toString() ?? "0"}
+              onChange={(e) =>
+                handleValueChange("priceRange", {
+                  from: e.target.value,
+                  to: filters.priceRange?.to.toString() ?? "",
+                })
+              }
+            >
+              <option value="">Select Min Price</option>
+              <option value="0">0</option>
+              <option value="1000">1,000</option>
+              <option value="5000">5,000</option>
+              <option value="10000">10,000</option>
+              <option value="20000">20,000</option>
+              <option value="50000">50,000</option>
+              <option value="100000">100,000</option>
+            </select>
+
+            
+            <select
+              value={(filters.priceRange?.to)?.toString() ?? ""}
+              onChange={(e) =>
+                handleValueChange("priceRange", {
+                  from: filters.priceRange?.from.toString() ?? "",
+                  to: e.target.value,
+                })
+              }
+            >
+              <option value="">Select Max Price</option>
+              <option value="1000">1,000</option>
+              <option value="5000">5,000</option>
+              <option value="10000">10,000</option>
+              <option value="20000">20,000</option>
+              <option value="50000">50,000</option>
+              <option value="100000">100,000</option>
+              <option value="500000">200,000+</option>
+            </select>
           </div>
 
           {/* Year Range Dropdown - Fixed */}

@@ -194,6 +194,14 @@ const Header = ({ openAuthModal }: HeaderProps) => {
             {t("common.browseShowrooms")}
           </Link>
           <Link
+            href="/browse-services"
+            className={`text-neutral-900 hover:text-primary font-medium ${
+              location === "/browse-showroom" ? "text-primary" : ""
+            }`}
+          >
+            {t("common.browseServices")}
+          </Link>
+          <Link
             href="/about"
             className={`text-neutral-900 hover:text-primary font-medium ${
               location === "/about" ? "text-primary" : ""
