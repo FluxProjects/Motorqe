@@ -1,5 +1,5 @@
 // src/pages/SellCar.tsx
-import { ListingForm } from "@/components/forms/ListingForm/ListingForm";
+import { ListingForm } from "@/components/forms/CarListingForm/ListingForm";
 import { useTranslation } from "react-i18next";
 
 export default function SellCar() {

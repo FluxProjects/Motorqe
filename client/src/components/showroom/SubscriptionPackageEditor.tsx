@@ -23,9 +23,9 @@ import { Plus, Loader2, Trash2, Pencil } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
 import { 
-  ServicePackage,
-  InsertServicePackage,
-  insertServicePackageSchema 
+  ServicePromotionPackage,
+  InsertServicePromotionPackage,
+  insertServicePromotionPackageSchema 
 } from "@shared/schema";
 import { DataTable } from "@/components/data/Datatable";
 import { ColumnDef } from "@tanstack/react-table";
@@ -36,14 +36,14 @@ export function ServicePackageEditor({ showroomId }: { showroomId: number }) {
   const queryClient = useQueryClient();
 
   // Fetch existing service packages
-  const { data: servicePackages = [], isLoading } = useQuery<ServicePackage[]>({
+  const { data: servicePackages = [], isLoading } = useQuery<ServicePromotionPackage[]>({
     queryKey: ['service-packages', showroomId],
     queryFn: () => fetch(`/api/service-packages?showroomId=${showroomId}`).then(res => res.json()),
   });
 
   // Form setup
-  const form = useForm<InsertServicePackage>({
-    resolver: zodResolver(insertServicePackageSchema),
+  const form = useForm<InsertServicePromotionPackage>({
+    resolver: zodResolver(insertServicePromotionPackageSchema),
     defaultValues: {
       name: '',
       nameAr: '',
@@ -52,14 +52,14 @@ export function ServicePackageEditor({ showroomId }: { showroomId: number }) {
       price: 0,
       currency: 'USD',
       durationDays: 30,
-      serviceLimit: 1,
+      priority: 1,
       isActive: true,
     }
   });
 
   // Create/Update mutation
   const { mutate: savePackage, isPending: isSaving } = useMutation({
-    mutationFn: (data: InsertServicePackage) => 
+    mutationFn: (data: InsertServicePromotionPackage) => 
       fetch('/api/service-packages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -85,7 +85,7 @@ export function ServicePackageEditor({ showroomId }: { showroomId: number }) {
   });
 
   // Table columns
-  const columns: ColumnDef<ServicePackage>[] = [
+  const columns: ColumnDef<ServicePromotionPackage>[] = [
     {
       accessorKey: "name",
       header: t('services.name'),
@@ -172,13 +172,13 @@ function ServicePackageForm({
   onSubmit,
   isSubmitting,
 }: {
-  initialData?: ServicePackage;
-  onSubmit: (data: InsertServicePackage) => void;
+  initialData?: ServicePromotionPackage;
+  onSubmit: (data: InsertServicePromotionPackage) => void;
   isSubmitting: boolean;
 }) {
   const { t } = useTranslation();
-  const form = useForm<InsertServicePackage>({
-    resolver: zodResolver(insertServicePackageSchema),
+  const form = useForm<InsertServicePromotionPackage>({
+    resolver: zodResolver(insertServicePromotionPackageSchema),
     defaultValues: initialData || {
       name: '',
       nameAr: '',
@@ -187,7 +187,7 @@ function ServicePackageForm({
       price: 0,
       currency: 'USD',
       durationDays: 30,
-      serviceLimit: 1,
+      priority: 1,
       isActive: true,
     }
   });

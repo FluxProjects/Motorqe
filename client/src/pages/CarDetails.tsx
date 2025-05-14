@@ -46,7 +46,7 @@ import {
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { AuthForms } from "@/components/forms/AuthForms";
+import { AuthForms } from "@/components/forms/AuthForm/AuthForms";
 import {
   Form,
   FormControl,
@@ -64,7 +64,7 @@ import {
   CarMake,
   CarModel,
   CarCategory,
-  Users,
+  User,
   CarFeature,
 } from "@shared/schema";
 import {
@@ -135,10 +135,34 @@ const CarDetails = () => {
 
   // Fetch car listing features
   const { data: listingFeatures = [], isLoading: isLoadingCarFeature } =
-    useQuery<CarFeature[]>({
-      queryKey: [`/api/car-listings/${id}/features`],
-      enabled: !!id,
-    });
+  useQuery<CarFeature[]>({
+    queryKey: [`/api/car-listings/${id}/features`],
+    enabled: !!id,
+    queryFn: async () => {
+      if (!id) {
+        console.warn("⚠️ No ID provided for fetching listing features");
+        return [];
+      }
+
+      const url = `/api/car-listings/${id}/features`;
+      console.log(`🌐 Sending GET request to: ${url}`);
+
+      const res = await fetch(url);
+
+      console.log("📥 Response status:", res.status);
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        console.error("❌ Failed to fetch listing features:", errorData);
+        throw new Error(errorData.message || "Failed to fetch listing features");
+      }
+
+      const json = await res.json();
+      console.log("✅ Listing features fetched successfully:", json);
+      return json;
+    }
+  });
+
 
   // Fetch favorite status if logged in
   const { data: favoriteData } = useQuery<any>({
@@ -156,7 +180,7 @@ const CarDetails = () => {
     data: sellerData,
     error,
     isLoading,
-  } = useQuery<Users>({
+  } = useQuery<User>({
     queryKey: ["/api/users", car?.user_id],
     queryFn: async () => {
       console.log("Car User ID:", car?.user_id);
@@ -191,17 +215,23 @@ const CarDetails = () => {
     queryKey: ["/api/car-categories"],
   });
 
-  const { data: models = [] } = useQuery<CarModel[]>({
-    queryKey: [`/api/car-models`, car?.make_id],
-    enabled: !!car?.makeId,
-  });
+const { data: models } = useQuery<CarModel>({
+  queryKey: ["/api/car-model", car?.model_id],
+  queryFn: () =>
+    fetch(`/api/car-model/${car?.model_id}`).then((res) => {
+      if (!res.ok) throw new Error("Failed to fetch model");
+      return res.json();
+    }),
+  enabled: !!car?.model_id,
+});
 
   console.log('listingFeatures', listingFeatures);
 
   const makeName =
     makes.find((m) => m.id === car?.make_id)?.name ?? "Unknown Make";
-  const modelName =
-    models.find((m) => m.id === car?.model_id)?.name ?? "Unknown Model";
+  const modelName = models?.name;
+  console.log("Car", car);
+  console.log("Model", models);
   const categoryName =
     categories.find((c) => c.id === car?.category_id)?.name ??
     "Unknown Category";
@@ -497,16 +527,17 @@ const CarDetails = () => {
 
               <Card className="mb-6">
                 <CardContent className="p-4 flex flex-col gap-2">
-                  <h2 className="text-xl font-semibold">
-                    {makeName} {modelName}
-                  </h2>
-                  <p className="text-muted-foreground">{categoryName}</p>
-                  <p className="text-primary font-bold">
-                   
-                  </p>
-                  {/* Include more car fields if needed */}
-                </CardContent>
-              </Card>
+    <div>
+      <h2 className="text-2xl font-bold text-foreground">
+        {makeName} <span className="text-muted-foreground font-medium">{modelName}</span>
+      </h2>
+      <p className="text-sm text-muted-foreground mt-1">
+        Category: <span className="font-medium">{categoryName}</span>
+      </p>
+    </div>
+  </CardContent>
+</Card>
+
 
 
               <div className="grid grid-cols-2 gap-4 mb-6">
@@ -726,13 +757,6 @@ const CarDetails = () => {
                   </div>
                 </div>
 
-                <Button
-                  className="w-full mt-4"
-                  onClick={() => setContactDialogOpen(true)}
-                >
-                  <MessageSquare size={16} className="mr-1" />
-                  {t("car.contactSeller")}
-                </Button>
               </CardContent>
             </Card>
           </div>

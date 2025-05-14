@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import { DataTable } from "@/components/data/Datatable";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ServiceBookingForm } from "./ServiceBookingForm";
-import { ShowroomService, ServicePackage } from "@shared/schema";
+import { ShowroomService, ServicePromotionPackage } from "@shared/schema";
 import { useAuth } from "@/contexts/AuthContext";
 
 export function ServiceManager() {

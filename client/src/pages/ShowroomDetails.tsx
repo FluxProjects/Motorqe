@@ -46,7 +46,7 @@ import {
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { AuthForms } from "@/components/forms/AuthForms";
+import { AuthForms } from "@/components/forms/AuthForm/AuthForms";
 import {
   Form,
   FormControl,

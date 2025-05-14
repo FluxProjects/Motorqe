@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { CarMake, CarCategory } from "@shared/schema";
+import { CarMake, CarCategory, PromotionPackage } from "@shared/schema";
 import { AdminCarListing, AdminCarListingAction, AdminCarListingFilters } from "@shared/schema";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { hasPermission, Permission, roleMapping } from "@shared/permissions";
@@ -27,9 +27,14 @@ export const useCarListingManage = () => {
     };
 
     const handleCreateListing = () => {
+        console.log("create listing clicked");
         setCurrentListing(null);
         setIsEditing(false);
         setFormDialogOpen(true);
+         console.log("create listing clicked - after state updates", { 
+        formDialogOpen, 
+        isEditing 
+    });
     };
 
     const [filters, setFilters] = useState<AdminCarListingFilters>({
@@ -44,12 +49,15 @@ export const useCarListingManage = () => {
         status: "all",
         sort: "newest",
         page: 1, // Typically starts at page 1
-        limit: 10, // Default limit
+        limit: 100, // Default limit
         dateRange: { from: "", to: "" },
         dateRangePreset: "all",
         yearRange: { from: "", to: "" },
         milesRange: { from: "", to: "" },
         user_id: user?.id,
+        hasPromotion: false,
+        packageType: 'all',
+        promotionStatus: 'all',
     });
     const [viewDialogOpen, setViewDialogOpen] = useState(false);
     const [actionDialogOpen, setActionDialogOpen] = useState(false);
@@ -67,6 +75,18 @@ export const useCarListingManage = () => {
         queryKey: ["/api/car-makes"],
     });
 
+    const {
+        data: promotionPackages = [],
+        isLoading: isLoadingPackages
+    } = useQuery<PromotionPackage[]>({
+        queryKey: ['promotion-packages'],
+        queryFn: async () => {
+            const res = await fetch('/api/promotion-packages');
+            if (!res.ok) throw new Error('Failed to fetch packages');
+            return res.json();
+        }
+    });
+
 
     const {
         data: listings = [],
@@ -80,24 +100,24 @@ export const useCarListingManage = () => {
                 searchQuery,
                 filters,
                 user_id: user?.id,
-                role: user?.role,
+                role: roleMapping[user?.roleId ?? 1] || "BUYER",
             });
 
             const statusParam = currentTab !== "all" ? currentTab : filters.status;
             const searchParams = new URLSearchParams();
 
             // Add role-based filtering
-            const roleName = roleMapping[user?.roleId];
+            const roleName = roleMapping[user?.roleId ?? 1];
 
             if (!roleName) {
-                console.warn(`No role mapping found for role ID: ${user.roleId}`);
+                console.warn(`No role mapping found for role ID: ${user?.roleId}`);
                 return false;
             }
 
             // For sellers and showrooms, only fetch their own listings
             if (roleName === "SELLER" || roleName === "SHOWROOM_BASIC" || roleName === "SHOWROOM_PREMIUM") {
-                console.log("User Id is this:", user.id);
-                searchParams.append("user_id", user.id);
+                console.log("User Id is this:", user?.id);
+                searchParams.append("user_id", user?.id);
             }
 
             // For buyers, only fetch approved listings
@@ -143,8 +163,8 @@ export const useCarListingManage = () => {
                 searchParams.append("miles_to", filters.milesRange.to);
             }
 
-             // ✅ Price range
-             if (filters.priceRange?.from) {
+            // ✅ Price range
+            if (filters.priceRange?.from) {
                 searchParams.append("price_from", filters.priceRange.from);
             }
             if (filters.priceRange?.to) {
@@ -202,23 +222,7 @@ export const useCarListingManage = () => {
                         }
                     })
                 ),
-                // Fetch models
-                Promise.all(
-                    uniqueModelIds.map(async (id) => {
-                        console.log(`[DEBUG] Fetching models`);
-                        try {
-                            const res = await fetch(`/api/car-models/${id}`);
-                            if (!res.ok) {
-                                console.error(`[ERROR] Failed to fetch model ${id}. Status:`, res.status);
-                                return null;
-                            }
-                            return await res.json();
-                        } catch (error) {
-                            console.error(`[ERROR] Error fetching model ${id}:`, error);
-                            return null;
-                        }
-                    })
-                ),
+
                 // Fetch makes
                 Promise.all(
                     uniqueMakeIds.map(async (id) => {
@@ -236,6 +240,26 @@ export const useCarListingManage = () => {
                         }
                     })
                 ),
+
+                // Fetch models by model ID (not by makeId!)
+                Promise.all(
+                    uniqueModelIds.map(async (id) => {
+                        console.log(`[DEBUG] Fetching model ${id}`);
+                        try {
+                            const res = await fetch(`/api/car-model/${id}`);
+                            if (!res.ok) {
+                                console.error(`[ERROR] Failed to fetch model ${id}. Status:`, res.status);
+                                return null;
+                            }
+                            return await res.json();
+                        } catch (error) {
+                            console.error(`[ERROR] Error fetching model ${id}:`, error);
+                            return null;
+                        }
+                    })
+                ),
+
+
             ]);
 
             console.log("[DEBUG] Related data fetched:", {
@@ -253,29 +277,47 @@ export const useCarListingManage = () => {
                 }
             });
 
-            const makeMap = new Map();
-            makesData.forEach((make) => {
-                if (make) {
-                    console.log(`[DEBUG] Mapping make ${make.id}`);
-                    makeMap.set(make.id, make);
-                }
-            });
+            // Flatten makesData and modelsData
+            const flatMakesData = makesData.filter(Boolean); // handles null
+            const flatModelsData = modelsData.filter(Boolean); // handles null
+
 
             const modelMap = new Map();
-            modelsData.forEach((model) => {
-                if (model) {
+            flatModelsData.forEach((model) => {
+                if (model?.id != null) {
                     console.log(`[DEBUG] Mapping model ${model.id}`);
                     modelMap.set(model.id, model);
                 }
             });
 
+            const makeMap = new Map();
+            flatMakesData.forEach((make) => {
+                if (make?.id != null) {
+                    console.log(`[DEBUG] Mapping make ${make.id} with name ${make.name}`);
+                    makeMap.set(make.id, make);
+                }
+            });
+
+
             // Attach all related data to each listing
             const enrichedListings = listings.map((listing: any) => {
+                const make = makeMap.get(listing.make_id);
+                const model = modelMap.get(listing.model_id);
+
+                console.log(`[DEBUG] Listing ${listing.id} - Model ID: ${listing.model_id}, Model: ${model?.name}, Make: ${make?.name}`);
+
                 const enriched = {
                     ...listing,
                     seller: userMap.get(listing.user_id) || null,
-                    make: makeMap.get(listing.make_id) || null,
-                    model: modelMap.get(listing.model_id) || null,
+                    make: make ? { id: make.id, name: make.name, name_ar: make.name_ar } : null,
+                    model: model ? { id: model.id, name: model.name, name_ar: model.name_ar } : null,
+                    package_id: listing.package_id,
+                    package_name: listing.package_name,
+                    package_price: listing.package_price,
+                    package_description: listing.package_description,
+                    start_date: listing.start_date,
+                    end_date: listing.end_date,
+                    is_active: listing.is_active,
                 };
 
                 console.log(`[DEBUG] Enriched listing ${listing.id}:`, enriched);
@@ -302,40 +344,44 @@ export const useCarListingManage = () => {
         }) => {
             setActionInProgress(true);
 
-            // Check permissions before performing actions
-            const roleName = roleMapping[user?.role || 0];
+            console.log("inside perform action");
+
+            const roleName = roleMapping[user?.roleId];
             const isListingOwner = currentListing?.user_id === user?.id;
 
+            console.log("Performing action:", { id, action });
+
+            // Allow listing owner to publish if listing is in draft and user is not a buyer
             if (action === "publish" && currentListing?.status === "draft") {
-                if(
-                    isListingOwner &&
-                    roleName !== "BUYER"
-                ){
-                    await apiRequest("PUT", `/api/car-listings/${id}`, {
-                        action,
+                if (isListingOwner && roleName !== "BUYER") {
+                    await apiRequest("PUT", `/api/car-listings/${id}/actions`, {
+                        action: "pending",
                         reason,
+                        featured,
                     });
-                    return;
+                    return action;
                 }
-                   
-                
-                
             }
 
+            // Admin/mod roles can forcefully publish listing (set to active)
             if (action === "publish") {
-                if ( 
+                if (
                     roleName === "SUPER_ADMIN" ||
                     roleName === "ADMIN" ||
                     roleName === "MODERATOR" ||
-                    roleName === "SENIOR_MODERATOR") {
-                    await apiRequest("PUT", `/api/car-listings/${id}`, {
+                    roleName === "SENIOR_MODERATOR"
+                ) {
+                    await apiRequest("PUT", `/api/car-listings/${id}/actions`, {
                         action: "active",
+                        reason,
+                        featured,
                     });
-                    return;
+                    return action;
                 }
-                throw new Error("Unauthorized to activate listings");
+                throw new Error("Unauthorized to publish listing");
             }
 
+            // Approve or reject
             if (action === "approve" || action === "reject") {
                 if (
                     roleName === "SUPER_ADMIN" ||
@@ -343,31 +389,38 @@ export const useCarListingManage = () => {
                     roleName === "MODERATOR" ||
                     roleName === "SENIOR_MODERATOR"
                 ) {
-                    await apiRequest("PUT", `/api/car-listings/${id}`, {
+                    await apiRequest("PUT", `/api/car-listings/${id}/actions`, {
                         action,
                         reason,
                         featured,
                     });
-                    return;
+                    return action;
                 }
                 throw new Error("Unauthorized to approve/reject listings");
             }
 
+            // Feature
             if (action === "feature") {
+                console.log("🔍 Feature action check");
+                console.log("roleName:", roleName);
+                console.log("roleName === 'SUPER_ADMIN':", roleName === "SUPER_ADMIN");
+                console.log("roleName === 'ADMIN':", roleName === "ADMIN");
                 if (
                     roleName === "SUPER_ADMIN" ||
                     roleName === "ADMIN"
                 ) {
-                    await apiRequest("PUT", `/api/car-listings/${id}`, {
+                    console.log("role is satisfied", roleName);
+                    await apiRequest("PUT", `/api/car-listings/${id}/actions`, {
                         action,
                         reason,
                         featured,
                     });
-                    return;
+                    return action;
                 }
                 throw new Error("Unauthorized to feature listings");
             }
 
+            // Mark as sold
             if (action === "sold") {
                 if (
                     roleName === "SUPER_ADMIN" ||
@@ -375,16 +428,17 @@ export const useCarListingManage = () => {
                     (roleName === "SELLER" && hasPermission(roleName, Permission.MANAGE_OWN_LISTINGS)) ||
                     (roleName.startsWith("SHOWROOM") && hasPermission(roleName, Permission.MANAGE_SHOWROOM_LISTINGS))
                 ) {
-                    await apiRequest("PUT", `/api/car-listings/${id}`, {
+                    await apiRequest("PUT", `/api/car-listings/${id}/actions`, {
                         action,
                         reason,
                         featured,
                     });
-                    return;
+                    return action;
                 }
-                throw new Error("Unauthorized to feature listings");
+                throw new Error("Unauthorized to mark listing as sold");
             }
 
+            // Delete
             if (action === "delete") {
                 if (
                     roleName === "SUPER_ADMIN" ||
@@ -393,16 +447,19 @@ export const useCarListingManage = () => {
                     (roleName.startsWith("SHOWROOM") && hasPermission(roleName, Permission.MANAGE_SHOWROOM_LISTINGS))
                 ) {
                     await apiRequest("DELETE", `/api/car-listings/${id}`, {});
-                    return;
+                    return action;
                 }
-                throw new Error("Unauthorized to delete listings");
+                throw new Error("Unauthorized to delete listing");
             }
 
+            // If no condition matched
+            throw new Error("Unsupported action or insufficient permissions");
         },
-        onSuccess: () => {
+
+        onSuccess: (returnedAction) => {
             let message = "";
 
-            switch (actionType) {
+            switch (returnedAction) {
                 case "publish":
                     message = t("admin.listingPublished");
                     break;
@@ -415,9 +472,14 @@ export const useCarListingManage = () => {
                 case "feature":
                     message = t("admin.listingFeatured");
                     break;
+                case "sold":
+                    message = t("admin.listingSold");
+                    break;
                 case "delete":
                     message = t("admin.listingDeleted");
                     break;
+                default:
+                    message = t("admin.actionSuccess");
             }
 
             toast({
@@ -425,12 +487,12 @@ export const useCarListingManage = () => {
                 description: message,
             });
 
-            // Reset state
             setActionDialogOpen(false);
             setCurrentListing(null);
             setActionReason("");
             refetch();
         },
+
         onError: (error) => {
             toast({
                 title: t("common.error"),
@@ -438,10 +500,13 @@ export const useCarListingManage = () => {
                 variant: "destructive",
             });
         },
+
         onSettled: () => {
             setActionInProgress(false);
         },
     });
+
+
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
@@ -469,6 +534,9 @@ export const useCarListingManage = () => {
             milesRange: { from: "", to: "" },
             priceRange: { from: "", to: "" },
             user_id: user?.id,
+            hasPromotion: false,
+            packageType: 'all',
+            promotionStatus: 'all',
         });
         refetch();
     };
@@ -479,23 +547,44 @@ export const useCarListingManage = () => {
     };
 
     const handleAction = (listing: AdminCarListing, action: AdminCarListingAction) => {
+        console.log("Action triggered:", action, "for listing:", listing.id);
+        setActionDialogOpen(true);
         setCurrentListing(listing);
         setActionType(action);
-        setActionDialogOpen(true);
+
     };
 
     const confirmAction = () => {
         if (!currentListing) return;
 
+        console.log("ABOUT TO MUTATE", { id: currentListing.id, action: actionType, reason: actionReason });
+
         switch (actionType) {
             case "publish":
+                performAction.mutate({
+                    id: currentListing.id,
+                    action: "publish", // Correct action type for publish
+                    reason: actionReason,
+                });
+                break;
             case "approve":
-                performAction.mutate({ id: currentListing.id, action: "approve" });
+                performAction.mutate({
+                    id: currentListing.id,
+                    action: "approve", // Correct action type for approve
+                    reason: actionReason,
+                });
                 break;
             case "reject":
                 performAction.mutate({
                     id: currentListing.id,
                     action: "reject",
+                    reason: actionReason,
+                });
+                break;
+            case "sold":
+                performAction.mutate({
+                    id: currentListing.id,
+                    action: "sold",
                     reason: actionReason,
                 });
                 break;
@@ -507,10 +596,14 @@ export const useCarListingManage = () => {
                 });
                 break;
             case "delete":
-                performAction.mutate({ id: currentListing.id, action: "delete" });
+                performAction.mutate({
+                    id: currentListing.id,
+                    action: "delete",
+                });
                 break;
         }
     };
+
 
     const getStatusBadge = StatusBadge;
 
@@ -540,6 +633,7 @@ export const useCarListingManage = () => {
         categories,
         makes,
         listings,
+        promotionPackages,
         isLoading,
         isEditing,
 

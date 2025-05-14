@@ -3,11 +3,11 @@ import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import { Button } from "@/components/ui/button";
 import { roleMapping } from "@shared/permissions";
 import { useCarListingManage } from "@/hooks/user-carlistingmanage";
-import { CarListingFilters } from "@/components/listings/CarListingFilters";
-import { CarListingTable } from "@/components/listings/CarListingTable";
-import { CarListingDetailDialog } from "@/components//listings/CarListingDetailDialog";
-import { CarListingActionDialog } from "@/components/listings/CarListingActionDialog";
-import { CarListingFormDialog } from "@/components/listings/CarListingFormDialog";
+import { CarListingFilters } from "@/components/car/listing/CarListingFilters";
+import { CarListingTable } from "@/components/car/listing/CarListingTable";
+import { CarListingDetailDialog } from "@/components/car/listing/CarListingDetailDialog";
+import { CarListingActionDialog } from "@/components/car/listing/CarListingActionDialog";
+import { CarListingFormDialog } from "@/components/car/listing/CarListingFormDialog";
 import { Plus, RefreshCw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Permission } from "@shared/permissions";
@@ -69,43 +69,43 @@ const ManageListings = () => {
             {/* Main Content */}
             <div className="flex-1 p-6 overflow-auto">
               <div className="max-w-7xl mx-auto">
-                <div className="flex justify-between items-center mb-8">
-                  <div>
-                    <h1 className="text-3xl font-bold">
-                      {t("admin.manageListings")}
-                    </h1>
-                    <p className="text-slate-400 mt-1">
-                      {t("admin.listingDesc")}
-                    </p>
-                  </div>
-                  <div>
-                    <Button
-                      variant="default"
-                      className="bg-orange-500 hover:bg-oreange-500/50 mr-2"
-                      onClick={() => refetch()}
-                      disabled={isLoading}
-                    >
-                      <RefreshCw
-                        className={`h-4 w-4 mr-2 ${
-                          isLoading ? "animate-spin" : ""
-                        }`}
-                      />
-                      {t("common.refresh")}
-                    </Button>
-                  </div>
-                  <PermissionGuard permission={Permission.CREATE_LISTINGS}>
-                    <div>
-                      <Button
-                        variant="default"
-                        className="bg-green-600 hover:bg-green-700 mr-2"
-                        onClick={handleCreateListing}
-                      >
-                        <Plus className={"h-4 w-4 mr-2"} />
-                        {t("admin.createListing")}
-                      </Button>
-                    </div>
-                  </PermissionGuard>
-                </div>
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-8 gap-4">
+  <div>
+    <h1 className="text-3xl font-bold">
+      {t("admin.manageListings")}
+    </h1>
+    <p className="text-slate-400 mt-1">
+      {t("admin.listingDesc")}
+    </p>
+  </div>
+
+  {/* Buttons container */}
+  <div className="flex flex-col sm:flex-row gap-2">
+    <Button
+      variant="default"
+      className="bg-orange-500 hover:bg-orange-500/50"
+      onClick={() => refetch()}
+      disabled={isLoading}
+    >
+      <RefreshCw
+        className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`}
+      />
+      {t("common.refresh")}
+    </Button>
+
+    <PermissionGuard permission={Permission.CREATE_LISTINGS}>
+      <Button
+        variant="default"
+        className="bg-green-600 hover:bg-green-700"
+        onClick={handleCreateListing}
+      >
+        <Plus className="h-4 w-4 mr-2" />
+        {t("admin.createListing")}
+      </Button>
+    </PermissionGuard>
+  </div>
+</div>
+
 
                 <CarListingFilters
                   currentTab={currentTab}
@@ -133,6 +133,13 @@ const ManageListings = () => {
                 />
               </div>
             </div>
+
+            <CarListingFormDialog
+              listing={currentListing} // will be null for create, existing for edit
+              open={formDialogOpen}
+              onOpenChange={setFormDialogOpen}
+              onSuccess={refetch}
+            />
 
             {/* Dialogs */}
             {currentListing && (

@@ -371,34 +371,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // In your backend route handler
-  app.get("/api/car-makes/:id", async (req, res) => {
-    try {
-      const makeId = Number(req.params.id);
-      if (isNaN(makeId)) {
-        return res.status(400).json({ error: "Invalid make ID" });
-      }
-
-      console.log(`[API] Fetching make with ID: ${makeId}`);
-      const make = await storage.getCarModel(makeId);
-
-      if (!make) {
-        console.log(`[API] Make not found: ${makeId}`);
-        return res.status(404).json({ error: "Make not found" });
-      }
-
-      console.log(`[API] Returning make:`, make);
-      return res.json(make);
-    } catch (error) {
-      console.error(`[API ERROR] Failed to fetch make:`, error);
-      return res.status(500).json({ error: "Internal server error" });
+  // ✅ Corrected make detail route
+app.get("/api/car-makes/:id", async (req, res) => {
+  try {
+    const makeId = Number(req.params.id);
+    if (isNaN(makeId)) {
+      return res.status(400).json({ error: "Invalid make ID" });
     }
-  });
+
+    console.log(`[API] Fetching make with ID: ${makeId}`);
+    const make = await storage.getCarMake(makeId); // <-- FIXED
+
+    if (!make) {
+      console.log(`[API] Make not found: ${makeId}`);
+      return res.status(404).json({ error: "Make not found" });
+    }
+
+    console.log(`[API] Returning make:`, make);
+    return res.json(make);
+  } catch (error) {
+    console.error(`[API ERROR] Failed to fetch make:`, error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+
+
+ // Fetch all models for a specific make
+app.get("/api/car-makes/:id/models", async (req, res) => {
+  try {
+    const makeId = Number(req.params.id);
+    if (isNaN(makeId)) {
+      return res.status(400).json({ error: "Invalid make ID" });
+    }
+
+    console.log(`[API] Fetching models for make ID: ${makeId}`);
+    const models = await storage.getCarModelsByMake(makeId);
+
+    return res.json(models || []);
+  } catch (error) {
+    console.error(`[API ERROR] Failed to fetch models:`, error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 
   // Get single car model
-  app.get("/api/car-models/:id", async (req, res) => {
+  app.get("/api/car-model/:id", async (req, res) => {
     try {
       const model = await storage.getCarModel(Number(req.params.id));
+      console.log("model id to get model", model);
       if (!model) return res.status(404).json({ message: "Model not found" });
       res.json(model);
     } catch (error) {
@@ -544,6 +566,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Final filters object before querying storage:", filters);
       const listings = await storage.getAllCarListings(filters);
       console.log("Retrieved listings from storage (count):", listings.length);
+      console.log("Retrieved listings from storage:", listings);
       res.json(listings);
     } catch (error) {
       console.error("Failed to fetch listings:", error);
@@ -562,50 +585,224 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/car-listings/:id", async (req, res) => {
-    try {
-      const listing = await storage.getCarListingById(Number(req.params.id));
-      listing ? res.json(listing) : res.status(404).json({ message: "Listing not found" });
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch listing", error });
+ app.get("/api/car-listings/:id", async (req, res) => {
+  try {
+    const listing = await storage.getCarListingById(Number(req.params.id));
+    
+    if (listing) {
+      console.log("Fetched Car Listing:", listing); // ✅ log the full response
+      res.json(listing);
+    } else {
+      console.log(`Listing with ID ${req.params.id} not found`);
+      res.status(404).json({ message: "Listing not found" });
     }
-  });
+  } catch (error) {
+    console.error("Error fetching listing:", error);
+    res.status(500).json({ message: "Failed to fetch listing", error });
+  }
+});
+
 
   app.post("/api/car-listings", async (req, res) => {
-    try {
-      const { featureIds = [], ...listingData } = req.body;
-      const created = await storage.createCarListing(listingData);
-      if (featureIds.length) {
-        await storage.bulkAddFeaturesToListing(created.id, featureIds);
-      }
-      const fullListing = await storage.getCarListingById(created.id);
-      res.status(201).json(fullListing);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to create listing", error });
+  try {
+    console.log("👉 Received POST /api/car-listings");
+    console.log("📦 Payload:", req.body);
+
+    const {
+      featureIds = [],
+      package_id,
+      start_date,
+      end_date,
+      ...listingData
+    } = req.body;
+
+    console.log("🛠 Creating car listing with data:", listingData);
+    const created = await storage.createCarListing(listingData);
+    console.log("✅ Listing created with ID:", created.id);
+
+    if (featureIds.length) {
+      console.log("➕ Adding features:", featureIds);
+      await storage.bulkAddFeaturesToListing(created.id, featureIds);
+      console.log("✅ Features added");
     }
-  });
 
-
-  app.put("/api/car-listings/:id", async (req, res) => {
-    try {
-      const id = Number(req.params.id);
-      const { featureIds = [], action, ...updates } = req.body;
-
-      const updated = await storage.updateCarListing(id, updates);
-      if (!updated) return res.status(404).json({ message: "Listing not found" });
-
-      // Clear existing features and add new ones
-      await storage.clearFeaturesForListing(id);
-      if (featureIds.length) {
-        await storage.bulkAddFeaturesToListing(id, featureIds);
-      }
-
-      const fullListing = await storage.getCarListingById(id);
-      res.json(fullListing);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to update listing", error });
+    if (package_id && start_date && end_date) {
+      console.log("📣 Creating promotion with:", {
+        listingId: created.id,
+        packageId: package_id,
+        startDate: start_date,
+        endDate: end_date,
+      });
+      await storage.createListingPromotion({
+        listingId: created.id,
+        packageId: package_id,
+        startDate: start_date,
+        endDate: end_date,
+        transactionId: null,
+        isActive: true,
+      });
+      console.log("✅ Promotion created");
     }
-  });
+
+    const fullListing = await storage.getCarListingById(created.id);
+    console.log("📤 Returning full listing");
+    res.status(201).json(fullListing);
+  } catch (error) {
+    console.error("❌ Failed to create listing:", error);
+    res.status(500).json({ message: "Failed to create listing", error });
+  }
+});
+
+
+app.put("/api/car-listings/:id", async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    console.log(`👉 Received PUT /api/car-listings/${id}`);
+    console.log("📝 Payload:", req.body);
+
+    const {
+      featureIds = [],
+      package_id,
+      start_date,
+      end_date,
+      ...updates
+    } = req.body;
+
+    // Validate dates if provided
+    if (start_date && end_date) {
+      const startDate = new Date(start_date);
+      const endDate = new Date(end_date);
+      
+      if (startDate >= endDate) {
+        throw new Error("End date must be after start date");
+      }
+      
+    }
+
+    console.log("🛠 Updating car listing:", updates);
+    const updated = await storage.updateCarListing(id, updates);
+    if (!updated) {
+      console.warn("⚠️ Listing not found for ID:", id);
+      return res.status(404).json({ message: "Listing not found" });
+    }
+    console.log("✅ Listing updated");
+
+    console.log("🧹 Clearing existing features");
+    await storage.clearFeaturesForListing(id);
+
+    if (featureIds.length) {
+      console.log("➕ Re-adding features:", featureIds);
+      await storage.bulkAddFeaturesToListing(id, featureIds);
+      console.log("✅ Features re-added");
+    }
+
+    if (package_id && start_date && end_date) {
+      console.log("🔍 Checking for existing active promotions");
+      const activePromotions = await storage.getActiveListingPromotions(id);
+      
+      if (activePromotions.length > 0) {
+        console.log("🔄 Updating existing promotion instead of creating new one");
+        const promotionToUpdate = activePromotions[0];
+        
+        await storage.updateListingPromotion(promotionToUpdate.id, {
+          packageId: package_id,
+          startDate: start_date,
+          endDate: end_date
+        });
+      } else {
+        console.log("📣 Creating new promotion with:", {
+          listingId: id,
+          packageId: package_id,
+          startDate: start_date,
+          endDate: end_date,
+        });
+
+        await storage.createListingPromotion({
+          listingId: id,
+          packageId: package_id,
+          startDate: start_date,
+          endDate: end_date,
+          transactionId: null,
+          isActive: true,
+        });
+      }
+      console.log("✅ Promotion updated");
+    }
+
+    const fullListing = await storage.getCarListingById(id);
+    console.log("📤 Returning updated full listing");
+    res.json(fullListing);
+  } catch (error: any) {
+    console.error("❌ Failed to update listing:", error);
+    const statusCode = error.message.includes("date") ? 400 : 500;
+    res.status(statusCode).json({ 
+      message: error.message || "Failed to update listing",
+      error: process.env.NODE_ENV === 'development' ? error : undefined
+    });
+  }
+});
+
+app.put("/api/car-listings/:id/actions", async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const { action, reason, featured } = req.body;
+
+    console.log("Action Recieved in route:", action);
+    // Validate action
+    const validActions = ['pending', 'draft', 'publish', 'active', 'approve', 'reject', 'feature', 'sold', 'delete'];
+    if (!validActions.includes(action)) {
+      return res.status(400).json({ message: "Invalid action" });
+    }
+
+    // Get current listing
+    const listing = await storage.getCarListingById(id);
+    if (!listing) {
+      return res.status(404).json({ message: "Listing not found" });
+    }
+
+    // Prepare updates based on action
+    let updates: any = {};
+    
+    switch (action) {
+      case 'draft':
+        updates.status = 'draft';
+      case 'publish':
+      case 'active':
+      case 'approve':
+        updates.status = 'active';
+        break;
+      case 'pending':
+        updates.status = 'pending';
+        break;
+      case 'reject':
+        updates.status = 'reject';
+        break;
+      case 'feature':
+        updates.is_featured = featured;
+        break;
+      case 'sold':
+        updates.status = 'sold';
+        break;
+      case 'delete':
+        // Soft delete implementation
+        updates.deleted_at = new Date();
+        break;
+    }
+
+    // Apply updates
+    const updated = await storage.updateCarListing(id, updates);
+    
+    res.json({
+      success: true,
+      listing: updated
+    });
+
+  } catch (error: any) {
+    res.status(500).json({ 
+      message: error.message || "Failed to perform action"
+    });
+  }
+});
 
 
   app.delete("/api/car-listings/:id", async (req, res) => {
@@ -618,37 +815,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Car Listing Features
-  app.get("/api/car-listings/:id/features", async (req, res) => {
-    try {
-      // Get the list of feature IDs associated with the car listing
-      const featureIds = await storage.getFeaturesForListing(Number(req.params.id));
+ app.get("/api/car-listings/:id/features", async (req, res) => {
+  try {
+    const listingId = Number(req.params.id);
+    console.log(`📥 GET /api/car-listings/${listingId}/features`);
 
-      // Fetch the feature details for each feature ID
-      const featuresWithDetails = await Promise.all(
-        featureIds.map(async (featureObject) => {
-          // Ensure we're using the featureId (not the entire object)
-          const features = await storage.getCarFeature(featureObject.id);
-          if (features) {
-            return {
-              id: features.id,
-              name: features.name,
-              nameAr: features.nameAr,
-            };
-          }
+    // Get feature IDs associated with the listing
+    const featureIds = await storage.getFeaturesForListing(listingId);
+    console.log("🔍 Retrieved feature IDs:", featureIds);
+
+    // Fetch details for each feature
+    const featuresWithDetails = await Promise.all(
+      featureIds.map(async (featureObject) => {
+        console.log("➡️ Fetching details for feature ID:", featureObject.feature_id);
+        const features = await storage.getCarFeature(featureObject.feature_id);
+
+        if (features) {
+          console.log("✅ Feature found:", features);
+          return {
+            id: features.id,
+            name: features.name,
+            nameAr: features.nameAr,
+          };
+        } else {
+          console.warn("⚠️ Feature not found for ID:", featureObject.feature_id);
           return null;
-        })
-      );
+        }
+      })
+    );
 
-      // Filter out any null values in case any feature was not found
-      const filteredFeatures = featuresWithDetails.filter((feature) => feature !== null);
+    // Filter out nulls
+    const filteredFeatures = featuresWithDetails.filter((feature) => feature !== null);
+    console.log("📦 Final feature list:", filteredFeatures);
 
-      // Return the features with details
-      res.json(filteredFeatures);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch listing features", error });
-    }
-  });
-
+    res.json(filteredFeatures);
+  } catch (error) {
+    console.error("❌ Error fetching listing features:", error);
+    res.status(500).json({ message: "Failed to fetch listing features", error });
+  }
+});
 
 
   app.post("/api/car-listings/:id/features", async (req, res) => {

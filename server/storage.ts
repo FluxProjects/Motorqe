@@ -8,9 +8,9 @@ import {
   type CarFeature, type InsertCarFeature, type CarListingFeature, type InsertCarListingFeature,
   type Showroom, type InsertShowroom, type UserRoleSwitch, type InsertUserRoleSwitch,
   type CarService, type InsertCarService, type ShowroomService, type InsertShowroomService,
-  type ServiceBooking, 
-  InsertServiceBooking, 
-  ShowroomMake, 
+  type ServiceBooking,
+  InsertServiceBooking,
+  ShowroomMake,
   InsertShowroomMake,
   SubscriptionPlan,
   InsertSubscriptionPlan,
@@ -91,7 +91,7 @@ export interface IStorage {
 
   // Car Listing operations
   getAllCarListings(filter?: Partial<CarListing>, sortBy?: keyof CarListing, sortOrder?: 'asc' | 'desc'): Promise<CarListing[]>;
-  getCarListingById(id: number): Promise<CarListingWithFeatures | undefined> ;
+  getCarListingById(id: number): Promise<CarListingWithFeatures | undefined>;
   createCarListing(listing: InsertCarListing): Promise<CarListing>;
   updateCarListing(id: number, updates: Partial<InsertCarListing>): Promise<CarListing | undefined>;
   deleteCarListing(id: number): Promise<void>;
@@ -155,7 +155,7 @@ export interface IStorage {
   // Google Maps Config operations
   getGoogleMapsConfig(): Promise<Settings['googleMapsConfig']>;
   updateGoogleMapsConfig(config: Partial<Settings['googleMapsConfig']>): Promise<void>;
-  
+
   // Integrations Config operations
   getIntegrationConfig(): Promise<Settings['integrations']>;
   updateIntegrationConfig(integrations: Partial<Settings['integrations']>): Promise<void>;
@@ -185,7 +185,7 @@ export interface IStorage {
 
   // Service operations
   getAllServices(): Promise<CarService[]>;
-  getAllFeaturedServices(): Promise<CarService[]> 
+  getAllFeaturedServices(): Promise<CarService[]>
   getShowroomServiceByServiceId(id: number): Promise<any>;
   getService(id: number): Promise<any>
   getServicesByMake(makeId: number): Promise<ShowroomService[]>
@@ -223,7 +223,7 @@ export interface IStorage {
   addShowroomMake(serviceId: number, makeId: number): Promise<ShowroomMake>;
   removeShowroomMake(serviceId: number, makeId: number): Promise<void>;
   bulkAddShowroomMakes(serviceId: number, makeIds: number[]): Promise<void>;
-  
+
   // Subscription Plan operations
   getAllSubscriptionPlans(activeOnly?: boolean): Promise<SubscriptionPlan[]>;
   getSubscriptionPlan(id: number): Promise<SubscriptionPlan | undefined>;
@@ -258,6 +258,8 @@ export interface IStorage {
 
   // Listing Promotion operations
   getActiveListingPromotions(listingId: number): Promise<ListingPromotion[]>;
+  getListingPromotionsByListingId(listingId: number): Promise<ListingPromotion[]>;
+  getCurrentListingPromotion(listingId: number): Promise<ListingPromotion | null>;
   createListingPromotion(promotion: InsertListingPromotion): Promise<ListingPromotion>;
   deactivateListingPromotion(id: number): Promise<void>;
   getFeaturedListings(): Promise<CarListing[]>;
@@ -554,7 +556,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCarModel(id: number): Promise<CarModel | undefined> {
-    const result = await db.query('SELECT * FROM car_models WHERE id = $1 LIMIT 1', [id]);
+    const result = await db.query('SELECT * FROM car_models WHERE id = $1', [id]);
     return result[0];
   }
 
@@ -677,23 +679,53 @@ export class DatabaseStorage implements IStorage {
     } = {},
     sortBy?: keyof CarListing,
     sortOrder: 'asc' | 'desc' = 'asc'
-  ): Promise<CarListing[]> {
+  ): Promise<(CarListing & {
+    package_id?: number;
+    start_date?: Date;
+    end_date?: Date;
+    package_name?: string;
+    package_description?: string;
+    package_price?: number;
+  })[]> {
     console.log('--- START: getAllCarListings ---');
     console.log('Incoming filter parameters:', JSON.stringify(filter, null, 2));
     console.log('Incoming sort parameters:', { sortBy, sortOrder });
 
-    let baseQuery = 'SELECT * FROM car_listings';
+    let baseQuery = `
+  SELECT 
+    cl.*, 
+    lp.id AS promotion_id,
+    lp.package_id, 
+    lp.start_date, 
+    lp.end_date, 
+    lp.is_active,
+    lp.transaction_id,
+    p.name AS package_name,
+    p.description AS package_description,
+    p.price AS package_price,
+    p.currency AS package_currency,
+    p.duration_days AS package_duration_days,
+    p.is_featured AS package_is_featured
+  FROM car_listings cl
+  LEFT JOIN (
+    SELECT * 
+    FROM listing_promotions 
+    WHERE is_active = true AND end_date > NOW()
+  ) lp ON cl.id = lp.listing_id
+  LEFT JOIN promotion_packages p ON lp.package_id = p.id
+`;
+
     const whereClauses: string[] = [];
     const values: any[] = [];
     let paramIndex = 1;
-  
+
     // Process filters
     for (const key in filter) {
       if (Object.prototype.hasOwnProperty.call(filter, key)) {
         const value = filter[key as keyof typeof filter];
-        
+
         console.log(`Processing filter: ${key} =`, value);
-    
+
         if (value !== undefined && value !== null) {
           switch (key) {
             case 'updated_from': {
@@ -757,18 +789,18 @@ export class DatabaseStorage implements IStorage {
               console.log(`Added mileage filter: mileage <= ${Number(value)}`);
               paramIndex++;
               break;
-              case 'price_from':
-                whereClauses.push(`price >= $${paramIndex}`);
-                values.push(Number(value));
-                console.log(`Added price filter: price >= ${Number(value)}`);
-                paramIndex++;
-                break;
-              case 'price_to':
-                whereClauses.push(`price <= $${paramIndex}`);
-                values.push(Number(value));
-                console.log(`Added price filter: price <= ${Number(value)}`);
-                paramIndex++;
-                break;
+            case 'price_from':
+              whereClauses.push(`price >= $${paramIndex}`);
+              values.push(Number(value));
+              console.log(`Added price filter: price >= ${Number(value)}`);
+              paramIndex++;
+              break;
+            case 'price_to':
+              whereClauses.push(`price <= $${paramIndex}`);
+              values.push(Number(value));
+              console.log(`Added price filter: price <= ${Number(value)}`);
+              paramIndex++;
+              break;
             default:
               whereClauses.push(`${key} = $${paramIndex}`);
               values.push(value);
@@ -781,7 +813,7 @@ export class DatabaseStorage implements IStorage {
         }
       }
     }
-    
+
     // Build WHERE clause
     if (whereClauses.length > 0) {
       baseQuery += ' WHERE ' + whereClauses.join(' AND ');
@@ -790,26 +822,26 @@ export class DatabaseStorage implements IStorage {
     } else {
       console.log('No filters applied - using base query');
     }
-  
+
     // Handle sorting
     const validSortFields: (keyof CarListing)[] = [
       'id', 'title', 'price', 'year', 'mileage', 'status', 'updated_at', 'created_at'
     ];
-  
+
     if (sortBy && validSortFields.includes(sortBy)) {
       baseQuery += ` ORDER BY ${sortBy} ${sortOrder.toUpperCase()}`;
       console.log(`Applying sort: ORDER BY ${sortBy} ${sortOrder.toUpperCase()}`);
     } else if (sortBy) {
       console.log(`Invalid sort field: ${sortBy} - skipping sort`);
     }
-  
+
     console.log('Final SQL query:', baseQuery);
-    
+
     try {
       const result = await db.query(baseQuery, values);
       console.log('Query successful. Retrieved rows:', result.length);
-      console.log('First 3 rows (sample):', result.slice(0, 3));
-      
+      console.log('First row (sample):', result.slice(0, 1));
+
       console.log('--- END: getAllCarListings ---');
       return result;
     } catch (error) {
@@ -818,8 +850,8 @@ export class DatabaseStorage implements IStorage {
       throw error;
     }
   }
-  
-  
+
+
   async getCarFeaturedListings(filter: Partial<CarListing> = {}, sortBy?: keyof CarListing, sortOrder: 'asc' | 'desc' = 'asc'): Promise<CarListing[]> {
     let baseQuery = 'SELECT * FROM car_listings WHERE is_featured = true';
     const values: any[] = [];
@@ -845,20 +877,48 @@ export class DatabaseStorage implements IStorage {
     return await db.query(baseQuery, values);
   }
 
-   async getCarListingById(id: number): Promise<CarListingWithFeatures | undefined> {
+  async getCarListingById(id: number): Promise<(CarListingWithFeatures & { currentPackage?: ListingPromotion }) | undefined> {
     const listingResult = await db.query(`SELECT * FROM car_listings WHERE id = $1`, [id]);
     const listing = listingResult[0];
     if (!listing) return undefined;
-  
-    const features = await db.query(`
-      SELECT f.* FROM car_features f
-      JOIN car_listing_features clf ON clf.feature_id = f.id
-      WHERE clf.listing_id = $1
-    `, [id]);
-  
-    return { ...listing, features };
+
+    const features = await db.query(
+      `
+    SELECT f.* FROM car_features f
+    JOIN car_listing_features clf ON clf.feature_id = f.id
+    WHERE clf.listing_id = $1
+    `,
+      [id]
+    );
+
+    const promotionResult = await db.query(
+      `
+    SELECT 
+      lp.*, 
+      p.name AS package_name, 
+      p.description AS package_description, 
+      p.price AS package_price
+    FROM listing_promotions lp
+    JOIN promotion_packages p ON lp.package_id = p.id
+    WHERE lp.listing_id = $1 
+      AND lp.is_active = true 
+      AND lp.start_date <= NOW() 
+      AND lp.end_date > NOW()
+    ORDER BY lp.start_date DESC
+    LIMIT 1
+    `,
+      [id]
+    );
+
+    const currentPackage = promotionResult[0];
+
+    return {
+      ...listing,
+      features,
+      currentPackage
+    };
   }
-  
+
 
   async createCarListing(listing: InsertCarListing): Promise<CarListing> {
     const fields = Object.keys(listing);
@@ -870,17 +930,37 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateCarListing(id: number, updates: Partial<InsertCarListing>): Promise<CarListing | undefined> {
-    const fields = Object.keys(updates);
-    const values = Object.values(updates);
-    const setClause = fields.map((key, i) => `${key} = $${i + 1}`).join(', ');
-    const query = `UPDATE car_listings SET ${setClause} WHERE id = $${fields.length + 1} RETURNING *`;
-    const result = await db.query(query, [...values, id]);
-    return result[0];
+  const fields = Object.keys(updates);
+  const values = Object.values(updates);
+
+  if (fields.length === 0) {
+    console.warn("[updateCarListing] No fields to update");
+    return undefined;
   }
 
+  const setClause = fields.map((key, i) => `${key} = $${i + 1}`).join(', ');
+  const query = `UPDATE car_listings SET ${setClause} WHERE id = $${fields.length + 1} RETURNING *`;
+  const result = await db.query(query, [...values, id]);
+
+  return result[0];
+}
+
+
   async deleteCarListing(id: number): Promise<void> {
+  try {
+    // Delete dependent rows first
+    await db.query('DELETE FROM car_listing_features WHERE listing_id = $1', [id]);
+    await db.query('DELETE FROM listing_promotions WHERE listing_id = $1', [id]);
+
+    // Then delete main listing
     await db.query('DELETE FROM car_listings WHERE id = $1', [id]);
+  } catch (err) {
+    console.error('Failed to delete listing:', err);
+    throw new Error('Failed to delete listing and its dependencies');
   }
+}
+
+
 
   async getListingsBySeller(sellerId: number): Promise<CarListing[]> {
     return await db.query('SELECT * FROM car_listings WHERE seller_id = $1 ORDER BY created_at DESC', [sellerId]);
@@ -920,20 +1000,20 @@ export class DatabaseStorage implements IStorage {
   async clearFeaturesForListing(listingId: number): Promise<void> {
     await db.query(`DELETE FROM car_listing_features WHERE listing_id = $1`, [listingId]);
   }
-  
+
 
   async bulkAddFeaturesToListing(listingId: number, featureIds: number[]): Promise<void> {
     if (!featureIds.length) return;
 
     const validFeatures = featureIds
-    .filter((id) => typeof id === 'number' && !isNaN(id));
+      .filter((id) => typeof id === 'number' && !isNaN(id));
 
     if (validFeatures.length === 0) return;
 
     const values = validFeatures
       .map((featureId, i) => `($1, $${i + 2})`)
       .join(", ");
-  
+
     const params = [listingId, ...validFeatures];
 
     await db.query(
@@ -1452,7 +1532,7 @@ JOIN showrooms s ON ss.showroom_id = s.id
 WHERE ss.is_featured = true
 `);
   }
-  
+
 
   async getServicesByMake(makeId: number): Promise<ShowroomService[]> {
     const query = `
@@ -1463,7 +1543,7 @@ JOIN showrooms s ON ss.showroom_id = s.id
 JOIN showroom_service_makes ssm ON ss.showroom_id = ssm.showroom_id
 WHERE ssm.make_id = :makeId
     `;
-    
+
     return await db.query(query, [makeId]);
   }
 
@@ -1505,14 +1585,14 @@ WHERE ssm.make_id = :makeId
       LEFT JOIN car_makes cm ON ssm.make_id = cm.id
       WHERE cs.id = $1;
     `;
-  
+
     try {
       const result = await db.query(query, [id]);
-  
+
       if (result.length === 0) return undefined;
-  
+
       const firstRow = result[0];
-  
+
       const makes = result
         .filter(row => row.make_id) // ignore null joins
         .map(row => ({
@@ -1521,7 +1601,7 @@ WHERE ssm.make_id = :makeId
           nameAr: row.make_name_ar,
           image: row.make_image
         }));
-  
+
       return {
         service: {
           id: firstRow.service_id,
@@ -1595,16 +1675,16 @@ WHERE ssm.make_id = :makeId
       LEFT JOIN car_makes cm ON ssm.make_id = cm.id
       WHERE cs.id = $1;
     `;
-  
+
     try {
       const result = await db.query(query, [id]);
-  
+
       if (result.length === 0) return undefined;
-  
+
       const firstRow = result[0];
-  
+
       const showroomMap = new Map<number, any>();
-  
+
       for (const row of result) {
         const showroomId = row.showroom_id;
         if (!showroomMap.has(showroomId)) {
@@ -1628,7 +1708,7 @@ WHERE ssm.make_id = :makeId
             makes: []
           });
         }
-  
+
         if (row.make_id) {
           showroomMap.get(showroomId).makes.push({
             id: row.make_id,
@@ -1638,7 +1718,7 @@ WHERE ssm.make_id = :makeId
           });
         }
       }
-  
+
       return {
         service: {
           id: firstRow.service_id,
@@ -1655,8 +1735,8 @@ WHERE ssm.make_id = :makeId
       throw new Error('Failed to fetch service');
     }
   }
-  
-   
+
+
 
   async createService(service: InsertCarService): Promise<CarService> {
     const result = await db.query(
@@ -1759,17 +1839,17 @@ WHERE ssm.make_id = :makeId
       LEFT JOIN car_services cs ON ss.service_id = cs.id
       WHERE ss.showroom_id = $1
     `;
-    
+
     const values: any[] = [showroomId];
     let paramIndex = 2;
-  
+
     // Apply filters
     if (filter) {
       for (const key in filter) {
         if (Object.prototype.hasOwnProperty.call(filter, key)) {
           const typedKey = key as keyof typeof filter;
           const value = filter[typedKey];
-  
+
           if (value !== undefined) {
             baseQuery += ` AND ss.${key} = $${paramIndex}`;
             values.push(value);
@@ -1778,15 +1858,15 @@ WHERE ssm.make_id = :makeId
         }
       }
     }
-  
+
     // Apply sorting
     if (sortBy) {
       baseQuery += ` ORDER BY ss.${sortBy} ${sortOrder.toUpperCase()}`;
     }
-  
+
     // Execute single query
     const results = await db.query(baseQuery, values);
-  
+
     // Map results to combine showroom service and car service data
     return results.map((record) => {
       const { id, created_at, updated_at, ...serviceData } = record;
@@ -1796,14 +1876,14 @@ WHERE ssm.make_id = :makeId
         updated_at: serviceData.updated_at,
         ...serviceData
       } : undefined;
-      
+
       return {
         ...record,
         service
       };
     });
   }
-  
+
 
   async createShowroomService(service: InsertShowroomService): Promise<ShowroomService> {
     const result = await db.query(
@@ -1974,7 +2054,7 @@ WHERE ssm.make_id = :makeId
   async getAllShowroomsMakes(): Promise<any[]> {
     return await db.query('SELECT * FROM showroom_service_makes');
   }
-  
+
   async getShowroomMakes(
     showroomId: number
   ): Promise<(ShowroomMake & { make?: CarMake })[]> {
@@ -1982,16 +2062,16 @@ WHERE ssm.make_id = :makeId
       'SELECT * FROM showroom_service_makes WHERE showroom_id = $1',
       [showroomId]
     );
-  
+
     const enrichedMakes = await Promise.all(
       showroomMakes.map(async (item) => {
         const make = await this.getCarMake(item.make_id); // Assuming `make_id` refers to `car_makes.id`
         return { ...item, make };
       })
     );
-  
+
     return enrichedMakes;
-  }  
+  }
 
   async addShowroomMake(serviceId: number, makeId: number): Promise<ShowroomMake> {
     const result = await db.query(
@@ -2164,17 +2244,17 @@ WHERE ssm.make_id = :makeId
   async getUserSubscription(subscriptionId: number, activeOnly: boolean = true): Promise<UserSubscription | null> {
     let query = 'SELECT * FROM user_subscriptions WHERE id = $1';
     const values: any[] = [subscriptionId];
-  
+
     if (activeOnly) {
       query += ' AND is_active = true';
     }
-  
+
     query += ' ORDER BY start_date DESC LIMIT 1';
-  
+
     const result = await db.query(query, values);
     return result[0] || null;
   }
-  
+
 
   async getUserActiveSubscription(userId: number): Promise<UserSubscription | undefined> {
     const result = await db.query(
@@ -2205,7 +2285,7 @@ WHERE ssm.make_id = :makeId
     const fields = [];
     const values = [];
     let paramIndex = 1;
-  
+
     if (updates.userId !== undefined) {
       fields.push(`user_id = $${paramIndex++}`);
       values.push(updates.userId);
@@ -2234,21 +2314,21 @@ WHERE ssm.make_id = :makeId
       fields.push(`payment_id = $${paramIndex++}`);
       values.push(updates.transactionId);
     }
-  
+
     if (fields.length === 0) {
       const subscriptions = await this.getUserSubscriptions(id);
       return subscriptions[0]; // ✅ Matches the expected return type
     }
-    
-  
+
+
     values.push(id);
     const query = `UPDATE user_subscriptions SET ${fields.join(', ')} WHERE id = $${paramIndex} RETURNING *`;
-    
+
     const result: UserSubscription[] = await db.query(query, values);
     return result[0];
   }
-  
-  
+
+
 
   async cancelUserSubscription(id: number): Promise<void> {
     await db.query(
@@ -2263,24 +2343,24 @@ WHERE ssm.make_id = :makeId
     if (!subscription) {
       throw new Error('Subscription not found');
     }
-  
+
     const plan = await this.getSubscriptionPlan(subscription.planId);
     if (!plan) {
       throw new Error('Plan not found');
     }
-  
+
     const startDate = new Date();
     const endDate = new Date();
     endDate.setDate(startDate.getDate() + plan.durationDays);
-  
+
     const result: UserSubscription[] = await db.query(
       'UPDATE user_subscriptions SET start_date = $1, end_date = $2, is_active = true WHERE id = $3 RETURNING *',
       [startDate, endDate, id]
     );
-  
+
     return result[0];
   }
-  
+
 
   // =============================================
   // TRANSACTION OPERATIONS
@@ -2302,11 +2382,11 @@ WHERE ssm.make_id = :makeId
     const metadata =
       typeof transaction.metadata === 'object' && transaction.metadata !== null
         ? {
-            stripePaymentIntentId: transaction.paymentId,
-            ...transaction.metadata,
-          }
+          stripePaymentIntentId: transaction.paymentId,
+          ...transaction.metadata,
+        }
         : { stripePaymentIntentId: transaction.paymentId };
-  
+
     const result: Transaction[] = await db.query(
       `INSERT INTO transactions (
         user_id, amount, currency, description,
@@ -2324,10 +2404,10 @@ WHERE ssm.make_id = :makeId
         metadata
       ]
     );
-  
+
     return result[0];
   }
-  
+
   async updateTransactionStatus(id: number, status: 'pending' | 'completed' | 'failed' | 'refunded', options?: { error?: string }): Promise<void> {
     await db.query('UPDATE transactions SET status = $1 WHERE id = $2', [status, id]);
   }
@@ -2467,11 +2547,104 @@ WHERE ssm.make_id = :makeId
     return result[0];
   }
 
+ async updateListingPromotion(
+  promotionId: number,
+  updates: Partial<{
+    packageId: number;
+    startDate: Date;
+    endDate: Date;
+    isActive: boolean;
+  }>
+): Promise<ListingPromotion> {
+  // First validate that the promotion exists and is eligible for update
+  const existingPromo = await db.query(
+    `SELECT * FROM listing_promotions 
+     WHERE id = $1 AND is_active = true AND end_date > NOW()`,
+    [promotionId]
+  );
+
+  if (!existingPromo[0]) {
+    throw new Error('Promotion not found, not active, or already expired');
+  }
+
+  // Prevent changing start date to be in the past
+  if (updates.startDate && updates.startDate < new Date()) {
+    throw new Error('Cannot set start date in the past');
+  }
+
+  // Ensure end date is after start date (either new or existing)
+  if (updates.endDate) {
+    const effectiveStartDate = updates.startDate || existingPromo[0].start_date;
+    if (updates.endDate <= effectiveStartDate) {
+      throw new Error('End date must be after start date');
+    }
+  }
+
+  // Map from camelCase to snake_case for SQL
+  const fieldMap: Record<string, string> = {
+    packageId: 'package_id',
+    startDate: 'start_date',
+    endDate: 'end_date',
+    isActive: 'is_active',
+  };
+
+  const setClauses: string[] = [];
+  const values: any[] = [];
+  let paramIndex = 1;
+
+  for (const [key, value] of Object.entries(updates)) {
+    if (value !== undefined && fieldMap[key]) {
+      setClauses.push(`${fieldMap[key]} = $${paramIndex}`);
+      values.push(value);
+      paramIndex++;
+    }
+  }
+
+  if (setClauses.length === 0) {
+    throw new Error('No valid fields to update');
+  }
+
+  values.push(promotionId); // Add the promotion ID as the last parameter
+
+  const query = `
+    UPDATE listing_promotions
+    SET ${setClauses.join(', ')}
+    WHERE id = $${paramIndex}
+    RETURNING *
+  `;
+
+  const result = await db.query(query, values);
+  return result[0];
+}
+
+
+  async getListingPromotionsByListingId(listingId: number): Promise<ListingPromotion[]> {
+    return await db.query(
+      'SELECT * FROM listing_promotions WHERE listing_id = $1 ORDER BY start_date DESC',
+      [listingId]
+    );
+  }
+
+  async getCurrentListingPromotion(listingId: number): Promise<ListingPromotion | null> {
+    const result = await db.query(
+      `SELECT * FROM listing_promotions 
+     WHERE listing_id = $1 AND is_active = true AND start_date <= NOW() AND end_date > NOW()
+     ORDER BY start_date DESC 
+     LIMIT 1`,
+      [listingId]
+    );
+    return result.length > 0 ? result[0] : null;
+  }
+
   async deactivateListingPromotion(id: number): Promise<void> {
     await db.query(
       'UPDATE listing_promotions SET is_active = false WHERE id = $1',
       [id]
     );
+  }
+
+  async clearPromotionsForListing(listingId: number): Promise<void> {
+    await db.query('DELETE FROM listing_promotions WHERE listing_id = $1', [listingId]);
   }
 
   async getFeaturedListings(): Promise<CarListing[]> {

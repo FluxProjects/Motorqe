@@ -331,6 +331,7 @@ export const showroomServices = pgTable("showroom_services", {
   description: text("description"),                   // Service description in English
   descriptionAr: text("description_ar"),              // Service description in Arabic
   isFeatured: boolean("is_featured").default(false),  // Featured listing flag
+  isActive: boolean("is_active").default(true),
 });
 
 export const insertShowroomServiceSchema = createInsertSchema(showroomServices).pick({
@@ -341,6 +342,7 @@ export const insertShowroomServiceSchema = createInsertSchema(showroomServices).
   description: true,
   descriptionAr: true,
   isFeatured: true,
+  isActive: true,
 });
 
 export type InsertShowroomService = z.infer<typeof insertShowroomServiceSchema>;
@@ -355,6 +357,8 @@ export const serviceBookings = pgTable("service_bookings", {
   userId: integer("user_id").references(() => users.id).notNull(), // Booking user ID
   serviceId: integer("service_id").references(() => showroomServices.id).notNull(), // Service ID
   scheduledAt: timestamp("scheduled_at").notNull(), // Scheduled service time
+  price: integer("price").notNull(),                  // Service price
+  currency: text("currency").default("QAR"), 
   status: text("status").default("draft").notNull().$type<"draft" | "pending" | "confirmed" | "complete" | "expired" | "rejected">(),      // Booking status
   notes: text("notes"),                           // Additional notes
   createdAt: timestamp("created_at").defaultNow(), // Booking creation time
@@ -364,6 +368,8 @@ export const insertServiceBookingSchema = createInsertSchema(serviceBookings).pi
   userId: true,
   serviceId: true,
   scheduledAt: true,
+  price: true,
+  currency: true,
   status: true,
   notes: true,
 });
@@ -820,6 +826,37 @@ export const insertPromotionPackageSchema = createInsertSchema(promotionPackages
 export type InsertPromotionPackage = z.infer<typeof insertPromotionPackageSchema>;
 export type PromotionPackage = typeof promotionPackages.$inferSelect;
 
+export const servicePromotionPackages = pgTable("service_promotion_packages", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  nameAr: text("name_ar"),
+  description: text("description"),
+  descriptionAr: text("description_ar"),
+  price: integer("price").notNull(),
+  currency: text("currency").default("USD"),
+  durationDays: integer("duration_days").notNull(),
+  isFeatured: boolean("is_featured").default(false),
+  priority: integer("priority").default(0),       // Higher = more prominent
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertServicePromotionPackageSchema = createInsertSchema(servicePromotionPackages).pick({
+  name: true,
+  nameAr: true,
+  description: true,
+  descriptionAr: true,
+  price: true,
+  currency: true,
+  durationDays: true,
+  isFeatured: true,
+  priority: true,
+  isActive: true,
+});
+
+export type InsertServicePromotionPackage = z.infer<typeof insertServicePromotionPackageSchema>;
+export type ServicePromotionPackage = typeof servicePromotionPackages.$inferSelect;
+
 // =============================================
 // LISTING PROMOTIONS TABLE
 // Stores active promotions for listings
@@ -847,6 +884,29 @@ export const insertListingPromotionSchema = createInsertSchema(listingPromotions
 export type InsertListingPromotion = z.infer<typeof insertListingPromotionSchema>;
 export type ListingPromotion = typeof listingPromotions.$inferSelect;
 
+export const servicePromotions = pgTable("service_promotions", {
+  id: serial("id").primaryKey(),
+  listingId: integer("listing_id").references(() => carListings.id).notNull(),
+  packageId: integer("package_id").references(() => promotionPackages.id).notNull(),
+  startDate: timestamp("start_date").notNull().defaultNow(),
+  endDate: timestamp("end_date").notNull(),
+  transactionId: integer("transaction_id").references(() => transactions.id),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertServicePromotionSchema = createInsertSchema(servicePromotions).pick({
+  listingId: true,
+  packageId: true,
+  startDate: true,
+  endDate: true,
+  transactionId: true,
+  isActive: true,
+});
+
+export type InsertServicePromotion = z.infer<typeof insertServicePromotionSchema>;
+export type ServicePromotion = typeof servicePromotions.$inferSelect;
+
 export type CarListingWithFeatures = CarListing & {
   features: CarFeature[];
 };
@@ -858,6 +918,7 @@ export type ListingFormData = {
     description?: string;
     location?: string;
     price?: string;
+    currency?: string;
   };
   specifications?: {
     categoryId?: string;
@@ -872,21 +933,28 @@ export type ListingFormData = {
   };
   features?: string[];
   media?: File[] | string[]; // Files before upload or URLs after upload
-  
+  status: 'draft' | 'active' | 'pending' | 'reject' | 'sold';
   package?: {
-    packageId: number;
+    packageId?: string;
+    packageName?: string;
+    packagePrice?: string;
+    durationDays?: number;
   };
 };
 
 
 // Listing Form Steps
 export type StepProps = {
+  listingId?: number;
   data: ListingFormData;
-  updateData: (newData: Partial<ListingFormData>) => void;
+  updateData: (data: Partial<ListingFormData>) => void;
   nextStep: () => void;
   prevStep: () => void;
-  handleSubmit?: () => void;
+  handleSubmit?: (status: 'draft' | 'publish') => void;
 };
+
+export type ListingFormAction = 'draft' | 'publish';
+export type ListingStatus = 'draft' | 'active' | 'pending' | 'reject' | 'sold';
 
 // Filter Interface
 export interface AdminCarListingFilters {
@@ -908,6 +976,9 @@ export interface AdminCarListingFilters {
   milesRange?: { from: string; to: string };
   priceRange?: { from: string; to: string };
   user_id?: number;
+  hasPromotion?: boolean;
+  packageType?: string;
+  promotionStatus?: string;
 }
 
 export interface CarListingFilters {
@@ -932,6 +1003,7 @@ export interface AdminCarListing {
   title: string;
   titleAr?: string;
   price: number;
+  currency: string;
   fuel_type: string;
   transmission: string;
   year: number;
@@ -972,7 +1044,13 @@ export interface AdminCarListing {
     id: number;
     name: string;
   };
-  features?: CarFeature[];
+  features?: string[];
+  package_id?: number;
+  package_name?: string;
+  package_price?: string;
+  durationDays?: number;
+  start_date?: Date;
+  end_date?: Date;
 }
 
 export type AdminCarListingAction = 'publish' | 'edit' | 'approve' | 'reject' | 'feature' | 'delete' | 'sold';
@@ -1011,3 +1089,135 @@ export interface BudgetRange {
   min: number;
   max: number;
 };
+
+
+export type ServiceBookingFormData = {
+  serviceId: string;
+  userId: string;
+  showroomId?: string;
+  scheduledAt: string;
+  notes?: string;
+  status: 'draft' | 'pending' | 'confirmed' | 'complete' | 'expired' | 'rejected';
+  price: number;
+  currency: string;
+};
+
+export type ServiceBookingFormAction = 'draft' | 'submit';
+export type ServiceBookingStatus = 'draft' | 'pending' | 'confirmed' | 'complete' | 'expired' | 'rejected';
+
+export interface AdminServiceBookingFilters {
+  status: string;
+  dateRange: { from: string; to: string };
+  dateRangePreset?: string;
+  priceRange?: { from: string; to: string };
+  user_id?: number;
+  showroom_id?: number;
+  service_id?: number;
+}
+
+export interface AdminServiceBooking {
+  id: number;
+  serviceId: number;
+  userId: number;
+  showroomId?: number;
+  scheduledAt: string;
+  status: ServiceBookingStatus;
+  notes?: string;
+  price: number;
+  currency: string;
+  createdAt: string;
+  updatedAt?: string;
+  
+  // Relations
+  service?: {
+    id: number;
+    name: string;
+    description?: string;
+    price: number;
+    currency: string;
+    duration?: number; // in minutes
+  };
+  user?: {
+    id: number;
+    name: string;
+    email: string;
+    phone?: string;
+    avatar?: string;
+  };
+  showroom?: {
+    id: number;
+    name: string;
+    address?: string;
+    contactNumber?: string;
+    logo?: string;
+  };
+}
+
+export type ServiceBookingAction = 'confirm' | 'reschedule' | 'complete' | 'cancel' | 'reject';
+
+export type ServiceListingFormData = {
+  showroomId: string;
+  serviceId: string;
+  price: number;
+  currency: string;
+  description?: string;
+  descriptionAr?: string;
+  isFeatured?: boolean;
+  isActive?: boolean;
+};
+
+export interface AdminServiceListingFilters {
+  isActive: boolean | null;
+  isFeatured: boolean | null;
+  priceRange?: { from: string; to: string };
+  showroomId?: number;
+  serviceId?: number;
+  searchQuery?: string;
+  dateRangePreset?: string; // Add this
+  dateRange?: { from: string; to: string }; // Add this
+}
+
+export interface AdminServiceListing {
+  id: number;
+  showroomId: number;
+  serviceId: number;
+  price: number;
+  currency: string;
+  description?: string;
+  descriptionAr?: string;
+  isFeatured: boolean;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt?: string;
+  
+  // Relations
+  service?: {
+    id: number;
+    name: string;
+    nameAr?: string;
+    description?: string;
+    descriptionAr?: string;
+    image?: string;
+    category?: string;
+  };
+  showroom?: {
+    id: number;
+    name: string;
+    nameAr?: string;
+    address?: string;
+    addressAr?: string;
+    contactNumber?: string;
+    logo?: string;
+  };
+}
+
+export type ServiceListingAction = 'feature' | 'activate' | 'deactivate' | 'delete';
+
+// Extended types for service management
+export interface ServiceCategory {
+  id: number;
+  name: string;
+  nameAr?: string;
+  description?: string;
+  image?: string;
+}

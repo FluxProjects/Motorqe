@@ -276,6 +276,31 @@ CREATE TABLE listing_promotions (
   created_at TIMESTAMP DEFAULT NOW()                                -- Record creation timestamp
 );
 
+CREATE TABLE service_promotion_packages (
+  id SERIAL PRIMARY KEY,
+  name TEXT NOT NULL,
+  name_ar TEXT,
+  description TEXT,
+  description_ar TEXT,
+  price INTEGER NOT NULL,
+  currency TEXT DEFAULT 'USD',
+  duration_days INTEGER NOT NULL,
+  is_featured BOOLEAN DEFAULT FALSE,
+  priority INTEGER DEFAULT 0,
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE service_promotions (
+  id SERIAL PRIMARY KEY,
+  listing_id INTEGER NOT NULL REFERENCES car_listings(id),
+  package_id INTEGER NOT NULL REFERENCES service_promotion_packages(id),
+  start_date TIMESTAMP NOT NULL DEFAULT NOW(),
+  end_date TIMESTAMP NOT NULL,
+  transaction_id INTEGER REFERENCES transactions(id),
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP DEFAULT NOW()
+);
 
 
 

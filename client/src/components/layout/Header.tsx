@@ -126,11 +126,11 @@ const Header = ({ openAuthModal }: HeaderProps) => {
       case 4: // SHOWROOM_PREMIUM
       case 3: // SHOWROOM_BASIC
       case 2: // SELLER
-        return "/sellCar";
+        return "/sell-car";
       case 1: // BUYER
         return "/";
       default:
-        return "/sellCar";
+        return "/sell-car";
     }
   };
   
@@ -248,66 +248,76 @@ const Header = ({ openAuthModal }: HeaderProps) => {
           </DropdownMenu>
 
           {/* User Menu or Sign In Button */}
-          {isAuthenticated && user ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="flex items-center space-x-2"
-                >
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage
-                      src={user.avatar || "/default-avatar.png"} // fallback to default image if no avatar
-                      alt={user.username}
-                    />
-                    <AvatarFallback>
-                      {user.username.charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="text-sm font-medium">
-                    {user.firstName || user.username}
-                  </span>
-                  <ChevronDown className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuLabel>{t("common.myAccount")}</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => navigate(getSellCarLink())}>
-                  <User className="mr-2 h-4 w-4" />
-                  <span>{t("common.sellCar")}</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate(getProfileLink())}>
-                  <User className="mr-2 h-4 w-4" />
-                  <span>{t("common.myProfile")}</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate(getDashboardLink())}>
-                  <Car className="mr-2 h-4 w-4" />
-                  <span>{t("common.dashboard")}</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate(getMessagesLink())}>
-                  <MessageSquare className="mr-2 h-4 w-4" />
-                  <span>{t("common.messages")}</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={handleLogout}
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                >
-                  {t("auth.logout")}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : (
-            <Button
-              variant="outline"
-              className="hidden md:flex items-center text-primary bg-primary-light hover:bg-primary hover:text-white"
-              onClick={openLoginModal}
-            >
-              {t("auth.login")}
-            </Button>
-          )}
+         {isAuthenticated && user ? (
+  <DropdownMenu>
+    <DropdownMenuTrigger asChild>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="flex items-center space-x-2"
+      >
+        <Avatar className="h-8 w-8">
+          <AvatarImage
+            src={user.avatar || "/default-avatar.png"}
+            alt={user.username || "User"}
+          />
+          <AvatarFallback>
+            {user.username?.charAt(0).toUpperCase() || "U"}
+          </AvatarFallback>
+        </Avatar>
+        <span className="text-sm font-medium">
+          {user.firstName || user.username || "User"}
+        </span>
+        <ChevronDown className="h-4 w-4" />
+      </Button>
+    </DropdownMenuTrigger>
+
+    <DropdownMenuContent align="end" className="w-48">
+      <DropdownMenuLabel>{t("common.myAccount")}</DropdownMenuLabel>
+      <DropdownMenuSeparator />
+
+      {user.roleId !== 1 && (
+        <DropdownMenuItem onClick={() => navigate(getSellCarLink())}>
+          <User className="mr-2 h-4 w-4" />
+          <span>{t("common.sellCar")}</span>
+        </DropdownMenuItem>
+      )}
+
+      <DropdownMenuItem onClick={() => navigate(getProfileLink())}>
+        <User className="mr-2 h-4 w-4" />
+        <span>{t("common.myProfile")}</span>
+      </DropdownMenuItem>
+
+      <DropdownMenuItem onClick={() => navigate(getDashboardLink())}>
+        <Car className="mr-2 h-4 w-4" />
+        <span>{t("common.dashboard")}</span>
+      </DropdownMenuItem>
+
+      <DropdownMenuItem onClick={() => navigate(getMessagesLink())}>
+        <MessageSquare className="mr-2 h-4 w-4" />
+        <span>{t("common.messages")}</span>
+      </DropdownMenuItem>
+
+      <DropdownMenuSeparator />
+
+      <DropdownMenuItem
+        onClick={handleLogout}
+        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+      >
+        {t("auth.logout")}
+      </DropdownMenuItem>
+    </DropdownMenuContent>
+  </DropdownMenu>
+) : (
+  <Button
+    variant="outline"
+    className="hidden md:flex items-center text-primary bg-primary-light hover:bg-primary hover:text-white"
+    onClick={openLoginModal}
+  >
+    {t("auth.login")}
+  </Button>
+)}
+
 
           {/* Mobile menu button */}
           <Button
@@ -339,12 +349,6 @@ const Header = ({ openAuthModal }: HeaderProps) => {
             className="block px-3 py-2 rounded-md text-base font-medium text-neutral-900 hover:bg-neutral-100"
           >
             {t("common.browseCars")}
-          </Link>
-          <Link
-            href="/sell"
-            className="block px-3 py-2 rounded-md text-base font-medium text-neutral-900 hover:bg-neutral-100"
-          >
-            {t("common.sellCar")}
           </Link>
           <Link
             href="/about"

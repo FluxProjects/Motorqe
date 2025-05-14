@@ -10,6 +10,8 @@ import BrowseShowrooms from "./pages/BrowseShowrooms";
 import NotFound from "./pages/not-found";
 import BuyerDashboard from "./pages/buyer/BuyerDashboard";
 import ManageListings from "./pages/admin/ManageListings";
+import ManageServiceListings from "./pages/admin/ManageServiceListings";
+import ManageServiceBookings from "./pages/admin/ManageServiceBookings";
 import BuyerManageSettings from "./pages/buyer/ManageSettings";
 import SellerDashboard from "./pages/seller/SellerDashboard";
 import SellerManageSettings from "./pages/seller/ManageSettings";
@@ -22,7 +24,7 @@ import AdminManageContent from "./pages/admin/ManageContent";
 import ManageMessages from "./components/dashboard/ManageMessages";
 import ManageProfile from "./components/dashboard/ManageProfile";
 import { useAuth } from "@/contexts/AuthContext";
-import { AuthForms } from "./components/forms/AuthForms";
+import { AuthForms } from "./components/forms/AuthForm/AuthForms";
 import { Permission, roleMapping } from "@shared/permissions";
 import { RoleSpecificRoute } from "@/components/RoleSpecificRoute";
 import { LoadingScreen } from "@/components/LoadingScreen";
@@ -182,8 +184,20 @@ function App() {
           </Route>
           
           <Route path="/showroom-dashboard/listings">
-            <ProtectedRoute permissions={[Permission.MANAGE_SHOWROOM_LISTINGS]}>
+            <ProtectedRoute permissions={[Permission.MANAGE_OWN_LISTINGS]}>
               <ManageListings />
+            </ProtectedRoute>
+          </Route>
+         
+          <Route path="/showroom-dashboard/servicelistings">
+            <ProtectedRoute permissions={[Permission.MANAGE_OWN_SERVICES]}>
+              <ManageServiceListings />
+            </ProtectedRoute>
+          </Route>
+
+          <Route path="/showroom-dashboard/servicebookings">
+            <ProtectedRoute permissions={[Permission.MANAGE_OWN_BOOKINGS]}>
+              <ManageServiceBookings />
             </ProtectedRoute>
           </Route>
           
@@ -217,6 +231,8 @@ function App() {
               permissions={[
                 Permission.MANAGE_ALL_LISTINGS, 
                 Permission.MANAGE_ALL_USERS,
+                Permission.MANAGE_ALL_SERVICES,
+                Permission.MANAGE_BOOKINGS,
                 Permission.APPROVE_LISTINGS
               ]}
               fallback="/"
@@ -228,6 +244,18 @@ function App() {
           <Route path="/admin/listings">
             <ProtectedRoute permissions={[Permission.MANAGE_ALL_LISTINGS]}>
               <ManageListings />
+            </ProtectedRoute>
+          </Route>
+
+           <Route path="/admin/servicelistings">
+            <ProtectedRoute permissions={[Permission.MANAGE_ALL_SERVICES]}>
+              <ManageServiceListings />
+            </ProtectedRoute>
+          </Route>>
+
+          <Route path="/showroom-dashboard/servicebookings">
+            <ProtectedRoute permissions={[Permission.MANAGE_BOOKINGS]}>
+              <ManageServiceBookings />
             </ProtectedRoute>
           </Route>
           

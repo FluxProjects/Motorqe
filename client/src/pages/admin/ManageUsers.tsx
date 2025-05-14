@@ -586,7 +586,7 @@ const ManageUsers = () => {
                                       <DropdownMenuItem
                                         className="hover:bg-slate-700 focus:bg-slate-700"
                                         onClick={() =>
-                                          handleAction(user, "ban")
+                                          handleAction(user, "reject")
                                         }
                                       >
                                         <Ban className="mr-2 h-4 w-4 text-amber-500" />
@@ -599,7 +599,7 @@ const ManageUsers = () => {
                                       <DropdownMenuItem
                                         className="hover:bg-slate-700 focus:bg-slate-700"
                                         onClick={() =>
-                                          handleAction(user, "promote")
+                                          handleAction(user, "feature")
                                         }
                                       >
                                         <Shield className="mr-2 h-4 w-4 text-blue-500" />

@@ -22,12 +22,26 @@ export const Permission = {
   // Showroom/Dealer Permissions
   CREATE_SHOWROOM_PROFILE: "create_showroom_profile",
   MANAGE_SHOWROOM_LISTINGS: "manage_showroom_listings",
+  MANAGE_SHOWROOM_SERVICES: "manage_showroom_services",
   MANAGE_SHOWROOM_PROFILE: "manage_showroom_profile",
   USE_BULK_UPLOAD: "use_bulk_upload",
   ACCESS_SHOWROOM_ANALYTICS: "access_showroom_analytics",
   MANAGE_SHOWROOM_STAFF: "manage_showroom_staff",
   
   VERIFIED_SELLER_BADGE: "verified_seller_badge",
+
+  // Services
+  CREATE_SERVICES: "create_services",
+  MANAGE_SERVICES: "manage_services",
+  MANAGE_OWN_SERVICES: "manage_own_services",
+  MANAGE_SERVICE_PROMOTIONS: "manage_service_promotions",
+  MANAGE_ALL_SERVICES: "manage_all_services",
+
+  // Service Bookings
+  CREATE_BOOKINGS: "create_bookings",
+  MANAGE_BOOKINGS: "manage_bookings",
+  MANAGE_SERVICE_BOOKINGS: "manage_service_bookings",
+  MANAGE_OWN_BOOKINGS: "manage_own_bookings",
 
   // Moderator Permissions
   APPROVE_LISTINGS: "approve_listings",
@@ -67,6 +81,12 @@ const SHOWROOM_BASIC = [
   Permission.MANAGE_OWN_LISTINGS,
   Permission.MANAGE_SELLER_PROFILE,
   Permission.SAVE_FAVORITES,
+  Permission.MANAGE_SHOWROOM_SERVICES,
+  Permission.CREATE_SERVICES,
+  Permission.MANAGE_OWN_SERVICES,
+  Permission.CREATE_BOOKINGS,
+  Permission.MANAGE_SERVICE_BOOKINGS,
+  Permission.MANAGE_OWN_BOOKINGS,
 ];
 
 const MODERATOR_BASIC = [
@@ -76,6 +96,7 @@ const MODERATOR_BASIC = [
   Permission.MANAGE_REPORTS,
   Permission.VIEW_MODERATION_LOGS,
   Permission.BROWSE_LISTINGS,
+  Permission.MANAGE_SERVICE_BOOKINGS
 ];
 
 // -------------------------------
@@ -110,11 +131,8 @@ export const Roles: Record<Role, readonly PermissionType[]> = {
 
   SHOWROOM_PREMIUM: [
     ...SHOWROOM_BASIC,
-    Permission.BROWSE_LISTINGS,
-    Permission.CREATE_LISTINGS,
     Permission.MANAGE_OWN_LISTINGS,
     Permission.VIEW_LISTING_ANALYTICS,
-    Permission.RESPOND_TO_INQUIRIES,
     Permission.USE_BULK_UPLOAD,
     Permission.CREATE_PROMOTIONS,
     Permission.VERIFIED_SELLER_BADGE,
@@ -141,6 +159,15 @@ export const Roles: Record<Role, readonly PermissionType[]> = {
     Permission.MANAGE_CONTENT,
     Permission.MANAGE_SUPPORT_TICKETS,
     Permission.BROWSE_LISTINGS,
+    Permission.CREATE_LISTINGS,
+    Permission.CREATE_PROMOTIONS,
+    Permission.CREATE_SERVICES,
+    Permission.MANAGE_SERVICES,
+    Permission.CREATE_BOOKINGS,
+    Permission.MANAGE_BOOKINGS,
+    Permission.MANAGE_SERVICE_BOOKINGS,
+    Permission.MANAGE_ALL_SERVICES,
+    Permission.MANAGE_SERVICE_PROMOTIONS
   ],
 
   SUPER_ADMIN: Object.values(Permission),

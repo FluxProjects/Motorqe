@@ -73,12 +73,22 @@ const CarSearchForm = () => {
   const { data: makes } = useQuery({
     queryKey: ['/api/car-makes'],
   });
+
+  const fetchModelsByMake = async (makeId: string) => {
+  const res = await fetch(`/api/car-models?makeId=${makeId}`);
+  if (!res.ok) throw new Error('Failed to fetch models');
+  return res.json();
+};
+
+const selectedMakeId = form.watch('make');
+
+ // Fetch car models based on selected make
+const { data: models } = useQuery({
+  queryKey: ['/api/car-models', selectedMakeId],
+  queryFn: () => fetchModelsByMake(selectedMakeId!),
+  enabled: !!selectedMakeId && selectedMakeId !== 'all',
+});
   
-  // Fetch car models based on selected make
-  const { data: models } = useQuery({
-    queryKey: ['/api/car-models', form.watch('make')],
-    enabled: !!form.watch('make'),
-  });
   
   // Fetch car categories
   const { data: categories } = useQuery({
