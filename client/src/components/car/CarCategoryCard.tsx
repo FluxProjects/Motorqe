@@ -20,6 +20,7 @@ const CarCategoryCard = ({ category }: Props) => {
           className="w-full h-24 object-contain mb-3"
         />
         <h3 className="text-sm font-medium text-neutral-800">{categoryName}</h3>
+        <h5 className="text-xs font-medium text-neutral-500">0 Cars</h5>
       </div>
     </Link>
   );

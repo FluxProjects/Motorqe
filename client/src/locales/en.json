@@ -74,6 +74,7 @@
     "totalListings": "Total Listings",
     "responseRate": "Response Rate",
     "avgResponseTime": "Avg. Response Time",
+    "myFavourites": "My Favorites",
     "hours": "Hours",
     "verified": "Verified",
     "accessDenied": "Access Denied",
@@ -123,7 +124,8 @@
     "brands": "Brands",
     "bodyType": "Body Type",
     "budget": "Budget",
-    "browseByType": "Browse by Type",
+    "year":"Year",
+    "browseByType": "Search for a car by",
     "browseByTypeSubtitle": "Explore our collection by category"
   },
   "carType": {
@@ -184,7 +186,7 @@
     "heroSubtitle": "Browse thousands of cars from verified sellers in your area.",
     "browseByCategory": "Browse by Category",
     "featuredListings": "Featured Listings",
-    "featuredListingsSubtitle": "Explore our top picks in the marketplace",
+    "featuredListingsSubtitle": "Find your favourite car on our website including Jaguar, Porsche, Mercedes, BMW, Ford, and many others. Have a look at our featured cars and check their price, specifications, and pictures to find your ideal car.",
     "readyToSell": "Ready to Sell Your Car?",
     "sellCTA": "List your vehicle on Motorqe and reach thousands of potential buyers. Our platform makes selling your car quick, easy, and secure.",
     "freeBasicListings": "Free basic listings",
@@ -792,6 +794,11 @@
     "lastName": "Last Name",
     "email": "Email",
     "phone": "Phone Number"
+  },
+  "bookings":{
+    "manageServiceBookings":"Manage Service Bookings",
+    "serviceBookingsDesc": "Manage and moderate all services bookings",
+    "createBooking" : "Create Booking"
   },
   "status": {
     "draft": "Draft",

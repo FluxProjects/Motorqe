@@ -245,7 +245,7 @@ export const ServiceBookingFilters = ({
                 <SelectValue placeholder={t("admin.minPrice")} />
               </SelectTrigger>
               <SelectContent className="bg-slate-800 border-slate-700 text-white">
-                <SelectItem value="">{t("admin.any")}</SelectItem>
+                <SelectItem value="all">{t("admin.any")}</SelectItem>
                 <SelectItem value="0">0 QAR</SelectItem>
                 <SelectItem value="100">100 QAR</SelectItem>
                 <SelectItem value="500">500 QAR</SelectItem>
@@ -268,7 +268,7 @@ export const ServiceBookingFilters = ({
                 <SelectValue placeholder={t("admin.maxPrice")} />
               </SelectTrigger>
               <SelectContent className="bg-slate-800 border-slate-700 text-white">
-                <SelectItem value="">{t("admin.any")}</SelectItem>
+                <SelectItem value="all">{t("admin.any")}</SelectItem>
                 <SelectItem value="500">500 QAR</SelectItem>
                 <SelectItem value="1000">1,000 QAR</SelectItem>
                 <SelectItem value="2000">2,000 QAR</SelectItem>

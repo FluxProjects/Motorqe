@@ -2,7 +2,6 @@ import { pgTable, text, serial, integer, boolean, uuid, jsonb, timestamp } from 
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { roleSchema } from "./permissions";
-import { Currency } from "lucide-react";
 
 // =============================================
 // ROLES TABLE

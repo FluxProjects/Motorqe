@@ -149,3 +149,23 @@ export function verifyToken(token: string): any {
     return null;
   }
 };
+
+export async function hashPassword(password: string): Promise<string> {
+  return await bcrypt.hash(password, 10);
+}
+
+export async function verifyPassword(
+  password: string, 
+  hashedPassword: string
+): Promise<boolean> {
+  return await bcrypt.compare(password, hashedPassword);
+}
+
+export function generateOTP(): string {
+  return Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit OTP
+}
+
+export function generateToken(): string {
+  return Array.from(Array(32), () => 
+    Math.floor(Math.random() * 36).toString(36)).join(''); // 32-char alphanumeric token
+}

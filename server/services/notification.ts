@@ -150,8 +150,12 @@ class NotificationService {
     await storage.createNotification(adminNotification);
   }
 
+  async sendOTP(email: string, otp: string): Promise<void> {
+  // In a real app, implement your email sending logic here
+  console.log(`OTP for ${email}: ${otp}`); // For development only
+  }
+
+
 }
-
-
 
 export const notificationService = new NotificationService();

@@ -1,7 +1,7 @@
 // components/admin/listings/ListingFormDialog.tsx
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ServiceBookingForm } from "@/components/forms/ServiceListingForm/ServiceListingForm";
-import { AdminServiceBooking } from "@shared/schema";
+import { ServiceBookingForm } from "@/components/forms/ServiceBookingForm/ServiceBookingForm";
+import { AdminServiceBooking } from "@shared/schema"
 
 interface BookingFormDialogProps {
   booking?: AdminServiceBooking | null;

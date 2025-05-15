@@ -168,56 +168,57 @@ const Header = ({ openAuthModal }: HeaderProps) => {
         </div>
 
         {/* Navigation - Desktop */}
-        <nav className="hidden md:flex space-x-6">
-          <Link
-            href="/"
-            className={`text-neutral-900 hover:text-primary font-medium ${
-              location === "/" ? "text-primary" : ""
-            }`}
-          >
-            {t("common.home")}
-          </Link>
-          <Link
-            href="/browse"
-            className={`text-neutral-900 hover:text-primary font-medium ${
-              location === "/browse" ? "text-primary" : ""
-            }`}
-          >
-            {t("common.browseCars")}
-          </Link>
-          <Link
-            href="/browse-showrooms"
-            className={`text-neutral-900 hover:text-primary font-medium ${
-              location === "/browse-showroom" ? "text-primary" : ""
-            }`}
-          >
-            {t("common.browseShowrooms")}
-          </Link>
-          <Link
-            href="/browse-services"
-            className={`text-neutral-900 hover:text-primary font-medium ${
-              location === "/browse-showroom" ? "text-primary" : ""
-            }`}
-          >
-            {t("common.browseServices")}
-          </Link>
-          <Link
-            href="/about"
-            className={`text-neutral-900 hover:text-primary font-medium ${
-              location === "/about" ? "text-primary" : ""
-            }`}
-          >
-            {t("common.aboutUs")}
-          </Link>
-          <Link
-            href="/"
-            className={`text-neutral-900 hover:text-primary font-medium ${
-              location === "/news" ? "text-primary" : ""
-            }`}
-          >
-            {t("common.news")}
-          </Link>
-        </nav>
+       <nav className="hidden md:flex space-x-6">
+  <Link
+    href="/"
+    className={`text-neutral-900 hover:text-orange-500 font-medium pb-1 ${
+      location === "/" ? "border-b-2 border-orange-500 text-orange-500" : ""
+    }`}
+  >
+    {t("common.home")}
+  </Link>
+  <Link
+    href="/browse"
+    className={`text-neutral-900 hover:text-orange-500 font-medium pb-1 ${
+      location === "/browse" ? "border-b-2 border-orange-500 text-orange-500" : ""
+    }`}
+  >
+    {t("common.browseCars")}
+  </Link>
+  <Link
+    href="/browse-showrooms"
+    className={`text-neutral-900 hover:text-orange-500 font-medium pb-1 ${
+      location === "/browse-showrooms" ? "border-b-2 border-orange-500 text-orange-500" : ""
+    }`}
+  >
+    {t("common.browseShowrooms")}
+  </Link>
+  <Link
+    href="/browse-services"
+    className={`text-neutral-900 hover:text-orange-500 font-medium pb-1 ${
+      location === "/browse-services" ? "border-b-2 border-orange-500 text-orange-500" : ""
+    }`}
+  >
+    {t("common.browseServices")}
+  </Link>
+  <Link
+    href="/about"
+    className={`text-neutral-900 hover:text-orange-500 font-medium pb-1 ${
+      location === "/about" ? "border-b-2 border-orange-500 text-orange-500" : ""
+    }`}
+  >
+    {t("common.aboutUs")}
+  </Link>
+  <Link
+    href="/news"
+    className={`text-neutral-900 hover:text-orange-500 font-medium pb-1 ${
+      location === "/news" ? "border-b-2 border-orange-500 text-orange-500" : ""
+    }`}
+  >
+    {t("common.news")}
+  </Link>
+</nav>
+
 
         {/* Right Menu */}
         <div className="flex items-center space-x-4">

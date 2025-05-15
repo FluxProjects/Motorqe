@@ -47,9 +47,25 @@ export interface IStorage {
     sortBy?: string;
   }): Promise<User[]>;
   getUserByUsername(username: string): Promise<User | undefined>;
+  getUserWithPassword(id: number): Promise<{ password: string } | undefined>;
+  updateUserPassword(id: number, newPassword: string): Promise<boolean>;
+  updateUserPasswordByEmail(email: string, newPassword: string): Promise<boolean>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, updates: Partial<InsertUser>): Promise<User | undefined>;
   deleteUser(id: number): Promise<void>;
+  createPasswordResetToken(
+  email: string, 
+  otp: string, 
+  token: string
+): Promise<void>;
+
+verifyPasswordResetToken(
+  email: string,
+  otp: string,
+  token: string
+): Promise<boolean>;
+
+invalidateResetToken(token: string): Promise<void>;
 
   // Role operations
   getAllRoles(): Promise<Role[]>;
@@ -345,6 +361,28 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
+  async getUserWithPassword(id: number): Promise<{ password: string } | undefined> {
+  const query = 'SELECT password FROM users WHERE id = $1';
+  const result = await db.query(query, [id]);
+  return result[0];
+}
+
+async updateUserPassword(id: number, newPassword: string): Promise<boolean> {
+  const result = await db.query(
+    `UPDATE users SET password = $1, updated_at = NOW() WHERE id = $2 RETURNING id`,
+    [newPassword, id]
+  );
+  return result.length > 0;
+}
+
+async updateUserPasswordByEmail(email: string, newPassword: string): Promise<boolean> {
+  const result = await db.query(
+    `UPDATE users SET password = $1, updated_at = NOW() WHERE email = $2 RETURNING id`,
+    [newPassword, email]
+  );
+  return result.length > 0;
+}
+
   async createUser(user: InsertUser): Promise<User> {
     const fields = Object.keys(user);
     const values = Object.values(user);
@@ -367,6 +405,43 @@ export class DatabaseStorage implements IStorage {
     await db.query('DELETE FROM users WHERE id = $1', [id]);
   }
 
+  async createPasswordResetToken(
+  email: string, 
+  otp: string, 
+  token: string
+): Promise<void> {
+  const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes from now
+  
+  await db.query(
+    `INSERT INTO password_reset_tokens 
+     (email, token, otp, expires_at) 
+     VALUES ($1, $2, $3, $4) 
+     ON CONFLICT (email) 
+     DO UPDATE SET token = $2, otp = $3, expires_at = $4, used = false`,
+    [email, token, otp, expiresAt]
+  );
+}
+
+async verifyPasswordResetToken(
+  email: string,
+  otp: string,
+  token: string
+): Promise<boolean> {
+  const result = await db.query(
+    `SELECT 1 FROM password_reset_tokens 
+     WHERE email = $1 AND token = $2 AND otp = $3 
+     AND expires_at > NOW() AND used = false`,
+    [email, token, otp]
+  );
+  return result.length > 0;
+}
+
+async invalidateResetToken(token: string): Promise<void> {
+  await db.query(
+    `UPDATE password_reset_tokens SET used = true WHERE token = $1`,
+    [token]
+  );
+}
   // =============================================
   // ROLE OPERATIONS
   // =============================================
@@ -692,27 +767,24 @@ export class DatabaseStorage implements IStorage {
     console.log('Incoming sort parameters:', { sortBy, sortOrder });
 
     let baseQuery = `
-  SELECT 
-    cl.*, 
-    lp.id AS promotion_id,
-    lp.package_id, 
-    lp.start_date, 
-    lp.end_date, 
-    lp.is_active,
-    lp.transaction_id,
-    p.name AS package_name,
-    p.description AS package_description,
-    p.price AS package_price,
-    p.currency AS package_currency,
-    p.duration_days AS package_duration_days,
-    p.is_featured AS package_is_featured
-  FROM car_listings cl
-  LEFT JOIN (
-    SELECT * 
-    FROM listing_promotions 
-    WHERE is_active = true AND end_date > NOW()
-  ) lp ON cl.id = lp.listing_id
-  LEFT JOIN promotion_packages p ON lp.package_id = p.id
+SELECT 
+  cl.*, 
+  lp.id AS promotion_id,
+  lp.package_id, 
+  lp.start_date, 
+  lp.end_date, 
+  lp.is_active,
+  lp.transaction_id,
+  p.name AS package_name,
+  p.description AS package_description,
+  p.price AS package_price,
+  p.currency AS package_currency,
+  p.duration_days AS package_duration_days,
+  p.is_featured AS package_is_featured
+FROM car_listings cl
+INNER JOIN listing_promotions lp ON cl.id = lp.listing_id
+  AND lp.end_date > NOW()
+LEFT JOIN promotion_packages p ON lp.package_id = p.id
 `;
 
     const whereClauses: string[] = [];

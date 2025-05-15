@@ -5,6 +5,7 @@ import { ShowroomProfileEditor } from "@/components/showroom/ShowroomProfileEdit
 import { BaseProfileEditor } from "@/components/dashboard/BaseProfileEditor";
 import { Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { SellerProfileEditor } from "../seller/SellerProfileEditor";
 
 const ManageProfile = () => {
   const auth = useAuth();
@@ -34,6 +35,7 @@ if (status === "pending" || !user) {
     switch (user?.role) {
       case 'BUYER':
       case 'SELLER':
+        return <SellerProfileEditor user={user} />;
       case 'ADMIN':
       case 'SUPER_ADMIN':
         return <BaseProfileEditor user={user} />;

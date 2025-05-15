@@ -115,7 +115,7 @@ const { data: models } = useQuery({
   };
   
   return (
-    <Card className="border-0 shadow-md">
+    <Card className="border-2 border-solid rounded-2xl border-neutral-700">
       <CardContent className="p-6">
         <Form {...form}>
           <form 
@@ -335,17 +335,22 @@ const { data: models } = useQuery({
               )}
             />
             
-            {/* Search button */}
-            <div className="col-span-4 md:col-span-1 flex items-end">
-              <Button 
+           
+        
+ {/* Search button */}
+            <div className="col-span-4 flex justify-center mt-4">
+
+               <Button 
                 type="submit" 
                 size="lg"
-                className="w-full bg-blue-600 hover:bg-blue-700"
+                className="bg-orange-500 hover:bg-orange-600 font-semibold px-6 py-2 rounded-full"
               >
                 <Search className="mr-2 h-4 w-4" />
-                {t('common.search')}
+                {t('common.search')} 5838 Cars
               </Button>
             </div>
+
+              
           </form>
         </Form>
       </CardContent>

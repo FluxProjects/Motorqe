@@ -16,7 +16,7 @@ interface Props {
   listing?: AdminCarListing | null;
 }
 
-export const ServiceListingFormSteps = ({
+export const ServiceBookingFormSteps = ({
   step,
   data,
   updateData,

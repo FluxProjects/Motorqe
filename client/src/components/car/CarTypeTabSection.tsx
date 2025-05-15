@@ -6,8 +6,10 @@ import CarMakeCard from "./CarMakeCard";
 import { CarCategory, CarMake } from "@shared/schema";
 import CarBudgetCard from "./CarBudgetCard";
 import { BudgetRange } from "@shared/schema";
+import { Link } from "wouter";
+import CarYearCard from "./CarYearCard";
 
-type TabType = "category" | "brand" | "budget";
+type TabType = "category" | "brand" | "budget" | "year";
 
 const CarTypeTabsSection = () => {
   const { t } = useTranslation();
@@ -17,6 +19,7 @@ const CarTypeTabsSection = () => {
     { key: "category", label: t("common.bodyType") },
     { key: "brand", label: t("common.brands") },
     { key: "budget", label: t("common.budget") },
+    { key: "year", label: t("common.year") },
   ];
 
   const staticBudgets: BudgetRange[] = [
@@ -30,6 +33,19 @@ const CarTypeTabsSection = () => {
   { id: "8", name: "QAR 70,000 - QAR 80,000", min: 70000, max: 80000 },
   { id: "9", name: "QAR 80,000 - QAR 100,000", min: 80000, max: 100000 },
   { id: "10", name: "Above QAR 100,000", min: 100000, max: Infinity },
+];
+
+const staticYears: BudgetRange[] = [
+  { id: "1", name: "Before 1995", min: 0, max: 1994 },
+  { id: "2", name: "1995 - 1999", min: 1995, max: 1999 },
+  { id: "3", name: "2000 - 2002", min: 2000, max: 2002 },
+  { id: "4", name: "2003 - 2005", min: 2003, max: 2005 },
+  { id: "5", name: "2006 - 2010", min: 2006, max: 2010 },
+  { id: "6", name: "2011 - 2013", min: 2011, max: 2013 },
+  { id: "7", name: "2014 - 2016", min: 2014, max: 2016 },
+  { id: "8", name: "2017 - 2019", min: 2017, max: 2019 },
+  { id: "9", name: "2020 - 2022", min: 2020, max: 2022 },
+  { id: "10", name: "2023 and newer", min: 2023, max: Infinity },
 ];
 
 
@@ -53,17 +69,12 @@ const CarTypeTabsSection = () => {
   const currentTab = activeType || tabs[0].key;
 
   return (
-    <section className="py-16 bg-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="text-center mb-10">
-          <h2 className="text-3xl font-bold text-neutral-900">
+    <section className="bg-white py-20">
+      <div className="max-w-7xl mx-auto px-4 text-center relative">
+        <h2 className="text-3xl font-bold text-neutral-900 mb-2">
             {t("common.browseByType")}
           </h2>
-          <p className="mt-2 text-neutral-600">
-            {t("common.browseByTypeSubtitle")}
-          </p>
-        </div>
+          <div className="w-40 h-1 bg-orange-500 mx-auto mb-20 rounded-full" />
 
         {/* Tabs */}
         <div className="flex flex-wrap justify-center mb-8 gap-3">
@@ -71,10 +82,10 @@ const CarTypeTabsSection = () => {
             <button
               key={key}
               onClick={() => setActiveType(key)}
-              className={`px-5 py-2 text-sm font-medium rounded-full transition-all ${
+              className={`px-5 py-2 text-sm font-medium transition-all ${
                 key === currentTab
-                  ? "bg-blue-900 text-white shadow"
-                  : "bg-white text-blue-900 border hover:bg-blue-700 hover:text-white"
+                  ? "text-orange-500 border-b-4 border-b-orange-500 hover:font-bold"
+                  : "text-blue-900"
               }`}
             >
               {label}
@@ -99,7 +110,22 @@ const CarTypeTabsSection = () => {
                 budget={budget}
               />
             ))}
+
+            {currentTab === "year" &&
+            staticYears.map((year) => (
+              <CarYearCard key={year.id} yearRange={year} />
+            ))}
         </div>
+
+        {/* View More Button */}
+        <div className="flex flex-col items-end mt-10">
+          <Link href="/browse">
+            <a className="inline-block bg-orange-500 hover:bg-orange-600 text-white font-semibold px-6 py-2 rounded-full transition">
+              View More
+            </a>
+          </Link>
+        </div>
+
       </div>
     </section>
   );

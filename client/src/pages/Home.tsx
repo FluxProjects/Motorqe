@@ -6,6 +6,7 @@ import FaqSection from "@/components/layout/FaqSection";
 import HowItWorksSection  from "@/components/layout/HowItWorks";
 import CarTypeTabSection from "@/components/car/CarTypeTabSection";
 import FeaturedListingsSection from "@/components/layout/FeaturedListingSection";
+import SearchSection from '@/components/layout/SearchSection';
 
 const Home = () => {
   const { t } = useTranslation();
@@ -13,53 +14,39 @@ const Home = () => {
   return (
     <div>
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-primary-light to-blue-100 py-16 md:py-24">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-            <div className="text-center md:text-left">
-              <h1 className="text-4xl md:text-5xl font-bold text-neutral-900 leading-tight">
-                {t('home.heroTitle')}
-              </h1>
-              <p className="mt-4 text-xl text-neutral-700">
-                {t('home.heroSubtitle')}
-              </p>
-              
-              {/* Search Form */}
-              <div className="mt-8">
-                <CarSearchForm />
-              </div>
+      <section className="relative w-full">
+  <img 
+    src="/src/assets/banner.png" 
+    alt="Hero Banner" 
+    className="w-full h-auto object-cover"
+  />
 
 
-            </div>
-            
-            <div className="hidden md:block">
-              <img 
-                src="https://images.unsplash.com/photo-1583121274602-3e2820c69888?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=600&q=80" 
-                alt="Modern Car" 
-                className="rounded-lg shadow-xl"
-              />
-              <div className="mt-4 grid grid-cols-3 gap-2">
-                <img 
-                  src="https://images.unsplash.com/photo-1552519507-da3b142c6e3d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=200&q=80" 
-                  alt="Sports Car" 
-                  className="rounded-md shadow"
-                />
-                <img 
-                  src="https://images.unsplash.com/photo-1494976388531-d1058494cdd8?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=200&q=80" 
-                  alt="Classic Car" 
-                  className="rounded-md shadow"
-                />
-                <img 
-                  src="https://images.unsplash.com/photo-1580273916550-e323be2ae537?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=200&q=80" 
-                  alt="SUV" 
-                  className="rounded-md shadow"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+<div className="absolute left-2/3 transform -translate-x-2/3 md:bottom-5 md:left-2/3 md:-translate-x-2/3 text-left w-full max-w-2xl">
+  <h2 className="text-orange-500 font-bold text-4xl md:text-4xl ml-10 pb-20">
+    Qatar’s #1 Favourite Site to Buy & Sell New & Used Cars
+  </h2>
+</div>
+  <div className="absolute bottom-5 right-5 md:bottom-10 md:right-10 text-center md:text-center text-white max-w-xs md:max-w-md">
+    <p className="text-black text-sm md:text-base font-semibold">
+      DOWNLOAD THE APP NOW
+    </p>
+    <div className="flex justify-end md:justify-end gap-2">
+      <a href="https://apps.apple.com" target="_blank">
+        <img src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg" alt="App Store" className="h-10 md:h-12" />
+      </a>
+      <a href="https://play.google.com" target="_blank">
+        <img src="https://freelogopng.com/images/all_img/1664287128google-play-store-logo-png.png" alt="Google Play" className="h-10 md:h-12" />
+      </a>
+    </div>
+  </div>
+</section>
 
+
+       {/* Search Form */}
+      <SearchSection />
+
+       {/* How It Works Section */}
       <HowItWorksSection />
 
       {/* Car Types Section */}
@@ -133,10 +120,6 @@ const Home = () => {
 
         {/* FAQ Section*/}
       <FaqSection />
-
-      {/* App Download Section */}
-      <AppDownloadSection />
-
       
     </div>
   );

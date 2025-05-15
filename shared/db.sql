@@ -302,6 +302,15 @@ CREATE TABLE service_promotions (
   created_at TIMESTAMP DEFAULT NOW()
 );
 
+CREATE TABLE password_reset_tokens (
+  email VARCHAR(255) PRIMARY KEY,
+  token VARCHAR(32) NOT NULL,
+  otp VARCHAR(6) NOT NULL,
+  expires_at TIMESTAMP NOT NULL,
+  used BOOLEAN DEFAULT false,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 
 
 

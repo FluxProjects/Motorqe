@@ -7,7 +7,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Heart, MapPin, Calendar, Fuel, Gauge, Cog } from "lucide-react";
+import { Heart, MapPin, Calendar, Fuel, Gauge, Cog, CalendarIcon } from "lucide-react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { User } from "@shared/schema";
@@ -119,8 +119,8 @@ const CarCard = ({ car, isFavorited = false }: CarCardProps) => {
 console.log("Car data", car);
   return (
     <Card
-      className={`overflow-hidden hover:shadow-md transition-shadow duration-300 ${
-        car.is_featured ? 'border-2 border-orange-500 border-solid' : ''
+      className={`overflow-hidden hover:shadow-lg transition-shadow duration-300 border-2 border-solid rounded-2xl ${
+        car.is_featured ? 'border-orange-500' : 'border-blue-700'
       }`}
     >
 
@@ -132,19 +132,20 @@ console.log("Car data", car);
               alt={title}
               className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
             />
+            
           ) : (
             <div className="h-full w-full bg-slate-200 flex items-center justify-center">
               <p className="text-slate-400">{t("common.noImage")}</p>
             </div>
           )}
 
-          {car.is_Featured && (
+          {car.is_featured && (
             <Badge className="absolute top-2 left-2 bg-red-500 hover:bg-orange-500/50">
               {t("common.featured")}
             </Badge>
           )}
 
-          <Button
+          {/* <Button
             size="icon"
             variant="ghost"
             className={`absolute top-2 right-2 rounded-full ${
@@ -156,57 +157,40 @@ console.log("Car data", car);
             disabled={toggleFavorite.isPending}
           >
             <Heart className={favorited ? "fill-rose-500" : ""} size={20} />
-          </Button>
+          </Button> */}
         </div>
       </Link>
 
-      <CardContent className="pt-4">
-        <Link href={`/cars/${car.id}`}>
-          <h3 className="text-lg font-semibold line-clamp-2 mb-1 hover:text-blue-600 transition-colors">
-            {title}
-          </h3>
-        </Link>
+      <CardContent className="p-4 space-y-2">
+      <h3 className="text-base font-extrabold uppercase text-slate-900">
+        {title}
+      </h3>
 
-        <p className="text-2xl font-bold text-blue-600 mb-3">
-          ${car.price.toLocaleString()}
-        </p>
+      <div className="flex justify-between text-xs text-slate-700 mt-2">
+        <div className="flex items-center gap-1">
+          <CalendarIcon className="w-4 h-4 text-slate-500" />
+          <span>{car.year || "2021"}</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <Cog className="w-4 h-4 text-slate-500" />
+          <span>{car.condition || "4 Cylinder"}</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <Gauge className="w-4 h-4 text-slate-500" />
+          <span>{car.mileage.toLocaleString()} KM</span>
+        </div>
+      </div>
 
-        <div className="flex items-center text-slate-500 text-sm mb-3">
+      <div className="flex justify-between items-center mt-3">
+        <div className="flex items-center text-green-600 font-semibold text-sm">
           <MapPin size={16} className="mr-1" />
-          <span>{car.location}</span>
+          <span className="text-xs">{car.location}</span>
         </div>
-
-        <div className="grid grid-cols-3 gap-2 text-sm">
-          <div className="flex flex-col items-center p-2 bg-slate-50 rounded-md">
-            <Gauge size={18} className="text-slate-500 mb-1" />
-            <span>
-              {car.mileage.toLocaleString()} {t("car.miles")}
-            </span>
-          </div>
-
-          <div className="flex flex-col items-center p-2 bg-slate-50 rounded-md">
-            <Fuel size={18} className="text-slate-500 mb-1" />
-            <span>
-              {t(
-                `car.${
-                  car.fuel_type?.toLowerCase?.() || "unknownFuelType"                  
-                }`
-              )}
-            </span>
-          </div>
-
-          <div className="flex flex-col items-center p-2 bg-slate-50 rounded-md">
-            <Cog size={18} className="text-slate-500 mb-1" />
-            <span>
-              {t(
-                `car.${
-                  car.transmission?.toLowerCase?.() || "unknownTransmission"
-                }`
-              )}
-            </span>
-          </div>
+        <div className="text-blue-800 font-bold text-lg">
+          QR. {car.price.toLocaleString()}
         </div>
-      </CardContent>
+      </div>
+    </CardContent>
 
       <CardFooter className="border-t pt-4 flex justify-between items-center">
         <div className="flex items-center">

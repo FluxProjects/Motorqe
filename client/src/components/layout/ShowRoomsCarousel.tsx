@@ -12,10 +12,10 @@ const ShowRoomsCarousel = () => {
   const { t } = useTranslation();
 
   const { data: showrooms, isLoading } = useQuery<Showroom[]>({
-    queryKey: ["/api/showrooms"],
+    queryKey: ['/api/showrooms'],
     queryFn: () =>
-      apiRequest("GET", "/api/showrooms").then((res) => res.json()),
-    select: (data) => data.filter(showroom => showroom.is_featured === true)
+      apiRequest('GET', '/api/showrooms').then((res) => res.json()),
+    select: (data) => data.filter((s) => s.is_featured === true),
   });
 
   if (isLoading) {
@@ -27,45 +27,71 @@ const ShowRoomsCarousel = () => {
   }
 
   return (
-    <section className="bg-white py-10">
-      <div className="max-w-7xl mx-auto px-4 text-center">
-        <h2 className="text-2xl font-bold text-neutral-800 mb-6">
-          {t('common.featuredShowrooms')}
+    <section className="bg-white py-20">
+      <div className="max-w-7xl mx-auto px-4 text-center relative">
+        <h2 className="text-3xl font-bold text-neutral-900 mb-2">
+          Featured <span className="font-bold">Showrooms & Dealers</span>
         </h2>
+        <div className="w-40 h-1 bg-orange-500 mx-auto mb-20 rounded-full" />
 
         <Swiper
           modules={[Navigation]}
           spaceBetween={40}
           slidesPerView={5}
-          navigation
           loop
+          navigation={{
+            nextEl: '.swiper-button-next-custom',
+            prevEl: '.swiper-button-prev-custom',
+          }}
           breakpoints={{
             320: { slidesPerView: 1 },
             640: { slidesPerView: 2 },
             768: { slidesPerView: 3 },
             1024: { slidesPerView: 4 },
-            1280: { slidesPerView: 6 },
+            1280: { slidesPerView: 6 }
           }}
           className="relative"
         >
-          {showrooms && showrooms.map((showroom) => (
+          {showrooms.map((showroom) => (
             <SwiperSlide key={showroom.id} className="flex justify-center">
-               <Link href={`/showrooms/${showroom.id}`}>
-                <a className="block cursor-pointer">
+              <Link href={`/showrooms/${showroom.id}`}>
+                <a className="flex flex-col items-center cursor-pointer transition hover:grayscale-0 grayscale">
                   <img
                     src={showroom.logo || '/placeholder-logo.png'}
                     alt={showroom.name}
-                    className="h-30 grayscale hover:grayscale-0 transition"
+                    className="h-28 object-contain"
                   />
-                  <p className="mt-2 text-sm font-medium text-gray-700 hover:text-blue-600">
-                    {showroom.name}
-                  </p>
                 </a>
               </Link>
-             
             </SwiperSlide>
           ))}
         </Swiper>
+
+        {/* Custom Navigation Arrows */}
+        <div className="swiper-button-prev-custom absolute left-0 top-1/2 transform -translate-y-1/2 z-10">
+          <button className="w-12 h-12 rounded-full bg-blue-200 flex items-center justify-center">
+            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="swiper-button-next-custom absolute right-0 top-1/2 transform -translate-y-1/2 z-10">
+          <button className="w-12 h-12 rounded-full bg-blue-700 flex items-center justify-center">
+            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+
+        {/* View More Button */}
+        <div className="flex flex-col items-end mt-10">
+          <Link href="/showrooms">
+            <a className="inline-block bg-orange-500 hover:bg-orange-600 text-white font-semibold px-6 py-2 rounded-full transition">
+              View More
+            </a>
+          </Link>
+        </div>
       </div>
     </section>
   );

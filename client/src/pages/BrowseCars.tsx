@@ -273,14 +273,14 @@ const BrowseCars = () => {
         return false;
       }
   
-      if (
-        filters.isFeatured !== null &&
-        filters.isFeatured !== undefined &&
-        car.is_featured !== filters.isFeatured
-      ) {
-        console.log(`Filtered out by isFeatured: ${car.is_featured}`);
-        return false;
-      }
+      // if (
+      //   filters.isFeatured !== null &&
+      //   filters.isFeatured !== undefined &&
+      //   car.is_featured !== filters.isFeatured
+      // ) {
+      //   console.log(`Filtered out by isFeatured: ${car.is_featured}`);
+      //   return false;
+      // }
   
       return true;
     });

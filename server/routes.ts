@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { notificationService } from "./services/notification";
 import { paymentService } from "./services/payment";
-import { loginUser, registerUser } from "./services/auth";
+import { generateOTP, generateToken, hashPassword, loginUser, registerUser, verifyPassword } from "./services/auth";
 import { verifyToken } from "./services/auth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -100,6 +100,162 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(200).json({ message: "Logged out successfully" });
     } catch (error) {
       res.status(500).json({ message: "Logout failed", error });
+    }
+  });
+
+  app.put("/api/users/:id/password", async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const userId = Number(req.params.id);
+
+    // Verify current password first
+    const user = await storage.getUserWithPassword(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const isPasswordValid = await verifyPassword(currentPassword, user.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ message: "Current password is incorrect" });
+    }
+
+    // Update password
+    const hashedPassword = await hashPassword(newPassword);
+    const updated = await storage.updateUserPassword(userId, hashedPassword);
+    
+    if (updated) {
+      res.json({ success: true });
+    } else {
+      res.status(404).json({ message: "User not found" });
+    }
+  } catch (error) {
+    console.error("Password change error:", error);
+    res.status(500).json({ 
+      message: "Failed to update password", 
+      error: error instanceof Error ? error.message : "Unknown error" 
+    });
+  }
+  });
+
+  app.post("/api/auth/forgot-password", async (req: Request, res: Response) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ message: "Email is required" });
+      }
+
+      // Security: Don't reveal if email exists
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.json({ 
+          success: true, 
+          message: "If this email exists, we've sent an OTP",
+          token: generateToken() // Return a token anyway for security
+        });
+      }
+
+      const otp = generateOTP();
+      const token = generateToken();
+      
+      await storage.createPasswordResetToken(email, otp, token);
+      await notificationService.sendOTP(email, otp);
+
+      res.json({ 
+        success: true, 
+        message: "OTP sent to email", 
+        token 
+      });
+    } catch (error) {
+      console.error("Forgot password error:", error);
+      res.status(500).json({ message: "Failed to process request" });
+    }
+  });
+
+  // Verify OTP
+  app.post("/api/auth/verify-otp", async (req: Request, res: Response) => {
+    try {
+      const { email, otp, token } = req.body;
+      
+      if (!email || !otp || !token) {
+        return res.status(400).json({ message: "All fields are required" });
+      }
+
+      const isValid = await storage.verifyPasswordResetToken(email, otp, token);
+      if (!isValid) {
+        return res.status(401).json({ message: "Invalid OTP" });
+      }
+
+      const verificationToken = generateToken();
+      await storage.createPasswordResetToken(email, otp, verificationToken);
+
+      res.json({ 
+        success: true, 
+        message: "OTP verified", 
+        verificationToken 
+      });
+    } catch (error) {
+      console.error("OTP verification error:", error);
+      res.status(500).json({ message: "Failed to verify OTP" });
+    }
+  });
+
+  // Reset password
+  app.post("/api/auth/reset-password", async (req: Request, res: Response) => {
+    try {
+      const { email, newPassword, token } = req.body;
+      
+      if (!email || !newPassword || !token) {
+        return res.status(400).json({ message: "All fields are required" });
+      }
+
+      // Verify token exists and is valid
+      const result = await verifyToken(token);
+      
+      if (result.length === 0) {
+        return res.status(401).json({ message: "Invalid or expired token" });
+      }
+
+      // Update password
+      const hashedPassword = await hashPassword(newPassword);
+      await storage.updateUserPasswordByEmail(email, hashedPassword)
+
+      // Invalidate the token
+      await storage.invalidateResetToken(token);
+
+      res.json({ 
+        success: true, 
+        message: "Password reset successfully" 
+      });
+    } catch (error) {
+      console.error("Password reset error:", error);
+      res.status(500).json({ message: "Failed to reset password" });
+    }
+  });
+
+  // Resend OTP
+  app.post("/api/auth/resend-otp", async (req: Request, res: Response) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ message: "Email is required" });
+      }
+
+      const otp = generateOTP();
+      const token = generateToken();
+      
+      await storage.createPasswordResetToken(email, otp, token);
+      await notificationService.sendOTP(email, otp);
+
+      res.json({ 
+        success: true, 
+        message: "New OTP sent to email", 
+        token 
+      });
+    } catch (error) {
+      console.error("Resend OTP error:", error);
+      res.status(500).json({ message: "Failed to resend OTP" });
     }
   });
 
@@ -568,11 +724,19 @@ app.get("/api/car-makes/:id/models", async (req, res) => {
       console.log("Retrieved listings from storage (count):", listings.length);
       console.log("Retrieved listings from storage:", listings);
       res.json(listings);
+
+    // Normalize image URLs (example assumes `image` and `thumbnail`)
     } catch (error) {
       console.error("Failed to fetch listings:", error);
       res.status(500).json({ message: "Failed to fetch listings", error });
     }
   });
+
+  function normalizeUrl(url?: string): string | null {
+  if (!url) return null;
+  if (url.startsWith("http")) return url;
+  return `https://yourdomain.com/uploads/${url}`; // Adjust path as needed
+}
 
 
   app.get("/api/car-featured", async (req, res) => {

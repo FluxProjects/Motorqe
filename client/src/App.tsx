@@ -251,7 +251,7 @@ function App() {
             <ProtectedRoute permissions={[Permission.MANAGE_ALL_SERVICES]}>
               <ManageServiceListings />
             </ProtectedRoute>
-          </Route>>
+          </Route>
 
           <Route path="/showroom-dashboard/servicebookings">
             <ProtectedRoute permissions={[Permission.MANAGE_BOOKINGS]}>

@@ -1,10 +1,10 @@
 // components/admin/listings/ListingFormDialog.tsx
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ServiceListingForm } from "@/components/forms/ServiceListingForm/ServiceListingForm";
-import { AdminServiceBooking } from "@shared/schema";
+import { AdminServiceListing } from "@shared/schema";
 
 interface ListingFormDialogProps {
-  service?: AdminServiceBooking | null;
+  service?: AdminServiceListing | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess?: () => void;

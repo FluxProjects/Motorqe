@@ -1,4 +1,4 @@
-// components/seller/SellerProfileEditor.tsx
+// components/buyer/BuyerProfileEditor.tsx
 import { BaseProfileEditor } from "../users/BaseProfileEditor";
 import { PasswordChangeForm } from "../users/PasswordChangeForm";
 import { useMutation } from "@tanstack/react-query";
@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
 
-export function SellerProfileEditor({ user }: { user: User }) {
+export function BuyerProfileEditor({ user }: { user: User }) {
   const { t } = useTranslation();
   const auth = useAuth();
 

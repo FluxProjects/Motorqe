@@ -5,7 +5,6 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { ServiceBooking, ServiceBookingAction } from "@shared/schema";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { Permission } from "@shared/permissions";
 import { useAuth } from "@/contexts/AuthContext";
 
 export const useServiceBookingManage = () => {

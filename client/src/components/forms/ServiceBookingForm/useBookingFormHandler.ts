@@ -1,16 +1,16 @@
 import { UseMutateFunction, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation } from "wouter";
-import { ServiceListingFormData, AdminServiceListing } from "@shared/schema";
+import { ServiceBookingFormData, AdminServiceBooking } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { roleMapping } from "@shared/permissions";
 
-interface ServiceListingMutationVariables {
-  formData: ServiceListingFormData;
-  service?: AdminServiceListing | null;
+interface ServiceBookingMutationVariables {
+  formData: ServiceBookingFormData;
+  booking?: AdminServiceBooking | null;
 }
 
-export const useServiceListingFormHandler = (onSuccess?: () => void) => {
+export const useServiceBookingFormHandler = (onSuccess?: () => void) => {
   const auth = useAuth();
   const user = auth?.user;
   const [, navigate] = useLocation();
@@ -19,31 +19,31 @@ export const useServiceListingFormHandler = (onSuccess?: () => void) => {
   return useMutation<
     Response,
     Error,
-    ServiceListingMutationVariables,
+    ServiceBookingMutationVariables,
     unknown
   >({
-    mutationFn: async ({ formData, service }) => {
-      console.log("Starting service form submission");
+    mutationFn: async ({ formData, booking }) => {
+      console.log("Starting booking form submission");
       console.log("Form data:", formData);
-      console.log("Existing service:", service);
+      console.log("Existing booking:", booking);
 
       const payload = {
-        showroomId: formData.showroomId || user?.showroomId,
         serviceId: formData.serviceId,
+        userId: formData.userId,
+        showroomId: formData.showroomId,
+        scheduledAt: new Date(formData.scheduledAt).toISOString(),
+        notes: formData.notes,
+        status: formData.status,
         price: formData.price,
         currency: formData.currency,
-        description: formData.description,
-        descriptionAr: formData.descriptionAr,
-        isFeatured: formData.isFeatured || false,
-        isActive: formData.isActive !== false, // Default to true
       };
 
       console.log("Constructed payload:", payload);
 
-      const method = service ? "PUT" : "POST";
-      const url = service
-        ? `/api/showroom-services/${service.id}`
-        : "/api/showroom-services";
+      const method = booking ? "PUT" : "POST";
+      const url = booking 
+        ? `/api/service-bookings/${booking.id}`
+        : "/api/service-bookings";
 
       console.log(`Sending ${method} request to ${url}`);
 
@@ -56,31 +56,33 @@ export const useServiceListingFormHandler = (onSuccess?: () => void) => {
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
         console.error("API Error:", errorData);
-        throw new Error(errorData.message || "Failed to save service");
+        throw new Error(errorData.message || "Failed to save booking");
       }
 
       return res;
     },
 
-    onSuccess: (data, variables) => {
-      console.log("Service saved successfully");
-      const role = user?.roleId ? roleMapping[user.roleId] : "SHOWROOM_BASIC";
+    onSuccess: () => {
+      console.log("Booking saved successfully");
+      const role = user?.roleId ? roleMapping[user.roleId] : "CUSTOMER";
       
       if (role === "ADMIN" || role === "SUPER_ADMIN") {
-        navigate("/admin/services");
+        navigate("/admin/bookings");
+      } else if (role === "SHOWROOM_BASIC" || role === "SHOWROOM_PREMIUM") {
+        navigate("/showroom-dashboard/bookings");
       } else {
-        navigate("/showroom-dashboard/services");
+        navigate("/my-bookings");
       }
 
       toast({
         title: "Success",
-        description: variables.service ? "Service updated" : "Service created",
+        description: booking ? "Booking updated" : "Booking created",
       });
       onSuccess?.();
     },
 
     onError: (error: Error) => {
-      console.error("Service save failed:", error);
+      console.error("Booking save failed:", error);
       toast({
         title: "Error",
         description: error.message,

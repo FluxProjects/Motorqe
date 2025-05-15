@@ -3,10 +3,11 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { ServiceListing, ServiceListingAction } from "@shared/schema";
+import { AdminServiceListing, ServiceListingAction } from "@shared/schema";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Permission } from "@shared/permissions";
 import { useAuth } from "@/contexts/AuthContext";
+import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
 
 export const useServiceListingManage = () => {
   const { user } = useAuth();
@@ -17,13 +18,14 @@ export const useServiceListingManage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [formDialogOpen, setFormDialogOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [currentService, setCurrentService] = useState<ServiceListing | null>(null);
+  const [currentService, setCurrentService] = useState<AdminServiceListing | null>(null);
 
   const [filters, setFilters] = useState({
+    status: "all",
     isActive: null,
     isFeatured: null,
     priceRange: { from: "", to: "" },
-    showroomId: user?.showroomId,
+    showroomId: null, // Changed from user?.id to null to allow selection
   });
 
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
@@ -36,17 +38,17 @@ export const useServiceListingManage = () => {
     data: services = [],
     isLoading,
     refetch,
-  } = useQuery<ServiceListing[]>({
-    queryKey: ["showroom-services", searchQuery, filters, user?.showroomId],
+  } = useQuery<AdminServiceListing[]>({
+    queryKey: ["showroom-services", searchQuery, filters, user?.id],
     queryFn: async () => {
       const searchParams = new URLSearchParams();
 
       if (searchQuery) searchParams.append("search", searchQuery);
       if (filters.isActive !== null) {
-        searchParams.append("is_active", filters.isActive.toString());
+        searchParams.append("is_active", String(filters.isActive));
       }
       if (filters.isFeatured !== null) {
-        searchParams.append("is_featured", filters.isFeatured.toString());
+        searchParams.append("is_featured", String(filters.isFeatured));
       }
       if (filters.priceRange?.from) {
         searchParams.append("price_from", filters.priceRange.from);
@@ -55,7 +57,7 @@ export const useServiceListingManage = () => {
         searchParams.append("price_to", filters.priceRange.to);
       }
       if (filters.showroomId) {
-        searchParams.append("showroom_id", filters.showroomId.toString());
+        searchParams.append("showroom_id", filters.showroomId);
       }
 
       const res = await fetch(`/api/showroom-services?${searchParams.toString()}`);
@@ -81,6 +83,18 @@ export const useServiceListingManage = () => {
 
       return enrichedServices;
     },
+  });
+
+  // Fetch user's showrooms for selection
+  const { data: userShowrooms = [] } = useQuery({
+    queryKey: ["user-showrooms", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      const res = await fetch(`/api/users/${user.id}/showrooms`);
+      if (!res.ok) throw new Error("Failed to fetch user showrooms");
+      return res.json();
+    },
+    enabled: !!user?.id,
   });
 
   // Mutation for service actions
@@ -160,20 +174,21 @@ export const useServiceListingManage = () => {
   const resetFilters = () => {
     setSearchQuery("");
     setFilters({
+      status: "all",
       isActive: null,
       isFeatured: null,
       priceRange: { from: "", to: "" },
-      showroomId: user?.showroomId,
+      showroomId: null, // Reset to null instead of user?.showroomId
     });
     refetch();
   };
 
-  const handleViewService = (service: ServiceListing) => {
+  const handleViewService = (service: AdminServiceListing) => {
     setCurrentService(service);
     setViewDialogOpen(true);
   };
 
-  const handleEditService = (service: ServiceListing) => {
+  const handleEditService = (service: AdminServiceListing) => {
     setCurrentService(service);
     setIsEditing(true);
     setFormDialogOpen(true);
@@ -185,7 +200,7 @@ export const useServiceListingManage = () => {
     setFormDialogOpen(true);
   };
 
-  const handleAction = (service: ServiceListing, action: ServiceListingAction) => {
+  const handleAction = (service: AdminServiceListing, action: ServiceListingAction) => {
     setCurrentService(service);
     setActionType(action);
     setActionDialogOpen(true);
@@ -219,6 +234,7 @@ export const useServiceListingManage = () => {
     // Data
     services,
     isLoading,
+    userShowrooms, // Added user's showrooms to the return value
 
     // Functions
     handleSearch,
