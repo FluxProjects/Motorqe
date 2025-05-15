@@ -83,6 +83,20 @@ const Footer = () => {
 
           {/* Contact */}
           <div>
+            {/* Newsletter Form */}
+        <div className="mb-10">
+          <h4 className="text-lg font-semibold mb-4">{t('footer.subscribe')}</h4>
+          <form onSubmit={(e) => e.preventDefault()} className="flex max-w-md">
+            <Input
+              type="email"
+              placeholder={t('footer.yourEmail')}
+              className="w-full bg-white text-black rounded-l-md"
+            />
+            <Button type="submit" className="bg-orange-500 hover:bg-orange-600 rounded-r-md px-4">
+              <Send className="h-4 w-4" />
+            </Button>
+          </form>
+        </div>
             <h4 className="text-lg font-semibold mb-4">{t('footer.contact')}</h4>
             <p className="flex items-center mb-2">
               <MapPin className="h-4 w-4 mr-2 rtl:ml-2 rtl:mr-0" />
@@ -99,20 +113,7 @@ const Footer = () => {
           </div>
         </div>
 
-        {/* Newsletter Form */}
-        <div className="mt-12">
-          <h4 className="text-lg font-semibold mb-4">{t('footer.subscribe')}</h4>
-          <form onSubmit={(e) => e.preventDefault()} className="flex max-w-md">
-            <Input
-              type="email"
-              placeholder={t('footer.yourEmail')}
-              className="w-full bg-white text-black rounded-l-md"
-            />
-            <Button type="submit" className="bg-orange-500 hover:bg-orange-600 rounded-r-md px-4">
-              <Send className="h-4 w-4" />
-            </Button>
-          </form>
-        </div>
+        
 
         {/* Bottom Bar */}
         <div className="border-t border-white/20 mt-12 pt-6 flex flex-col md:flex-row justify-between items-center">

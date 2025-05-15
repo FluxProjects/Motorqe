@@ -874,7 +874,8 @@ LEFT JOIN promotion_packages p ON lp.package_id = p.id
               paramIndex++;
               break;
             default:
-              whereClauses.push(`${key} = $${paramIndex}`);
+              const column = ['id', 'created_at', 'updated_at'].includes(key) ? `cl.${key}` : key;
+whereClauses.push(`${column} = $${paramIndex}`);
               values.push(value);
               console.log(`Added generic filter: ${key} = ${value}`);
               paramIndex++;

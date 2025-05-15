@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -43,6 +43,8 @@ import {
   Car,
   Phone,
   ChevronRight,
+  Navigation,
+  MessageCircle,
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -152,12 +154,15 @@ const ShowroomDetails = () => {
   const { isAuthenticated, user } = useAuth();
   const { toast } = useToast();
   const [isFavorited, setIsFavorited] = useState(false);
-   const [authModal, setAuthModal] = useState<"login" | "register" | "forget-password" | null>(null);
+  const [authModal, setAuthModal] = useState<
+    "login" | "register" | "forget-password" | null
+  >(null);
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
   const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
   const [selectedService, setSelectedService] =
     useState<ShowroomService | null>(null);
+  const [selectedTab, setSelectedTab] = useState("services");
 
   // Booking form
   const bookingForm = useForm<BookingValues>({
@@ -388,7 +393,7 @@ const ShowroomDetails = () => {
       : showroom?.description;
 
   return (
-    <div className="bg-neutral-100 pb-16">
+    <div className="bg-white pb-16">
       {/* Hero section with showroom images */}
       <div className="bg-white py-6 mb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -468,62 +473,82 @@ const ShowroomDetails = () => {
             </Avatar>
 
             <div className="flex-1">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div className="flex flex-col md:flex-row md:justify-between gap-4">
                 <div>
                   <h1 className="text-2xl md:text-3xl font-bold text-neutral-900">
-                    {name}
+                    {name}{" "}
+                    {showroom.is_main_branch && (
+                      <Badge className="ml-3 bg-orange-500">
+                        {t("showroom.mainBranch")}
+                      </Badge>
+                    )}
                   </h1>
+
+                  {/* Makes they service */}
+                  {makes.length > 0 && (
+                    <div className="mt-4">
+                      <h3 className="text-sm font-medium text-neutral-500 mb-2">
+                        {t("showroom.specializesIn")}
+                      </h3>
+                      <div className="flex flex-wrap gap-2">
+                        {makes.map((make) => (
+                          <div
+                            key={make.id}
+                            className="flex items-center gap-2 border rounded-full px-3 py-1 text-sm text-neutral-700 bg-white shadow-sm"
+                          >
+                            {make.make?.image && (
+                              <img
+                                src={make.make.image}
+                                alt={make.make?.name}
+                                className="w-5 h-5 object-contain"
+                              />
+                            )}
+                            <span>
+                              {language === "ar" && make.make?.nameAr
+                                ? make.make.nameAr
+                                : make.make?.name}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                 </div>
 
-                <div className="flex flex-col items-end">
+                <div className="flex flex-col items-end w-[250px]">
                   {showroom.phone && (
-                    <a
-                      href={`tel:${showroom.phone}`}
-                      className="flex items-center text-primary hover:underline"
-                    >
-                      <Phone size={16} className="mr-1" />
-                      {showroom.phone}
+                    <a href={`tel:${showroom.phone}`} className="w-full">
+                      <Button className="mt-2 w-full rounded-full bg-blue-900 text-white">
+                        <Phone size={16} className="mr-1" />
+                        {t("showroom.callShowroom")}
+                      </Button>
                     </a>
                   )}
                   <Button
-                    className="mt-2"
+                    className="mt-2 w-full rounded-full bg-orange-500"
                     onClick={() => setContactDialogOpen(true)}
                   >
                     <MessageSquare size={16} className="mr-1" />
-                    {t("showroom.contactShowroom")}
+                    {t("showroom.messageShowroom")}
                   </Button>
+                  {showroom.phone && (
+                    <a
+                      href={`https://wa.me/${showroom.phone.replace(/\D/g, "")}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full"
+                    >
+                      <Button className="mt-2 w-full rounded-full bg-green-600 text-white hover:bg-green-700">
+                        <MessageCircle size={16} className="mr-1" />
+                        {t("showroom.chatOnWhatsApp")}
+                      </Button>
+                    </a>
+                  )}
                 </div>
               </div>
 
-              {/* Makes they service */}
-              {makes.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-medium text-neutral-500 mb-2">
-                    {t("showroom.specializesIn")}
-                  </h3>
-                  <div className="flex flex-wrap gap-2">
-                    {makes.map((make) => (
-                      <div
-                        key={make.id}
-                        className="flex items-center gap-2 border rounded-full px-3 py-1 text-sm text-neutral-700 bg-white shadow-sm"
-                      >
-                        {make.make?.image && (
-                          <img
-                            src={make.make.image}
-                            alt={make.make?.name}
-                            className="w-5 h-5 object-contain"
-                          />
-                        )}
-                        <span>
-                          {language === "ar" && make.make?.nameAr
-                            ? make.make.nameAr
-                            : make.make?.name}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+              
             </div>
           </div>
 
@@ -532,7 +557,7 @@ const ShowroomDetails = () => {
             <Carousel className="w-full mb-8">
               <CarouselContent>
                 <CarouselItem>
-                  <div className="aspect-[16/4] bg-neutral-100 rounded-lg overflow-hidden">
+                  <div className="aspect-[16/4] rounded-lg overflow-hidden">
                     <img
                       src={showroom.logo}
                       alt={name}
@@ -553,14 +578,31 @@ const ShowroomDetails = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="md:col-span-2">
             {/* Showroom details tabs */}
-            <Card>
+            <Card className="border-transparent shadow-none">
               <CardContent className="p-0">
-                <Tabs defaultValue="services" className="w-full">
-                  <TabsList className="w-full grid grid-cols-2 rounded-none">
-                    <TabsTrigger value="services">
+                <Tabs 
+                value={selectedTab}
+                onValueChange={setSelectedTab}
+                defaultValue="services" 
+                className="w-full">
+                  <TabsList className="flex flex-wrap justify-center gap-3 bg-transparent p-0">
+                    <TabsTrigger 
+                    value="services"
+                    className={`px-5 py-2 text-sm font-medium transition-all ${
+                    selectedTab === "services"
+                      ? "text-orange-500 border-b-4 border-b-orange-500 hover:font-bold"
+                      : "text-blue-900"
+                  }`}
+                    >
                       {t("showroom.services")}
                     </TabsTrigger>
-                    <TabsTrigger value="inventory">
+                    <TabsTrigger value="inventory"
+                    className={`px-5 py-2 text-sm font-medium transition-all ${
+                    selectedTab === "inventory"
+                      ? "text-orange-500 border-b-4 border-b-orange-500 hover:font-bold"
+                      : "text-blue-900"
+                  }`}
+                    >
                       {t("showroom.listings")}
                     </TabsTrigger>
                   </TabsList>
@@ -575,7 +617,7 @@ const ShowroomDetails = () => {
                         {services.map((service) => (
                           <Card
                             key={service.id}
-                            className="hover:shadow-md transition-shadow"
+                            className="rounded-2xl border-2 border-blue-900"
                           >
                             <CardContent className="p-6">
                               <div className="flex flex-col md:flex-row md:items-center gap-6">
@@ -618,6 +660,7 @@ const ShowroomDetails = () => {
                                   <div className="mt-4 flex justify-end">
                                     <Button
                                       size="sm"
+                                      className="rounded-full bg-orange-500 hover:bg-orange-700"
                                       onClick={() => {
                                         setSelectedService(service);
                                         setBookingDialogOpen(true);
@@ -663,18 +706,21 @@ const ShowroomDetails = () => {
           </div>
 
           <div>
-            {/* Booking card */}
-            <Card className="sticky top-4">
-              <CardContent className="p-6">
-                <h2 className="text-lg font-semibold mb-4">
-                  {t("showroom.about")}
-                </h2>
-
-                <div className="prose max-w-none">
+            {/* Showroom card */}
+            <Card className="sticky bg-neutral-50 rounded-2xl border-orange-500 border-2">
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  {t("showroom.about")} {showroom.name || showroom.nameAr}
+                </CardTitle>
+                <div className="max-w-none">
                   <p>{description || t("showroom.Description")}</p>
                 </div>
+              </CardHeader>
 
-                <div className="mt-8 grid grid-cols-1 md:grid-cols-1 gap-6">
+              <CardContent className="p-6 pt-0">
+                
+              <Separator className="my-4" />
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-1 gap-4">
                   <div>
                     <h3 className="text-lg font-semibold mb-4">
                       {t("showroom.businessHours")}
@@ -706,32 +752,49 @@ const ShowroomDetails = () => {
 
                 <Separator className="my-4" />
 
-                <div className="space-y-4">
-                  <div className="flex items-center">
-                    <MapPin size={18} className="mr-2 text-neutral-500" />
-                    <span>{address}</span>
-                  </div>
+                {showroom.address && (
+                  <div className="mt-4">
+                     <h3 className="text-lg font-semibold mb-4">
+                      {t("showroom.businessAddress")}
+                    </h3>
+                    <p className="text-sm text-gray-700">{showroom.address}</p>
 
-                  {showroom.phone && (
-                    <div className="flex items-center">
-                      <Phone size={18} className="mr-2 text-neutral-500" />
-                      <a
-                        href={`tel:${showroom.phone}`}
-                        className="hover:underline"
-                      >
-                        {showroom.phone}
-                      </a>
+                    {/* Location & Directions Buttons */}
+                    <div className="mt-4 flex justify-center gap-2 items-center">
+                      {showroom.location &&
+                        (() => {
+                          const [lat, lng] = showroom.location
+                            .split(",")
+                            .map(Number);
+                          const mapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+                          const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+
+                          return (
+                            <>
+                              <a
+                                href={mapsUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center justify-center rounded-full bg-orange-500 text-white px-3 py-1 text-sm min-w-[120px]"
+                              >
+                                <MapPin size={16} className="mr-1" />
+                                Location Map
+                              </a>
+                              <a
+                                href={directionsUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center justify-center rounded-full bg-orange-500 text-white px-3 py-1 text-sm min-w-[120px]"
+                              >
+                                <Navigation size={16} className="mr-1" />
+                                Get Directions
+                              </a>
+                            </>
+                          );
+                        })()}
                     </div>
-                  )}
-
-                  <Button
-                    className="w-full"
-                    onClick={() => setContactDialogOpen(true)}
-                  >
-                    <MessageSquare size={16} className="mr-1" />
-                    {t("showroom.contactShowroom")}
-                  </Button>
-                </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>

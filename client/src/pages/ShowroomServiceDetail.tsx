@@ -129,7 +129,7 @@ export default function ShowroomServiceDetails() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
           <div className="flex justify-between items-center mb-6">
-            <Link href="/services">
+            <Link href="/browse-services">
               <Button variant="ghost" className="flex items-center text-blue-900">
                 <ChevronLeft className="h-4 w-4 mr-2" />
                 {t("common.backToServices")}
@@ -206,7 +206,7 @@ export default function ShowroomServiceDetails() {
                 <CardTitle className="text-2xl">
                   {service.name}
                   {isFeatured && (
-                    <Badge className="ml-3">
+                    <Badge className="ml-3 bg-blue-900">
                       <Star className="h-3 w-3 mr-1 fill-current" />
                       {t("services.featured")}
                     </Badge>
@@ -303,7 +303,7 @@ export default function ShowroomServiceDetails() {
                 </Avatar>
                 {showroom.name}
                 {showroom.isMainBranch && (
-                  <Badge className="ml-3">{t("showroom.mainBranch")}</Badge>
+                  <Badge className="ml-3 bg-orange-500">{t("showroom.mainBranch")}</Badge>
                 )}
               </CardTitle>
             </CardHeader>
