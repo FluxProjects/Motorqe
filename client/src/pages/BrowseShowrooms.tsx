@@ -1,41 +1,16 @@
 import { useState } from "react";
-import { Link } from "wouter";
 import { useTranslation } from "react-i18next";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Star, Wrench, Car, Phone } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { CarMake, ShowroomService } from "@shared/schema";
+import { ShowroomCard } from "@/components/showroom/ShowroomCard";
+import { Wrench } from "lucide-react";
 
-interface ShowroomCardProps {
-  showroom: {
-    id: number;
-    name: string;
-    nameAr?: string;
-    address: string;
-    addressAr?: string;
-    location: string;
-    phone: string;
-    image?: string;
-    isMainBranch: boolean;
-    services: {
-      id: number;
-      image: string;
-      name: string;
-      price: number;
-    }[];
-    makes: {
-      id: number;
-      name: string;
-    }[];
-    rating?: number;
-  };
-}
+
 
 type ServiceItem = {
   id: number;
@@ -185,7 +160,7 @@ const BrowseShowrooms = () => {
       Array.from({ length: 8 }).map((_, i) => (
         <Skeleton key={i} className="h-80 w-full rounded-lg" />
       ))
-    ) : filteredShowrooms?.length > 0 ? (
+    ) : filteredShowrooms && filteredShowrooms?.length > 0 ? (
       filteredShowrooms.map((showroom: any) => (
         <ShowroomCard key={showroom.id} showroom={showroom} />
       ))
@@ -195,246 +170,161 @@ const BrowseShowrooms = () => {
       </div>
     );
 
-  const ShowroomCard = ({ showroom }: ShowroomCardProps) => {
-    const { t, i18n } = useTranslation();
-    const language = i18n.language;
-
-    const name =
-      language === "ar" && showroom.nameAr ? showroom.nameAr : showroom.name;
-    const address =
-      language === "ar" && showroom.addressAr
-        ? showroom.addressAr
-        : showroom.address;
-
-        console.log("Services", services);
-
-    return (
-      <Card
-        className={`overflow-hidden hover:shadow-md transition-shadow duration-300 ${
-          showroom.isMainBranch ? "border-2 border-orange-500 border-solid" : ""
-        }`}
-      >
-        <Link href={`/showrooms/${showroom.id}`}>
-          <div className="relative h-48 overflow-hidden group cursor-pointer">
-            {showroom.image ? (
-              <img
-                src={showroom.image}
-                alt={name}
-                className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
-              />
-            ) : (
-              <div className="h-full w-full bg-slate-200 flex items-center justify-center">
-                <Car size={40} className="text-slate-400" />
-              </div>
-            )}
-
-            {showroom.isMainBranch && (
-              <Badge className="absolute top-2 left-2 bg-blue-500">
-                {t("showroom.mainBranch")}
-              </Badge>
-            )}
-
-            {showroom.rating && (
-              <Badge className="absolute top-2 right-2 bg-amber-500 flex items-center">
-                <Star size={14} className="mr-1 fill-white" />
-                {showroom.rating.toFixed(1)}
-              </Badge>
-            )}
-          </div>
-        </Link>
-
-        <CardContent className="pt-4">
-          <Link href={`/showrooms/${showroom.id}`}>
-            <h3 className="text-lg font-semibold line-clamp-2 mb-1 hover:text-blue-600 transition-colors">
-              {name}
-            </h3>
-          </Link>
-
-          <div className="flex items-center text-slate-500 text-sm mb-3">
-            <MapPin size={16} className="mr-1" />
-            <span className="line-clamp-1">{address}</span>
-          </div>
-
-          <div className="flex flex-wrap gap-2 mb-3">
-            {Array.isArray(showroom.makes) &&
-              showroom.makes.slice(0, 3).map((make) => (
-                <Badge key={make.id} variant="outline">
-                  {make.name}
-                </Badge>
-              ))}
-            {Array.isArray(showroom.makes) && showroom.makes.length > 3 && (
-              <Badge variant="outline">+{showroom.makes.length - 3}</Badge>
-            )}
-          </div>
-
-          <div className="flex flex-wrap gap-2 mb-3">
-            {Array.isArray(showroom?.services) &&
-              showroom.services.slice(0, 3).map((service, index) => (
-                <Badge
-                  key={index}
-                  variant="secondary"
-                  className="flex items-center gap-1.5 max-w-[120px] truncate"
-                >
-                  {service.image && (
-                    <img
-                      src={service.image || "https://placehold.co/24x24"}
-                      alt=""
-                      className="h-3 w-3 object-contain"
-                    />
-                  )}
-                  <span className="truncate">{service.name}</span>
-                </Badge>
-              ))}
-            {Array.isArray(showroom?.services) &&
-              showroom.services.length > 3 && (
-                <Badge variant="secondary">
-                  +{showroom.services.length - 3} {t("showroom.moreServices")}
-                </Badge>
-              )}
-          </div>
-        </CardContent>
-
-        <CardFooter className="border-t pt-4 flex justify-between items-center">
-          <div className="flex items-center">
-            <Phone size={16} className="mr-2 text-slate-500" />
-            <span className="text-sm text-slate-600">{showroom.phone}</span>
-          </div>
-
-          <Link href={`/showrooms/${showroom.id}`}>
-            <Button size="sm" variant="outline">
-              {t("common.viewDetails")}
-            </Button>
-          </Link>
-        </CardFooter>
-      </Card>
-    );
-  };
-
   return (
-    <div className="bg-white min-h-screen py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h1 className="text-3xl font-bold text-neutral-900 mb-8">
+  <div className="bg-white min-h-screen py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="text-center mb-8">
+        <h1 className="text-3xl font-bold text-neutral-900 mb-2">
           {t("common.browseShowrooms")}
         </h1>
+        <div className="w-40 h-1 bg-orange-500 mx-auto rounded-full" />
+      </div>
 
-        <div className="md:flex md:gap-6">
-          <Tabs
-            value={selectedTab}
-            onValueChange={setSelectedTab}
-            defaultValue="all"
-            className="w-full"
-          >
-            <div className="flex flex-col md:flex-row justify-between gap-4 mb-6">
-              <TabsList className="grid w-full md:w-auto grid-cols-3">
-                <TabsTrigger value="all">
+      <div className="md:flex md:gap-6">
+        <Tabs
+          value={selectedTab}
+          onValueChange={setSelectedTab}
+          defaultValue="all"
+          className="w-full"
+        >
+          <div className="flex flex-col md:flex-row justify-between gap-4 mb-8">
+            {/* Updated TabsList with new styling */}
+            <div className="flex flex-wrap justify-left gap-3 w-full">
+              <TabsList className="flex flex-wrap justify-center gap-3 bg-transparent p-0">
+                <TabsTrigger 
+                  value="all"
+                  className={`px-5 py-2 text-sm font-medium transition-all ${
+                    selectedTab === "all"
+                      ? "text-orange-500 border-b-4 border-b-orange-500 hover:font-bold"
+                      : "text-blue-900"
+                  }`}
+                >
                   {t("showroom.allShowrooms")}
                 </TabsTrigger>
-                <TabsTrigger value="makes">{t("showroom.byMake")}</TabsTrigger>
-                <TabsTrigger value="services">
+                <TabsTrigger 
+                  value="makes"
+                  className={`px-5 py-2 text-sm font-medium transition-all ${
+                    selectedTab === "makes"
+                      ? "text-orange-500 border-b-4 border-b-orange-500 hover:font-bold"
+                      : "text-blue-900"
+                  }`}
+                >
+                  {t("showroom.byMake")}
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="services"
+                  className={`px-5 py-2 text-sm font-medium transition-all ${
+                    selectedTab === "services"
+                      ? "text-orange-500 border-b-4 border-b-orange-500 hover:font-bold"
+                      : "text-blue-900"
+                  }`}
+                >
                   {t("showroom.byService")}
                 </TabsTrigger>
               </TabsList>
-
-              <Input
-                placeholder={t("showroom.searchPlaceholder")}
-                className="max-w-md"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
             </div>
 
-            <TabsContent value="all">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {renderShowrooms()}
-              </div>
-            </TabsContent>
+            <Input
+              placeholder={t("showroom.searchPlaceholder")}
+              className="max-w-md"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
 
-            <TabsContent value="makes">
-              <div className="flex flex-wrap gap-2 mb-6">
+          {/* Rest of your existing TabsContent components remain the same */}
+          <TabsContent value="all">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 gap-6">
+              {renderShowrooms()}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="makes">
+            <div className="flex flex-wrap gap-2 mb-6">
+              <Badge
+                variant={selectedMake === "all" ? "default" : "outline"}
+                onClick={() => setSelectedMake("all")}
+                className="cursor-pointer"
+              >
+                {t("showroom.allMakes")}
+              </Badge>
+              {makes?.map((make: CarMake) => (
                 <Badge
-                  variant={selectedMake === "all" ? "default" : "outline"}
-                  onClick={() => setSelectedMake("all")}
-                  className="cursor-pointer"
-                >
-                  {t("showroom.allMakes")}
-                </Badge>
-                {makes?.map((make: CarMake) => (
-                  <Badge
-                    key={make.id}
-                    role="button"
-                    tabIndex={0}
-                    variant={
+                  key={make.id}
+                  role="button"
+                  tabIndex={0}
+                  variant={
+                    selectedMake === make.id.toString()
+                      ? "default"
+                      : "outline"
+                  }
+                  onClick={() => {
+                    setSelectedMake(
                       selectedMake === make.id.toString()
-                        ? "default"
-                        : "outline"
-                    }
-                    onClick={() => {
-                      setSelectedMake(
-                        selectedMake === make.id.toString()
-                          ? "all"
-                          : make.id.toString()
-                      );
-                      setSelectedService("all");
-                    }}
-                    className="cursor-pointer select-none flex items-center gap-2"
-                  >
-                    <img
-                      src={make.image || "https://placehold.co/24x24"}
-                      alt={make.name}
-                      className="w-6 h-6"
-                    />
-                    {make.name}
-                  </Badge>
-                ))}
-              </div>
+                        ? "all"
+                        : make.id.toString()
+                    );
+                    setSelectedService("all");
+                  }}
+                  className="cursor-pointer select-none flex items-center gap-2"
+                >
+                  <img
+                    src={make.image || "https://placehold.co/24x24"}
+                    alt={make.name}
+                    className="w-6 h-6"
+                  />
+                  {make.name}
+                </Badge>
+              ))}
+            </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {renderShowrooms()}
-              </div>
-            </TabsContent>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 gap-6">
+              {renderShowrooms()}
+            </div>
+          </TabsContent>
 
-            <TabsContent value="services">
-              <div className="flex flex-wrap gap-2 mb-6">
+          <TabsContent value="services">
+            <div className="flex flex-wrap gap-2 mb-6">
+              <Badge
+                variant={selectedService === "all" ? "default" : "outline"}
+                onClick={() => setSelectedService("all")}
+                className="cursor-pointer"
+              >
+                {t("showroom.allServices")}
+              </Badge>
+              {services?.map((service: any) => (
                 <Badge
-                  variant={selectedService === "all" ? "default" : "outline"}
-                  onClick={() => setSelectedService("all")}
+                  key={service.id}
+                  variant={
+                    selectedService === service.id.toString()
+                      ? "default"
+                      : "outline"
+                  }
+                  onClick={() => {
+                    setSelectedService(
+                      selectedService === service.id.toString()
+                        ? "all"
+                        : service.id.toString()
+                    );
+                    setSelectedMake("all");
+                  }}
                   className="cursor-pointer"
                 >
-                  {t("showroom.allServices")}
+                  <Wrench size={14} className="mr-1" />
+                  {service.name}
                 </Badge>
-                {services?.map((service: any) => (
-                  <Badge
-                    key={service.id}
-                    variant={
-                      selectedService === service.id.toString()
-                        ? "default"
-                        : "outline"
-                    }
-                    onClick={() => {
-                      setSelectedService(
-                        selectedService === service.id.toString()
-                          ? "all"
-                          : service.id.toString()
-                      );
-                      setSelectedMake("all");
-                    }}
-                    className="cursor-pointer"
-                  >
-                    <Wrench size={14} className="mr-1" />
-                    {service.name}
-                  </Badge>
-                ))}
-              </div>
+              ))}
+            </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {renderShowrooms()}
-              </div>
-            </TabsContent>
-          </Tabs>
-        </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 gap-6">
+              {renderShowrooms()}
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
-  );
+  </div>
+);
 };
 
 export default BrowseShowrooms;
