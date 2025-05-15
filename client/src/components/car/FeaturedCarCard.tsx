@@ -120,9 +120,10 @@ const FeaturedCarCard = ({ car, isFavorited = false, className = "", cardSize = 
 
 
     <CardContent className="p-4 space-y-2">
-      <h3 className="text-base font-extrabold uppercase text-slate-900">
-        {title}
-      </h3>
+      <h3 className="text-base font-extrabold uppercase text-slate-900 whitespace-nowrap overflow-hidden text-ellipsis">
+  {title}
+</h3>
+
 
       <div className="flex justify-between text-xs text-slate-700 mt-2">
         <div className="flex items-center gap-1">

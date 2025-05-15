@@ -162,9 +162,10 @@ console.log("Car data", car);
       </Link>
 
       <CardContent className="p-4 space-y-2">
-      <h3 className="text-base font-extrabold uppercase text-slate-900">
-        {title}
-      </h3>
+      <h3 className="text-base font-extrabold uppercase text-slate-900 whitespace-nowrap overflow-hidden text-ellipsis">
+  {title}
+</h3>
+
 
       <div className="flex justify-between text-xs text-slate-700 mt-2">
         <div className="flex items-center gap-1">
@@ -221,8 +222,8 @@ console.log("Car data", car);
         <Link href={`/cars/${car.id}`}>
           <Button
             size="sm"
-            variant="outline"
-            className="text-white bg-blue-900 hover:bg-blue-700 hover:text-white"
+            variant="default"
+            className="bg-orange-500 hover:bg-orange-600 font-semibold px-6 py-2 rounded-full"
           >
             {t("common.viewDetails")}
           </Button>
