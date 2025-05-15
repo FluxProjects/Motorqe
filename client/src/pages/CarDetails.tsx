@@ -103,7 +103,7 @@ const CarDetails = () => {
   const { isAuthenticated, user } = useAuth();
   const { toast } = useToast();
   const [isFavorited, setIsFavorited] = useState(false);
-  const [authModal, setAuthModal] = useState<"login" | "register" | null>(null);
+   const [authModal, setAuthModal] = useState<"login" | "register" | "forget-password" | null>(null);
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
 
@@ -135,34 +135,35 @@ const CarDetails = () => {
 
   // Fetch car listing features
   const { data: listingFeatures = [], isLoading: isLoadingCarFeature } =
-  useQuery<CarFeature[]>({
-    queryKey: [`/api/car-listings/${id}/features`],
-    enabled: !!id,
-    queryFn: async () => {
-      if (!id) {
-        console.warn("⚠️ No ID provided for fetching listing features");
-        return [];
-      }
+    useQuery<CarFeature[]>({
+      queryKey: [`/api/car-listings/${id}/features`],
+      enabled: !!id,
+      queryFn: async () => {
+        if (!id) {
+          console.warn("⚠️ No ID provided for fetching listing features");
+          return [];
+        }
 
-      const url = `/api/car-listings/${id}/features`;
-      console.log(`🌐 Sending GET request to: ${url}`);
+        const url = `/api/car-listings/${id}/features`;
+        console.log(`🌐 Sending GET request to: ${url}`);
 
-      const res = await fetch(url);
+        const res = await fetch(url);
 
-      console.log("📥 Response status:", res.status);
+        console.log("📥 Response status:", res.status);
 
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        console.error("❌ Failed to fetch listing features:", errorData);
-        throw new Error(errorData.message || "Failed to fetch listing features");
-      }
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          console.error("❌ Failed to fetch listing features:", errorData);
+          throw new Error(
+            errorData.message || "Failed to fetch listing features"
+          );
+        }
 
-      const json = await res.json();
-      console.log("✅ Listing features fetched successfully:", json);
-      return json;
-    }
-  });
-
+        const json = await res.json();
+        console.log("✅ Listing features fetched successfully:", json);
+        return json;
+      },
+    });
 
   // Fetch favorite status if logged in
   const { data: favoriteData } = useQuery<any>({
@@ -215,17 +216,17 @@ const CarDetails = () => {
     queryKey: ["/api/car-categories"],
   });
 
-const { data: models } = useQuery<CarModel>({
-  queryKey: ["/api/car-model", car?.model_id],
-  queryFn: () =>
-    fetch(`/api/car-model/${car?.model_id}`).then((res) => {
-      if (!res.ok) throw new Error("Failed to fetch model");
-      return res.json();
-    }),
-  enabled: !!car?.model_id,
-});
+  const { data: models } = useQuery<CarModel>({
+    queryKey: ["/api/car-model", car?.model_id],
+    queryFn: () =>
+      fetch(`/api/car-model/${car?.model_id}`).then((res) => {
+        if (!res.ok) throw new Error("Failed to fetch model");
+        return res.json();
+      }),
+    enabled: !!car?.model_id,
+  });
 
-  console.log('listingFeatures', listingFeatures);
+  console.log("listingFeatures", listingFeatures);
 
   const makeName =
     makes.find((m) => m.id === car?.make_id)?.name ?? "Unknown Make";
@@ -392,15 +393,16 @@ const { data: models } = useQuery<CarModel>({
 
   return (
     <div className="bg-neutral-100 pb-16">
-      {/* Hero section with car images */}
+
       <div className="bg-white py-6 mb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          
           {/* Back button and actions */}
           <div className="flex justify-between items-center mb-6">
             <Link href="/browse">
               <Button
                 variant="ghost"
-                className="flex items-center text-neutral-600"
+                className="flex items-center text-blue-900"
               >
                 <ArrowLeft size={16} className="mr-1" />
                 {t("common.backToBrowse")}
@@ -413,14 +415,14 @@ const { data: models } = useQuery<CarModel>({
                 size="sm"
                 className={
                   isFavorited
-                    ? "text-secondary border-secondary hover:bg-secondary-light"
-                    : ""
+                    ? "rounded-full hover:text-orange-600 hover:border-orange-600 bg-orange-600 text-white"
+                    : "rounded-full text-orange-600 border-orange-600 hover:bg-orange-600 hover:text-white"
                 }
                 onClick={handleFavoriteToggle}
               >
                 <Heart
-                  className={`mr-1 ${isFavorited ? "fill-secondary" : ""}`}
-                  size={16}
+                  className="w-4 h-4"
+                  fill={isFavorited ? "currentColor" : "none"}
                 />
                 {isFavorited
                   ? t("common.removeFromFavorites")
@@ -430,6 +432,7 @@ const { data: models } = useQuery<CarModel>({
               <Button
                 variant="outline"
                 size="sm"
+                className="rounded-full text-blue-900 border-blue-500 hover:bg-blue-900 hover:text-white hover:border-blue-900"
                 onClick={() => {
                   if (navigator.share) {
                     navigator
@@ -452,8 +455,9 @@ const { data: models } = useQuery<CarModel>({
               </Button>
 
               <Button
-                variant="outline"
+                variant="default"
                 size="sm"
+                className="rounded-full bg-red-500 hover:bg-black" 
                 onClick={() => setReportDialogOpen(true)}
               >
                 <Flag size={16} className="mr-1" />
@@ -462,7 +466,7 @@ const { data: models } = useQuery<CarModel>({
             </div>
           </div>
 
-          {/* Car images carousel */}
+          {/* Share buttons */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="md:col-span-2">
               <Carousel className="w-full">
@@ -521,24 +525,26 @@ const { data: models } = useQuery<CarModel>({
               <div className="flex items-center mb-6">
                 <DollarSign size={20} className="text-primary mr-1" />
                 <span className="text-3xl font-bold text-primary">
-                {formatPrice(car.price, car.currency ?? "QAR")}
+                  {formatPrice(car.price, car.currency ?? "QAR")}
                 </span>
               </div>
 
               <Card className="mb-6">
                 <CardContent className="p-4 flex flex-col gap-2">
-    <div>
-      <h2 className="text-2xl font-bold text-foreground">
-        {makeName} <span className="text-muted-foreground font-medium">{modelName}</span>
-      </h2>
-      <p className="text-sm text-muted-foreground mt-1">
-        Category: <span className="font-medium">{categoryName}</span>
-      </p>
-    </div>
-  </CardContent>
-</Card>
-
-
+                  <div>
+                    <h2 className="text-2xl font-bold text-foreground">
+                      {makeName}{" "}
+                      <span className="text-muted-foreground font-medium">
+                        {modelName}
+                      </span>
+                    </h2>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Category:{" "}
+                      <span className="font-medium">{categoryName}</span>
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
 
               <div className="grid grid-cols-2 gap-4 mb-6">
                 <div className="flex flex-col items-center bg-white p-3 rounded-md">
@@ -626,12 +632,14 @@ const { data: models } = useQuery<CarModel>({
               </Button>
             </div>
           </div>
+
         </div>
       </div>
 
       {/* Content section */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          
           <div className="md:col-span-2">
             {/* Car details tabs */}
             <Card>
@@ -756,10 +764,10 @@ const { data: models } = useQuery<CarModel>({
                     </span>
                   </div>
                 </div>
-
               </CardContent>
             </Card>
           </div>
+
         </div>
       </div>
 

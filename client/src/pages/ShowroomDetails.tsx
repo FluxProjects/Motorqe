@@ -152,9 +152,10 @@ const ShowroomDetails = () => {
   const { isAuthenticated, user } = useAuth();
   const { toast } = useToast();
   const [isFavorited, setIsFavorited] = useState(false);
-  const [authModal, setAuthModal] = useState<"login" | "register" | null>(null);
+   const [authModal, setAuthModal] = useState<"login" | "register" | "forget-password" | null>(null);
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
   const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
+  const [reportDialogOpen, setReportDialogOpen] = useState(false);
   const [selectedService, setSelectedService] =
     useState<ShowroomService | null>(null);
 
@@ -364,7 +365,7 @@ const ShowroomDetails = () => {
           </h1>
           <p className="text-neutral-600 mb-6">{t("showroom.notFound")}</p>
           <Link href="/browse-showrooms">
-            <Button>
+            <Button variant="ghost" className="flex items-center text-blue-900">
               <ArrowLeft className="mr-2" size={16} />
               {t("showroom.backToShowrooms")}
             </Button>
@@ -396,7 +397,7 @@ const ShowroomDetails = () => {
             <Link href="/browse-showrooms">
               <Button
                 variant="ghost"
-                className="flex items-center text-neutral-600"
+                className="flex items-center text-blue-900"
               >
                 <ArrowLeft size={16} className="mr-1" />
                 {t("showroom.backToShowrooms")}
@@ -409,14 +410,14 @@ const ShowroomDetails = () => {
                 size="sm"
                 className={
                   isFavorited
-                    ? "text-secondary border-secondary hover:bg-secondary-light"
-                    : ""
+                    ? "rounded-full hover:text-red-500 hover:border-red-500 bg-red-500 text-white"
+                    : "rounded-full text-red-500 border-red-500 hover:bg-red-500 hover:text-white"
                 }
                 onClick={handleFavoriteToggle}
               >
                 <Heart
-                  className={`mr-1 ${isFavorited ? "fill-secondary" : ""}`}
-                  size={16}
+                  className="w-4 h-4"
+                  fill={isFavorited ? "currentColor" : "none"}
                 />
                 {isFavorited
                   ? t("common.removeFromFavorites")
@@ -426,6 +427,7 @@ const ShowroomDetails = () => {
               <Button
                 variant="outline"
                 size="sm"
+                className="rounded-full text-blue-900 border-blue-500 hover:bg-blue-900 hover:text-white hover:border-blue-900"
                 onClick={() => {
                   if (navigator.share) {
                     navigator
@@ -445,6 +447,15 @@ const ShowroomDetails = () => {
               >
                 <Share size={16} className="mr-1" />
                 {t("common.share")}
+              </Button>
+              <Button
+                variant="default"
+                size="sm"
+                className="rounded-full bg-red-500 hover:bg-black"
+                onClick={() => setReportDialogOpen(true)}
+              >
+                <Flag size={16} className="mr-1" />
+                {t("common.report")}
               </Button>
             </div>
           </div>
@@ -517,24 +528,23 @@ const ShowroomDetails = () => {
           </div>
 
           {/* Showroom banner image carousel */}
-{showroom.logo && (
-  <Carousel className="w-full mb-8">
-    <CarouselContent>
-      <CarouselItem>
-        <div className="aspect-[16/4] bg-neutral-100 rounded-lg overflow-hidden">
-          <img
-            src={showroom.logo}
-            alt={name}
-            className="w-full h-full object-cover"
-          />
-        </div>
-      </CarouselItem>
-    </CarouselContent>
-    <CarouselPrevious className="left-2" />
-    <CarouselNext className="right-2" />
-  </Carousel>
-)}
-
+          {showroom.logo && (
+            <Carousel className="w-full mb-8">
+              <CarouselContent>
+                <CarouselItem>
+                  <div className="aspect-[16/4] bg-neutral-100 rounded-lg overflow-hidden">
+                    <img
+                      src={showroom.logo}
+                      alt={name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                </CarouselItem>
+              </CarouselContent>
+              <CarouselPrevious className="left-2" />
+              <CarouselNext className="right-2" />
+            </Carousel>
+          )}
         </div>
       </div>
 
@@ -574,8 +584,7 @@ const ShowroomDetails = () => {
                                     <img
                                       src={service.image}
                                       alt={
-                                        language === "ar" &&
-                                        service.nameAr
+                                        language === "ar" && service.nameAr
                                           ? service.nameAr
                                           : service.name
                                       }
@@ -587,8 +596,7 @@ const ShowroomDetails = () => {
                                 <div className="flex-1">
                                   <div className="flex justify-between items-start">
                                     <h3 className="text-lg font-semibold">
-                                      {language === "ar" &&
-                                      service.nameAr
+                                      {language === "ar" && service.nameAr
                                         ? service.nameAr
                                         : service.name}
                                     </h3>

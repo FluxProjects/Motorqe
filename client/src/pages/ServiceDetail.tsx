@@ -74,7 +74,7 @@ export default function ServiceDetails() {
     <div className="container mx-auto py-8 px-4">
       <div className="mb-6">
         <Link href="/browse-services">
-          <Button variant="ghost" className="flex items-center">
+          <Button variant="ghost" className="flex items-center text-blue-900">
             <ChevronLeft className="h-4 w-4 mr-2" />
             {t("common.backToServices")}
           </Button>
