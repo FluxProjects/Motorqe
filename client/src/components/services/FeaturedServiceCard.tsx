@@ -77,52 +77,52 @@ export default function FeaturedServiceCard({ service }: { service: ShowroomServ
 
       {/* Offered By */}
       <div className="text-sm text-gray-600 mb-2">
-        <span className="font-semibold ml-1">{service.showroom_name}  
-          {service.showroom_location &&
-                        (() => {
-                          const [lat, lng] = service.showroom_location
-                            .split(",")
-                            .map(Number);
-                          const mapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
-                          const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+  <div className="flex items-center flex-wrap gap-2">
+    <span className="font-semibold">{service.showroom_name}</span>
+    {service.showroom_location &&
+      (() => {
+        const [lat, lng] = service.showroom_location
+          .split(",")
+          .map(Number);
+        const mapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+        const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
 
-                          return (
-                            <>
-                              <a
-                                href={mapsUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                
-                              >
-                                <MapPin size={16} className="mr-1" />
-                              </a> <a
-                                href={directionsUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                               
-                              >
-                                <Navigation size={16} className="mr-1" />
-                              </a>
-                            </>
-                          );
-                        })()}</span>
-        {service.showroom_address && (
-                  <div className="mt-4">
-                    <p className="text-sm text-gray-700">{service.showroom_address} </p>
+        return (
+          <div className="flex items-center gap-2">
+            <a
+              href={mapsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="View on map"
+              className="text-gray-500 hover:text-gray-700"
+            >
+              <MapPin size={16} />
+            </a>
+            <a
+              href={directionsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Get directions"
+              className="text-gray-500 hover:text-gray-700"
+            >
+              <Navigation size={16} />
+            </a>
+          </div>
+        );
+      })()}
+  </div>
 
-                   
-                  </div>
-                  
-                )}
-      </div>
+</div>
+
 
 
       {/* Price */}
-      <div className="text-sm text-gray-600 mb-4">
-        <span className="font-bold text-primary">
-          {service.price} {service.currency}
-        </span>
-      </div>
+      <div className="text-lg text-gray-600 mb-4">
+  <span className="font-bold text-primary">
+    {service.price} {service.currency}
+  </span>
+</div>
+
 
     </div>
   </div>
