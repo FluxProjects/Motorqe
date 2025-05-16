@@ -78,7 +78,6 @@ import {
 } from "@/components/ui/popover";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { TimePicker } from "@/components/ui/time-picker";
 
 // Types for our data
 interface Showroom {
@@ -340,14 +339,7 @@ const ShowroomDetails = () => {
     }).format(price);
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString(language === "ar" ? "ar-EG" : "en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  };
+
 
   if (isLoadingShowroom) {
     return (
@@ -794,6 +786,7 @@ const ShowroomDetails = () => {
                         })()}
                     </div>
                   </div>
+                  
                 )}
               </CardContent>
             </Card>

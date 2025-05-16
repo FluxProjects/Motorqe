@@ -376,16 +376,16 @@ INSERT INTO user_roles_switch (id, user_id, role, is_active, created_at) VALUES
 
 -- Car Categories
 INSERT INTO car_categories (id, name, name_ar, image, count) VALUES
-(1, 'Category1', 'فئة1', 'https://placehold.co/400x400', 46),
-(2, 'Category2', 'فئة2', 'https://placehold.co/400x400', 19),
-(3, 'Category3', 'فئة3', 'https://placehold.co/400x400', 31),
-(4, 'Category4', 'فئة4', 'https://placehold.co/400x400', 80),
-(5, 'Category5', 'فئة5', 'https://placehold.co/400x400', 83),
-(6, 'Category6', 'فئة6', 'https://placehold.co/400x400', 31),
-(7, 'Category7', 'فئة7', 'https://placehold.co/400x400', 10),
-(8, 'Category8', 'فئة8', 'https://placehold.co/400x400', 97),
-(9, 'Category9', 'فئة9', 'https://placehold.co/400x400', 41),
-(10, 'Category10', 'فئة10', 'https://placehold.co/400x400', 33);
+(1, 'SUV', 'دفع رباعي', 'https://placehold.co/400x400', false),
+(2, 'Sedan', 'سيدان', 'https://placehold.co/400x400', false),
+(3, 'Truck', 'شاحنة', 'https://placehold.co/400x400', false),
+(4, 'Convertible', 'قابل للتحويل', 'https://placehold.co/400x400', false),
+(5, 'Hatchback', 'هاتشباك', 'https://placehold.co/400x400', false),
+(6, 'Van', 'فان', 'https://placehold.co/400x400', false),
+(7, 'Coupe', 'كوبيه', 'https://placehold.co/400x400', false),
+(8, 'Electric', 'كهربائي', 'https://placehold.co/400x400', false),
+(9, 'Hybrid', 'هجين', 'https://placehold.co/400x400', false),
+(10, 'Luxury', 'فاخر', 'https://placehold.co/400x400', false);
 
 -- Car MAkes
 INSERT INTO car_makes (name, name_ar, image) VALUES
