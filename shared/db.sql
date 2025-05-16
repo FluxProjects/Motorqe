@@ -233,6 +233,26 @@ CREATE TABLE stripe_customers (
   created_at TIMESTAMP DEFAULT NOW()
 );
 
+-- Subscription Plans
+CREATE TABLE ubscription_plans
+(
+    id integer NOT NULL DEFAULT nextval('subscription_plans_id_seq'::regclass),
+    name text COLLATE pg_catalog."default" NOT NULL,
+    name_ar text COLLATE pg_catalog."default",
+    description text COLLATE pg_catalog."default",
+    description_ar text COLLATE pg_catalog."default",
+    price integer NOT NULL,
+    currency text COLLATE pg_catalog."default" DEFAULT 'QAR'::text,
+    duration_days integer NOT NULL,
+    listing_limit integer,
+    featured_listing_limit integer DEFAULT 0,
+    priority_listing boolean DEFAULT false,
+    showroom_limit integer DEFAULT 0,
+    service_limit integer DEFAULT 0,
+    is_active boolean DEFAULT true,
+    created_at timestamp without time zone DEFAULT now(),
+    CONSTRAINT subscription_plans_pkey PRIMARY KEY (id)
+)
 
 -- User Subscriptions
 CREATE TABLE user_subscriptions (
