@@ -234,9 +234,9 @@ CREATE TABLE stripe_customers (
 );
 
 -- Subscription Plans
-CREATE TABLE ubscription_plans
+CREATE TABLE subscription_plans
 (
-    id integer NOT NULL DEFAULT nextval('subscription_plans_id_seq'::regclass),
+    id SERIAL PRIMARY KEY,
     name text COLLATE pg_catalog."default" NOT NULL,
     name_ar text COLLATE pg_catalog."default",
     description text COLLATE pg_catalog."default",
@@ -250,8 +250,7 @@ CREATE TABLE ubscription_plans
     showroom_limit integer DEFAULT 0,
     service_limit integer DEFAULT 0,
     is_active boolean DEFAULT true,
-    created_at timestamp without time zone DEFAULT now(),
-    CONSTRAINT subscription_plans_pkey PRIMARY KEY (id)
+    created_at timestamp without time zone DEFAULT now()
 )
 
 -- User Subscriptions
@@ -330,9 +329,6 @@ CREATE TABLE password_reset_tokens (
   used BOOLEAN DEFAULT false,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-
-
-
 
 -------------- Insert Queries ---------------
 
