@@ -14,6 +14,7 @@ export interface ShowroomService {
   service_nameAr: string;
   showroom_id: number;
   showroom_name: string;
+  showroom_address: string;
   showroom_location: string;
 }
 
@@ -55,7 +56,7 @@ export default function FeaturedServicesSection({ searchQuery }: { searchQuery: 
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
       {filteredServices.map((service) => (
         <FeaturedServiceCard
           key={`featured-${service.service_id}`}

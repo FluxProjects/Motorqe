@@ -239,44 +239,43 @@ const BrowseShowrooms = () => {
             <TabsContent value="makes">
               <div className="flex flex-wrap gap-2 mb-6">
                 <Badge
-  onClick={() => setSelectedMake("all")}
-  className={`cursor-pointer ${
-    selectedMake === "all"
-      ? "bg-blue-900 text-white"
-      : "border border-blue-900 text-blue-900 bg-transparent hover:bg-blue-900 hover:text-white"
-  }`}
->
-  {t("showroom.allMakes")}
-</Badge>
+                  onClick={() => setSelectedMake("all")}
+                  className={`cursor-pointer ${
+                    selectedMake === "all"
+                      ? "bg-blue-900 text-white"
+                      : "border border-blue-900 text-blue-900 bg-transparent hover:bg-blue-900 hover:text-white"
+                  }`}
+                >
+                  {t("showroom.allMakes")}
+                </Badge>
 
-{makes?.map((make: CarMake) => (
-  <Badge
-    key={make.id}
-    role="button"
-    tabIndex={0}
-    onClick={() => {
-      setSelectedMake(
-        selectedMake === make.id.toString()
-          ? "all"
-          : make.id.toString()
-      );
-      setSelectedService("all");
-    }}
-    className={`cursor-pointer select-none flex items-center gap-2 ${
-      selectedMake === make.id.toString()
-        ? "bg-blue-900 text-white"
-        : "border border-blue-900 text-blue-900 bg-transparent hover:bg-blue-900 hover:text-white"
-    }`}
-  >
-    <img
-      src={make.image || "https://placehold.co/24x24"}
-      alt={make.name}
-      className="w-6 h-6"
-    />
-    {make.name}
-  </Badge>
-))}
-
+                {makes?.map((make: CarMake) => (
+                  <Badge
+                    key={make.id}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => {
+                      setSelectedMake(
+                        selectedMake === make.id.toString()
+                          ? "all"
+                          : make.id.toString()
+                      );
+                      setSelectedService("all");
+                    }}
+                    className={`cursor-pointer select-none flex items-center gap-2 ${
+                      selectedMake === make.id.toString()
+                        ? "bg-blue-900 text-white"
+                        : "border border-blue-900 text-blue-900 bg-transparent hover:bg-blue-900 hover:text-white"
+                    }`}
+                  >
+                    <img
+                      src={make.image || "https://placehold.co/24x24"}
+                      alt={make.name}
+                      className="w-6 h-6"
+                    />
+                    {make.name}
+                  </Badge>
+                ))}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 gap-6">
@@ -287,38 +286,37 @@ const BrowseShowrooms = () => {
             <TabsContent value="services">
               <div className="flex flex-wrap gap-2 mb-6">
                 <Badge
-  onClick={() => setSelectedService("all")}
-  className={`cursor-pointer ${
-    selectedService === "all"
-      ? "bg-blue-900 text-white"
-      : "border border-blue-900 text-blue-900 bg-transparent hover:bg-blue-900 hover:text-white"
-  }`}
->
-  {t("showroom.allServices")}
-</Badge>
+                  onClick={() => setSelectedService("all")}
+                  className={`cursor-pointer ${
+                    selectedService === "all"
+                      ? "bg-blue-900 text-white"
+                      : "border border-blue-900 text-blue-900 bg-transparent hover:bg-blue-900 hover:text-white"
+                  }`}
+                >
+                  {t("showroom.allServices")}
+                </Badge>
 
-{services?.map((service: any) => (
-  <Badge
-    key={service.id}
-    onClick={() => {
-      setSelectedService(
-        selectedService === service.id.toString()
-          ? "all"
-          : service.id.toString()
-      );
-      setSelectedMake("all");
-    }}
-    className={`cursor-pointer flex items-center gap-1 ${
-      selectedService === service.id.toString()
-        ? "bg-blue-900 text-white"
-        : "border border-blue-900 text-blue-900 bg-transparent hover:bg-blue-900 hover:text-white"
-    }`}
-  >
-    <Wrench size={14} />
-    {service.name}
-  </Badge>
-))}
-
+                {services?.map((service: any) => (
+                  <Badge
+                    key={service.id}
+                    onClick={() => {
+                      setSelectedService(
+                        selectedService === service.id.toString()
+                          ? "all"
+                          : service.id.toString()
+                      );
+                      setSelectedMake("all");
+                    }}
+                    className={`cursor-pointer flex items-center gap-1 ${
+                      selectedService === service.id.toString()
+                        ? "bg-blue-900 text-white"
+                        : "border border-blue-900 text-blue-900 bg-transparent hover:bg-blue-900 hover:text-white"
+                    }`}
+                  >
+                    <Wrench size={14} />
+                    {service.name}
+                  </Badge>
+                ))}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 gap-6">

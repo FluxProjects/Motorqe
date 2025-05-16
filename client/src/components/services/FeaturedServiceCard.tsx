@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Star } from "lucide-react";
+import { ArrowRight, MapPin, Navigation, Star } from "lucide-react";
 
 export interface ShowroomService {
   showroom_service_id: number;
@@ -17,51 +17,116 @@ export interface ShowroomService {
   showroom_id: number;
   showroom_name: string;
   showroom_location: string;
+  showroom_address: string;
 }
 
 export default function FeaturedServiceCard({ service }: { service: ShowroomService }) {
   const { t } = useTranslation();
 
   return (
-    <Card className="hover:shadow-md transition-shadow h-full border-2 border-primary">
-      <CardContent className="p-6">
-        <div className="mb-3">
-          {service.is_featured && (
-            <Badge className="flex items-center bg-primary text-primary-foreground">
-              <Star className="h-3 w-3 mr-1 fill-current" />
-              {t("services.featured")}
-            </Badge>
-          )}
-        </div>
+    <Card
+  className={`overflow-hidden hover:shadow-lg transition-shadow duration-300 border-2 border-solid rounded-2xl ${
+    service.is_featured ? 'border-orange-500' : 'border-gray-200'
+  }`}
+>
+  <div className="flex flex-col md:flex-row">
+    {/* Left Column - Service Name + Image */}
+    <div className="w-full md:w-2/4 p-4 flex flex-col">
+      {/* Service Name */}
+      <Link href={`/showroom-services/${service.showroom_service_id}`}>
+        <h3 className="text-lg font-bold mb-3 hover:text-blue-600 transition-colors">
+          {service.service_name}
+        </h3>
+      </Link>
 
-        <div className="flex items-start mb-4">
-          <Avatar className="h-12 w-12 mr-4 rounded-lg">
-            <AvatarImage
-              src={`https://placehold.co/400x400?text=${service.service_name}`}
-              alt={service.service_name}
-            />
-            <AvatarFallback>{service.service_name.charAt(0)}</AvatarFallback>
-          </Avatar>
-          <div>
-            <h3 className="font-bold">{service.service_name}</h3>
-            <p className="text-sm text-neutral-500">
-              {t("services.offeredBy")}{":"} <span className="font-semibold">{service.showroom_name}</span>
-            </p>
-            <p className="text-sm text-neutral-500">{service.showroom_location}</p>
-          </div>
-        </div>
+      {/* Image */}
+      <div className="relative flex-1 mb-3">
+        <Link href={`/showroom-services/${service.showroom_service_id}`}>
+          <div className="h-[100px] w-full overflow-hidden rounded-lg group cursor-pointer">
+  <img
+    src={`https://placehold.co/400x400?text=${service.service_name}`}
+    alt={service.service_name}
+    className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+  />
+</div>
 
-        <div className="flex justify-between items-center mt-4">
-          <span className="font-bold text-primary">
-            {service.price} {service.currency}
-          </span>
-          <Link href={`/showroom-services/${service.showroom_service_id}`}>
-            <Button variant="outline" size="sm">
-              {t("services.view")}
-            </Button>
-          </Link>
-        </div>
-      </CardContent>
-    </Card>
+        </Link>
+      </div>
+
+      {/* Orange View Details Button */}
+      <Link href={`/showroom-services/${service.showroom_service_id}`} className="w-full">
+        <Button className="bg-orange-500 hover:bg-orange-600 text-white w-full">
+          {t("common.viewDetails")}
+          <ArrowRight className="ml-2 h-4 w-4" />
+        </Button>
+      </Link>
+    </div>
+
+    {/* Right Column - Details */}
+    <div className="w-full md:w-2/4 p-4 border-t md:border-t-0 md:border-l border-gray-200">
+      {/* Featured Badge */}
+      <div className="mb-3 min-h-[24px]">
+        {service.is_featured ? (
+          <Badge className="bg-red-600 hover:bg-red-700 text-white">
+            {t("services.featured")}
+          </Badge>
+        ) : (
+          <div className="invisible h-[24px]">Placeholder</div>
+        )}
+      </div>
+
+      {/* Offered By */}
+      <div className="text-sm text-gray-600 mb-2">
+        <span className="font-semibold ml-1">{service.showroom_name}  
+          {service.showroom_location &&
+                        (() => {
+                          const [lat, lng] = service.showroom_location
+                            .split(",")
+                            .map(Number);
+                          const mapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+                          const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+
+                          return (
+                            <>
+                              <a
+                                href={mapsUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                
+                              >
+                                <MapPin size={16} className="mr-1" />
+                              </a> <a
+                                href={directionsUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                               
+                              >
+                                <Navigation size={16} className="mr-1" />
+                              </a>
+                            </>
+                          );
+                        })()}</span>
+        {service.showroom_address && (
+                  <div className="mt-4">
+                    <p className="text-sm text-gray-700">{service.showroom_address} </p>
+
+                   
+                  </div>
+                  
+                )}
+      </div>
+
+
+      {/* Price */}
+      <div className="text-sm text-gray-600 mb-4">
+        <span className="font-bold text-primary">
+          {service.price} {service.currency}
+        </span>
+      </div>
+
+    </div>
+  </div>
+</Card>
+
   );
 }

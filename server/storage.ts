@@ -1598,7 +1598,9 @@ whereClauses.push(`${column} = $${paramIndex}`);
   cs.name_ar AS service_nameAr,
   s.id AS showroom_id,
   s.name AS showroom_name,
-  s.location AS showroom_location
+  s.location AS showroom_location,
+  s.address AS showroom_address,
+  s.phone AS showroom_phone
 FROM showroom_services ss
 JOIN car_services cs ON ss.service_id = cs.id
 JOIN showrooms s ON ss.showroom_id = s.id
