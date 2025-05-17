@@ -485,6 +485,7 @@ export const staticContent = pgTable("static_content", {
   content: text("content").notNull(),             // Content body in English
   contentAr: text("content_ar"),                  // Content body in Arabic
   author: integer("user_id").references(() => users.id).notNull(), // Owner user ID
+  status: text('status').default("draft").notNull().$type<"draft" | "published">(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(), // Last update timestamp
 });

@@ -34,6 +34,7 @@ import ShowroomDetails from "./pages/ShowroomDetails";
 import BrowseServices from "./pages/BrowseServices";
 import ServiceDetails from "./pages/ServiceDetail";
 import ShowroomServiceDetails from "./pages/ShowroomServiceDetail";
+import StaticPage from "./pages/StaticPage";
 
 function App() {
   const [error, setError] = useState<Error | null>(null);
@@ -45,6 +46,12 @@ function App() {
 
   // Auth Modal State
   const [authModalOpen, setAuthModalOpen] = useState<"login" | "register" | null>(null);
+
+  
+function functionStaticPage({ keyParam }: { keyParam: string }) {
+  console.log("StaticPage keyParam:", keyParam);
+  return <div>Static page: {keyParam}</div>;
+}
 
   // Set document language and direction
   useEffect(() => {
@@ -87,6 +94,14 @@ function App() {
       <main className="flex-grow">
         <Switch>
           {/* Public Pages */}
+         <Route path="/page/:key">
+            {(params) => {
+              if (!params) return <p>Loading...</p>;
+              console.log("Params in route:", params);
+              return <StaticPage keyParam={params.key} />;
+            }}
+          </Route>
+
           <Route path="/" component={Home} />
           <Route path="/browse" component={BrowseCars} />
           <Route path="/browse-showrooms" component={BrowseShowrooms} />
@@ -95,6 +110,9 @@ function App() {
           <Route path="/showrooms/:id" component={ShowroomDetails} />
           <Route path="/services/:id" component={ServiceDetails} />
           <Route path="/showroom-services/:id" component={ShowroomServiceDetails} />
+          
+
+
           
           {/* Sell Car - Protected by CREATE_LISTINGS permission */}
           <Route path="/sell-car">

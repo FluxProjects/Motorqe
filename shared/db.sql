@@ -206,13 +206,18 @@ CREATE TABLE search_history (
 );
 
 -- Static Content
-CREATE TABLE static_content (
-  id SERIAL PRIMARY KEY,
-  key TEXT NOT NULL UNIQUE,
-  title TEXT NOT NULL,
-  title_ar TEXT,
-  content TEXT
-);
+CREATE TABLE static_content
+(
+    id integer NOT NULL DEFAULT nextval('static_content_id_seq'::regclass),
+    key text COLLATE pg_catalog."default" NOT NULL,
+    content text COLLATE pg_catalog."default" NOT NULL,
+    title text COLLATE pg_catalog."default",
+    title_ar text COLLATE pg_catalog."default",
+    content_ar text COLLATE pg_catalog."default",
+    status text COLLATE pg_catalog."default",
+    author integer,
+    placement text COLLATE pg_catalog."default" DEFAULT 'both'::text
+)
 
 -- Transactions
 CREATE TABLE transactions (
@@ -653,29 +658,29 @@ INSERT INTO service_promotion_packages (
   (4, 'Monthly Power Pack', 'باقة الطاقة الشهرية', 'Maximum exposure for 30 days, including homepage placement.', 'أقصى ظهور لمدة 30 يومًا، بما في ذلك الظهور في الصفحة الرئيسية.', 90, 'QAR', 30, TRUE, 5, TRUE, '2025-05-13 22:08:02.45357');
 
 
--- Service Bookings
-INSERT INTO service_bookings (user_id, service_id, scheduled_at, status, notes) VALUES
-(1, 2, NOW() + INTERVAL '1 day', 'confirmed', 'Urgent battery replacement'),
-(1, 9, NOW() + INTERVAL '3 days', 'pending', 'Wants full detailing'),
-(1, 15, NOW() + INTERVAL '7 days', 'draft', NULL),
-(1, 20, NOW() + INTERVAL '6 days', 'confirmed', 'Add tire rotation if needed'),
-(1, 26, NOW() + INTERVAL '2 days', 'complete', NULL),
-(1, 32, NOW() + INTERVAL '10 days', 'confirmed', 'Customer prefers afternoon'),
-(1, 7, NOW() + INTERVAL '4 days', 'confirmed', 'Needs pre-sale inspection'),
-(1, 19, NOW() + INTERVAL '8 days', 'pending', NULL),
-(1, 33, NOW() + INTERVAL '5 days', 'rejected', 'Service unavailable'),
-(1, 38, NOW() + INTERVAL '9 days', 'confirmed', 'Customer bringing extra vehicle');
-INSERT INTO service_bookings (user_id, service_id, scheduled_at, status, notes) VALUES
-(9, 5, NOW() + INTERVAL '2 days', 'confirmed', 'Please check brakes thoroughly'),
-(9, 12, NOW() + INTERVAL '5 days', 'pending', 'Request early morning appointment'),
-(9, 18, NOW() + INTERVAL '7 days', 'draft', NULL),
-(9, 22, NOW() + INTERVAL '1 day', 'confirmed', 'Customer will bring own oil'),
-(9, 27, NOW() + INTERVAL '10 days', 'complete', NULL),
-(9, 8, NOW() + INTERVAL '3 days', 'pending', 'Needs pickup and drop-off'),
-(9, 14, NOW() + INTERVAL '6 days', 'confirmed', NULL),
-(9, 30, NOW() + INTERVAL '8 days', 'confirmed', 'Wants ceramic coat review'),
-(9, 3, NOW() + INTERVAL '4 days', 'rejected', 'Cancelled due to conflict'),
-(9, 36, NOW() + INTERVAL '9 days', 'confirmed', NULL);
+INSERT INTO service_bookings (user_id, service_id, scheduled_at, status, notes, created_at) VALUES
+(1, 2, NOW() + INTERVAL '1 day', 'confirmed', 'Urgent battery replacement', NOW()),
+(1, 9, NOW() + INTERVAL '3 days', 'pending', 'Wants full detailing', NOW()),
+(1, 15, NOW() + INTERVAL '7 days', 'draft', NULL, NOW()),
+(1, 20, NOW() + INTERVAL '6 days', 'confirmed', 'Add tire rotation if needed', NOW()),
+(1, 26, NOW() + INTERVAL '2 days', 'complete', NULL, NOW()),
+(1, 32, NOW() + INTERVAL '10 days', 'confirmed', 'Customer prefers afternoon', NOW()),
+(1, 7, NOW() + INTERVAL '4 days', 'confirmed', 'Needs pre-sale inspection', NOW()),
+(1, 19, NOW() + INTERVAL '8 days', 'pending', NULL, NOW()),
+(1, 33, NOW() + INTERVAL '5 days', 'rejected', 'Service unavailable', NOW()),
+(1, 38, NOW() + INTERVAL '9 days', 'confirmed', 'Customer bringing extra vehicle', NOW());
+INSERT INTO service_bookings (user_id, service_id, scheduled_at, status, notes, created_at) VALUES
+(9, 5, NOW() + INTERVAL '2 days', 'confirmed', 'Please check brakes thoroughly', NOW()),
+(9, 12, NOW() + INTERVAL '5 days', 'pending', 'Request early morning appointment', NOW()),
+(9, 18, NOW() + INTERVAL '7 days', 'draft', NULL, NOW()),
+(9, 22, NOW() + INTERVAL '1 day', 'confirmed', 'Customer will bring own oil', NOW()),
+(9, 27, NOW() + INTERVAL '10 days', 'complete', NULL, NOW()),
+(9, 8, NOW() + INTERVAL '3 days', 'pending', 'Needs pickup and drop-off', NOW()),
+(9, 14, NOW() + INTERVAL '6 days', 'confirmed', NULL, NOW()),
+(9, 30, NOW() + INTERVAL '8 days', 'confirmed', 'Wants ceramic coat review', NOW()),
+(9, 3, NOW() + INTERVAL '4 days', 'rejected', 'Cancelled due to conflict', NOW()),
+(9, 36, NOW() + INTERVAL '9 days', 'confirmed', NULL, NOW());
+
 
 -- Favourites
 INSERT INTO favorites (user_id, listing_id, created_at) VALUES

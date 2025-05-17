@@ -43,6 +43,8 @@ import {
   Check,
   Wrench,
   Droplet,
+  Phone,
+  MessageCircle,
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -106,6 +108,7 @@ const CarDetails = () => {
    const [authModal, setAuthModal] = useState<"login" | "register" | "forget-password" | null>(null);
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
+    const [selectedTab, setSelectedTab] = useState("description");
 
   // Message form
   const messageForm = useForm<MessageValues>({
@@ -392,7 +395,7 @@ const CarDetails = () => {
       : car.description;
 
   return (
-    <div className="bg-neutral-100 pb-16">
+    <div className="bg-white-100 pb-16">
 
       <div className="bg-white py-6 mb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -505,7 +508,7 @@ const CarDetails = () => {
             </div>
 
             {/* Car summary */}
-            <div className="bg-neutral-50 p-4 rounded-lg">
+            <div className="bg-neutral-50 p-4 rounded-2xl border-2 py-6 border-orange-500">
               <h1 className="text-2xl font-bold text-neutral-900 mb-2">
                 {title}
               </h1>
@@ -623,13 +626,34 @@ const CarDetails = () => {
                 </div>
               </div>
 
-              <Button
-                className="w-full mb-2"
-                onClick={() => setContactDialogOpen(true)}
-              >
-                <MessageSquare size={16} className="mr-1" />
-                {t("car.contactSeller")}
-              </Button>
+              {sellerData && sellerData?.phone && (
+                    <a href={`tel:${sellerData?.phone}`} className="w-full">
+                      <Button className="mt-2 w-full rounded-full bg-blue-900 text-white">
+                        <Phone size={16} className="mr-1" />
+                        {t("seller.callSeller")}
+                      </Button>
+                    </a>
+                  )}
+                  <Button
+                    className="mt-2 w-full rounded-full bg-orange-500"
+                    onClick={() => setContactDialogOpen(true)}
+                  >
+                    <MessageSquare size={16} className="mr-1" />
+                    {t("seller.messageSeller")}
+                  </Button>
+                  {sellerData?.phone && (
+                    <a
+                      href={`https://wa.me/${sellerData?.phone.replace(/\D/g, "")}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full"
+                    >
+                      <Button className="mt-2 w-full rounded-full bg-green-600 text-white hover:bg-green-700">
+                        <MessageCircle size={16} className="mr-1" />
+                        {t("showroom.chatOnWhatsApp")}
+                      </Button>
+                    </a>
+                  )}
             </div>
           </div>
 
@@ -644,12 +668,28 @@ const CarDetails = () => {
             {/* Car details tabs */}
             <Card>
               <CardContent className="p-0">
-                <Tabs defaultValue="description" className="w-full">
-                  <TabsList className="w-full grid grid-cols-2 rounded-none">
-                    <TabsTrigger value="description">
+                 <Tabs 
+                value={selectedTab}
+                onValueChange={setSelectedTab}
+                defaultValue="description" 
+                className="w-full">
+                  <TabsList className="flex flex-wrap justify-center gap-3 bg-transparent p-0">
+                    <TabsTrigger 
+                    value="description"
+                    className={`px-5 py-2 text-sm font-medium transition-all ${
+                    selectedTab === "description"
+                      ? "text-orange-500 border-b-4 border-b-orange-500 hover:font-bold"
+                      : "text-blue-900"
+                  }`}>
                       {t("car.description")}
                     </TabsTrigger>
-                    <TabsTrigger value="features">
+                    <TabsTrigger value="features"
+                    className={`px-5 py-2 text-sm font-medium transition-all ${
+                    selectedTab === "inventory"
+                      ? "text-orange-500 border-b-4 border-b-orange-500 hover:font-bold"
+                      : "text-blue-900"
+                  }`}
+                    >
                       {t("car.features")}
                     </TabsTrigger>
                   </TabsList>
@@ -702,7 +742,7 @@ const CarDetails = () => {
 
           <div>
             {/* Seller info card */}
-            <Card>
+            <Card className="bg-white p-4 rounded-2xl border-2 py-6 border-orange-500">
               <CardContent className="p-6">
                 <h2 className="text-lg font-semibold mb-4">
                   {t("common.sellerInfo")}

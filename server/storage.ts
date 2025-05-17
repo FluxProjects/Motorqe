@@ -1347,6 +1347,29 @@ whereClauses.push(`${column} = $${paramIndex}`);
     return result[0];
   }
 
+  async getAllPublishedStaticContents(): Promise<StaticContent[]> {
+  return await db.query(
+    'SELECT * FROM static_content WHERE status = $1 ORDER BY key', 
+    ['published']
+  );
+}
+
+async getPublishedStaticContentByKey(key: string): Promise<StaticContent | undefined> {
+  const result = await db.query(
+    'SELECT * FROM static_content WHERE key = $1 AND status = $2 LIMIT 1', 
+    [key, 'published']
+  );
+  return result[0];
+}
+
+async getStaticContentByPlacement(placement: string): Promise<StaticContent[]> {
+  return await db.query(
+    'SELECT key, title FROM static_content WHERE placement = $1 AND status = $2 ORDER BY key',
+    [placement, 'published']
+  );
+}
+
+
   async createStaticContent(content: InsertStaticContent): Promise<StaticContent> {
     const result = await db.query(
       'INSERT INTO static_content (key, title, title_ar, content, content_ar) ' +

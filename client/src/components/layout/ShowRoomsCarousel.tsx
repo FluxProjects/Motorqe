@@ -38,7 +38,7 @@ const ShowRoomsCarousel = () => {
           modules={[Navigation]}
           spaceBetween={40}
           slidesPerView={5}
-          loop
+          loop={showrooms.length > 3}
           navigation={{
             nextEl: '.swiper-button-next-custom',
             prevEl: '.swiper-button-prev-custom',

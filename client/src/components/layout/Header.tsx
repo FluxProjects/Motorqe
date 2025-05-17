@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import i18n, { resources } from "@/lib/i18n"; // adjust the path as needed
 import { useTranslation } from "react-i18next";
+import { usePagesByPlacement } from "@/hooks/use-pagesbyplacement";
 
 type HeaderProps = {
   openAuthModal: (view: "login" | "register") => void;
@@ -35,8 +36,11 @@ const Header = ({ openAuthModal }: HeaderProps) => {
   const { user, isAuthenticated, logout } = auth;
   const { t } = useTranslation();
   const [location, navigate] = useLocation();
+  const normalizedLocation = location.split('?')[0].replace(/\/$/, '');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  const pages = usePagesByPlacement("header");
 
   // Debugging logs to check current states
   console.log("Location: ", location);
@@ -133,7 +137,7 @@ const Header = ({ openAuthModal }: HeaderProps) => {
         return "/sell-car";
     }
   };
-  
+
   const getMessagesLink = () => {
     if (!user) return "/";
     switch (user.roleId) {
@@ -154,6 +158,9 @@ const Header = ({ openAuthModal }: HeaderProps) => {
     }
   };
 
+  console.log("Pages by placement:", pages);
+  console.log("Current location:", location);
+
   return (
     <div className="w-full mx-auto px-4 sm:px-6 lg:px-32 xl:px-32">
       <div className="flex justify-between items-center h-16">
@@ -168,57 +175,63 @@ const Header = ({ openAuthModal }: HeaderProps) => {
         </div>
 
         {/* Navigation - Desktop */}
-       <nav className="hidden md:flex space-x-6">
-  <Link
-    href="/"
-    className={`text-neutral-900 hover:text-orange-500 font-medium pb-1 ${
-      location === "/" ? "border-b-2 border-orange-500 text-orange-500" : ""
-    }`}
-  >
-    {t("common.home")}
-  </Link>
-  <Link
-    href="/browse"
-    className={`text-neutral-900 hover:text-orange-500 font-medium pb-1 ${
-      location === "/browse" ? "border-b-2 border-orange-500 text-orange-500" : ""
-    }`}
-  >
-    {t("common.browseCars")}
-  </Link>
-  <Link
-    href="/browse-showrooms"
-    className={`text-neutral-900 hover:text-orange-500 font-medium pb-1 ${
-      location === "/browse-showrooms" ? "border-b-2 border-orange-500 text-orange-500" : ""
-    }`}
-  >
-    {t("common.browseShowrooms")}
-  </Link>
-  <Link
-    href="/browse-services"
-    className={`text-neutral-900 hover:text-orange-500 font-medium pb-1 ${
-      location === "/browse-services" ? "border-b-2 border-orange-500 text-orange-500" : ""
-    }`}
-  >
-    {t("common.browseServices")}
-  </Link>
-  <Link
-    href="/about"
-    className={`text-neutral-900 hover:text-orange-500 font-medium pb-1 ${
-      location === "/about" ? "border-b-2 border-orange-500 text-orange-500" : ""
-    }`}
-  >
-    {t("common.aboutUs")}
-  </Link>
-  <Link
-    href="/news"
-    className={`text-neutral-900 hover:text-orange-500 font-medium pb-1 ${
-      location === "/news" ? "border-b-2 border-orange-500 text-orange-500" : ""
-    }`}
-  >
-    {t("common.news")}
-  </Link>
-</nav>
-
+        <nav className="hidden md:flex space-x-6">
+          <Link
+            href="/"
+            className={`text-neutral-900 hover:text-orange-500 font-medium pb-1 ${
+              location === "/"
+                ? "border-b-2 border-orange-500 text-orange-500"
+                : ""
+            }`}
+          >
+            {t("common.home")}
+          </Link>
+          <Link
+            href="/browse"
+            className={`text-neutral-900 hover:text-orange-500 font-medium pb-1 ${
+              location === "/browse"
+                ? "border-b-2 border-orange-500 text-orange-500"
+                : ""
+            }`}
+          >
+            {t("common.browseCars")}
+          </Link>
+          <Link
+            href="/browse-showrooms"
+            className={`text-neutral-900 hover:text-orange-500 font-medium pb-1 ${
+              location === "/browse-showrooms"
+                ? "border-b-2 border-orange-500 text-orange-500"
+                : ""
+            }`}
+          >
+            {t("common.browseShowrooms")}
+          </Link>
+          <Link
+            href="/browse-services"
+            className={`text-neutral-900 hover:text-orange-500 font-medium pb-1 ${
+              location === "/browse-services"
+                ? "border-b-2 border-orange-500 text-orange-500"
+                : ""
+            }`}
+          >
+            {t("common.browseServices")}
+          </Link>
+          {Array.isArray(pages) &&
+        pages.map((page) => (
+          <>
+          <Link
+            key={page.key}
+            href={`/page/${page.key}`}
+            className={`text-neutral-900 hover:text-orange-500 font-medium pb-1 ${
+              location === `/page/${page.key}`
+                ? "border-b-2 border-orange-500 text-orange-500"
+                : ""}`}
+          >
+            {page.title}
+          </Link>
+          </>
+        ))}
+        </nav>
 
         {/* Right Menu */}
         <div className="flex items-center space-x-4">
@@ -249,76 +262,75 @@ const Header = ({ openAuthModal }: HeaderProps) => {
           </DropdownMenu>
 
           {/* User Menu or Sign In Button */}
-         {isAuthenticated && user ? (
-  <DropdownMenu>
-    <DropdownMenuTrigger asChild>
-      <Button
-        variant="ghost"
-        size="sm"
-        className="flex items-center space-x-2"
-      >
-        <Avatar className="h-8 w-8">
-          <AvatarImage
-            src={user.avatar || "/default-avatar.png"}
-            alt={user.username || "User"}
-          />
-          <AvatarFallback>
-            {user.username?.charAt(0).toUpperCase() || "U"}
-          </AvatarFallback>
-        </Avatar>
-        <span className="text-sm font-medium">
-          {user.firstName || user.username || "User"}
-        </span>
-        <ChevronDown className="h-4 w-4" />
-      </Button>
-    </DropdownMenuTrigger>
+          {isAuthenticated && user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="flex items-center space-x-2"
+                >
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage
+                      src={user.avatar || "/default-avatar.png"}
+                      alt={user.username || "User"}
+                    />
+                    <AvatarFallback>
+                      {user.username?.charAt(0).toUpperCase() || "U"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="text-sm font-medium">
+                    {user.firstName || user.username || "User"}
+                  </span>
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
 
-    <DropdownMenuContent align="end" className="w-48">
-      <DropdownMenuLabel>{t("common.myAccount")}</DropdownMenuLabel>
-      <DropdownMenuSeparator />
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuLabel>{t("common.myAccount")}</DropdownMenuLabel>
+                <DropdownMenuSeparator />
 
-      {user.roleId !== 1 && (
-        <DropdownMenuItem onClick={() => navigate(getSellCarLink())}>
-          <User className="mr-2 h-4 w-4" />
-          <span>{t("common.sellCar")}</span>
-        </DropdownMenuItem>
-      )}
+                {user.roleId !== 1 && (
+                  <DropdownMenuItem onClick={() => navigate(getSellCarLink())}>
+                    <User className="mr-2 h-4 w-4" />
+                    <span>{t("common.sellCar")}</span>
+                  </DropdownMenuItem>
+                )}
 
-      <DropdownMenuItem onClick={() => navigate(getProfileLink())}>
-        <User className="mr-2 h-4 w-4" />
-        <span>{t("common.myProfile")}</span>
-      </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate(getProfileLink())}>
+                  <User className="mr-2 h-4 w-4" />
+                  <span>{t("common.myProfile")}</span>
+                </DropdownMenuItem>
 
-      <DropdownMenuItem onClick={() => navigate(getDashboardLink())}>
-        <Car className="mr-2 h-4 w-4" />
-        <span>{t("common.dashboard")}</span>
-      </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate(getDashboardLink())}>
+                  <Car className="mr-2 h-4 w-4" />
+                  <span>{t("common.dashboard")}</span>
+                </DropdownMenuItem>
 
-      <DropdownMenuItem onClick={() => navigate(getMessagesLink())}>
-        <MessageSquare className="mr-2 h-4 w-4" />
-        <span>{t("common.messages")}</span>
-      </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate(getMessagesLink())}>
+                  <MessageSquare className="mr-2 h-4 w-4" />
+                  <span>{t("common.messages")}</span>
+                </DropdownMenuItem>
 
-      <DropdownMenuSeparator />
+                <DropdownMenuSeparator />
 
-      <DropdownMenuItem
-        onClick={handleLogout}
-        className="text-red-600 hover:text-red-700 hover:bg-red-50"
-      >
-        {t("auth.logout")}
-      </DropdownMenuItem>
-    </DropdownMenuContent>
-  </DropdownMenu>
-) : (
-  <Button
-    variant="outline"
-    className="hidden md:flex items-center text-primary bg-primary-light hover:bg-primary hover:text-white"
-    onClick={openLoginModal}
-  >
-    {t("auth.login")}
-  </Button>
-)}
-
+                <DropdownMenuItem
+                  onClick={handleLogout}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                >
+                  {t("auth.logout")}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Button
+              variant="outline"
+              className="hidden md:flex items-center text-primary bg-primary-light hover:bg-primary hover:text-white"
+              onClick={openLoginModal}
+            >
+              {t("auth.login")}
+            </Button>
+          )}
 
           {/* Mobile menu button */}
           <Button
@@ -406,5 +418,4 @@ const Header = ({ openAuthModal }: HeaderProps) => {
     </div>
   );
 };
-
 export default Header;

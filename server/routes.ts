@@ -1218,6 +1218,48 @@ app.put("/api/car-listings/:id/actions", async (req, res) => {
     }
   });
 
+  // Get all published static content
+app.get("/api/published/static-content", async (_req, res) => { 
+  try {
+    const content = await storage.getAllPublishedStaticContents();
+    res.json(content);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch published static content", error });
+  }
+});
+
+// Get specific published static content by key
+app.get("/api/published/static-content/:key", async (req, res) => {
+  try {
+    const content = await storage.getPublishedStaticContentByKey(req.params.key);
+    content ? res.json(content) : res.status(404).json({ message: "Published content not found" });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch published static content", error });
+  }
+});
+
+app.get('/api/published/static-content/placement/:placement', async (req, res) => {
+  const placement = req.params.placement;
+  try {
+    // Example: fetching from DB
+    const pages = await storage.getStaticContentByPlacement(placement);
+    // Make sure pages is an array
+    if (!Array.isArray(pages)) {
+      throw new Error('Invalid DB response');
+    }
+
+    res.json(pages);
+  } catch (err: any) {
+    console.error('Error fetching pages:', err);
+    res.status(500).json({
+      message: 'Failed to fetch content by placement',
+      error: err.message || err,
+    });
+  }
+});
+
+
+
   /**
    * MESSAGES
    */
