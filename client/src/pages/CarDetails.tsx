@@ -700,7 +700,7 @@ const CarDetails = () => {
                     </div>
                   </TabsContent>
 
-                  <TabsContent value="features">
+                  <TabsContent value="features" className="p-6">
                     {isLoadingCarFeature ? (
                       <p>{t("common.loading")}</p>
                     ) : listingFeatures.length === 0 ? (
