@@ -397,7 +397,7 @@ const CarDetails = () => {
   return (
     <div className="bg-white-100 pb-16">
 
-      <div className="bg-white py-6 mb-8">
+      <div className="bg-white py-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           
           {/* Back button and actions */}
@@ -662,11 +662,11 @@ const CarDetails = () => {
 
       {/* Content section */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           
           <div className="md:col-span-2">
             {/* Car details tabs */}
-            <Card>
+            <Card className="border-transparent shadow-none">
               <CardContent className="p-0">
                  <Tabs 
                 value={selectedTab}
@@ -685,7 +685,7 @@ const CarDetails = () => {
                     </TabsTrigger>
                     <TabsTrigger value="features"
                     className={`px-5 py-2 text-sm font-medium transition-all ${
-                    selectedTab === "inventory"
+                    selectedTab === "features"
                       ? "text-orange-500 border-b-4 border-b-orange-500 hover:font-bold"
                       : "text-blue-900"
                   }`}
