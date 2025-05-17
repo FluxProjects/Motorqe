@@ -42,7 +42,7 @@ import {
   CarsData,
   CarListing,
   UserWithStats,
-  User
+  User,
 } from "@shared/schema";
 
 const BrowseCars = () => {
@@ -142,7 +142,6 @@ const BrowseCars = () => {
         isFeatured: val === "true" ? true : val === "false" ? false : null,
       }));
     }
-
   }, []);
 
   // Fetch available makes for filter
@@ -166,29 +165,32 @@ const BrowseCars = () => {
     enabled: !!searchParams,
   });
 
-   // Fetch sellers
-   const {
-    data: sellersData = [],
-  } = useQuery<User[]>({
-    queryKey: ['car-sellers', carsData?.map(c => c.user_id).sort().join(',')], // Use user_id here
+  // Fetch sellers
+  const { data: sellersData = [] } = useQuery<User[]>({
+    queryKey: [
+      "car-sellers",
+      carsData
+        ?.map((c) => c.user_id)
+        .sort()
+        .join(","),
+    ], // Use user_id here
     enabled: !!carsData?.length,
     queryFn: async () => {
       if (!carsData || carsData.length === 0) return []; // Early return if no cars
-      
-      // Debugging the structure of carsData and user_id mapping
-      console.log('Cars Data:', carsData);
-      const userIds = Array.from(new Set(carsData.map(car => car.user_id))); // Use user_id
-      console.log('User IDs:', userIds); // Debug the user IDs
-      
-      const res = await fetch(`/api/get-users?ids=${userIds.join(',')}`);
-      console.log('Response Status:', res.status); // Log the response status
-    const responseBody = await res.json();
-    console.log('Response Body:', responseBody); // Log the response body
 
-    return responseBody;
+      // Debugging the structure of carsData and user_id mapping
+      console.log("Cars Data:", carsData);
+      const userIds = Array.from(new Set(carsData.map((car) => car.user_id))); // Use user_id
+      console.log("User IDs:", userIds); // Debug the user IDs
+
+      const res = await fetch(`/api/get-users?ids=${userIds.join(",")}`);
+      console.log("Response Status:", res.status); // Log the response status
+      const responseBody = await res.json();
+      console.log("Response Body:", responseBody); // Log the response body
+
+      return responseBody;
     },
   });
-  
 
   const filterCars = (
     allCars: CarListing[],
@@ -196,55 +198,61 @@ const BrowseCars = () => {
   ): CarListing[] => {
     return allCars.filter((car) => {
       console.log("Evaluating car:", car);
-  
+
       if (filters.make && filters.make !== "all") {
         if (car.make_id !== Number(filters.make)) {
-          console.log(`Filtered out by make: car.make_id=${car.make_id}, filter=${filters.make}`);
+          console.log(
+            `Filtered out by make: car.make_id=${car.make_id}, filter=${filters.make}`
+          );
           return false;
         }
       }
-  
+
       if (
         filters.model &&
         filters.model !== "all" &&
         car.modelId !== Number(filters.model)
       ) {
-        console.log(`Filtered out by model: car.modelId=${car.modelId}, filter=${filters.model}`);
+        console.log(
+          `Filtered out by model: car.modelId=${car.modelId}, filter=${filters.model}`
+        );
         return false;
       }
-  
+
       if (filters.category && filters.category !== "all") {
         if (car.category_id !== Number(filters.category)) {
-          console.log(`Filtered out by category: car.category_id=${car.category_id}, filter=${filters.category}`);
+          console.log(
+            `Filtered out by category: car.category_id=${car.category_id}, filter=${filters.category}`
+          );
           return false;
         }
       }
-  
+
       const minPrice =
         filters.minPrice === "all" ? 0 : parseFloat(filters.minPrice);
       const maxPrice =
         filters.maxPrice === "all" ? Infinity : parseFloat(filters.maxPrice);
-  
+
       const carPrice = car.price;
       if (isNaN(carPrice)) {
         console.warn("Invalid car price:", car.price, "for car ID:", car.id);
         return false;
       }
-  
+
       if (carPrice < minPrice || carPrice > maxPrice) {
         console.log(
           `Filtered out by price: ${carPrice} not in ${minPrice}-${maxPrice}`
         );
         return false;
       }
-  
+
       if (car.year < filters.year[0] || car.year > filters.year[1]) {
         console.log(
           `Filtered out by year: ${car.year} not in ${filters.year[0]}-${filters.year[1]}`
         );
         return false;
       }
-  
+
       if (
         filters.fuel_type.length > 0 &&
         !filters.fuel_type.some(
@@ -254,7 +262,7 @@ const BrowseCars = () => {
         console.log(`Filtered out by fuel_type: ${car.fuel_type}`);
         return false;
       }
-  
+
       if (
         filters.transmission.length > 0 &&
         !filters.transmission.includes(car.transmission)
@@ -272,7 +280,7 @@ const BrowseCars = () => {
         console.log(`Filtered out by location: ${car.location}`);
         return false;
       }
-  
+
       // if (
       //   filters.isFeatured !== null &&
       //   filters.isFeatured !== undefined &&
@@ -281,11 +289,10 @@ const BrowseCars = () => {
       //   console.log(`Filtered out by isFeatured: ${car.is_featured}`);
       //   return false;
       // }
-  
+
       return true;
     });
   };
-  
 
   const updateFilters = (newFilters: Partial<typeof filters>) => {
     setFilters((prev) => {
@@ -381,8 +388,6 @@ const BrowseCars = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-
-
   const cars = carsData || [];
   const filteredCars = filterCars(cars, filters);
   const totalCars = filteredCars.length;
@@ -392,13 +397,15 @@ const BrowseCars = () => {
     console.log("sellersData:", sellersData); // ✅ Check raw seller data
     const map = new Map<number, UserWithStats>();
     sellersData.forEach((seller) => {
-      console.log(`Mapping seller ID ${seller.id} to username ${seller.username}`); // ✅ Confirm map entries
+      console.log(
+        `Mapping seller ID ${seller.id} to username ${seller.username}`
+      ); // ✅ Confirm map entries
       map.set(seller.id, seller);
     });
     console.log("Final sellerMap:", Array.from(map.entries())); // ✅ Log map content as array
     return map;
   }, [sellersData]);
-  
+
   const carsWithSeller = useMemo(() => {
     console.log("filteredCars:", filteredCars); // ✅ Check what cars are being mapped
     const enriched = filteredCars.map((car) => {
@@ -412,30 +419,28 @@ const BrowseCars = () => {
     console.log("carsWithSeller:", enriched); // ✅ Final enriched list
     return enriched;
   }, [filteredCars, sellerMap]);
-  
 
-   // Get only the current page's cars
-   const paginatedCars = carsWithSeller.slice(
+  // Get only the current page's cars
+  const paginatedCars = carsWithSeller.slice(
     (filters.page - 1) * filters.limit,
     filters.page * filters.limit
-  );  
+  );
 
   return (
     <div className="bg-white min-h-screen py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        
         <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold text-neutral-900 mb-2">
-          {t("common.browseCars")}
-        </h1>
-        <div className="w-40 h-1 bg-orange-500 mx-auto rounded-full" />
-      </div>
+          <h1 className="text-3xl font-bold text-neutral-900 mb-2">
+            {t("common.browseCars")}
+          </h1>
+          <div className="w-40 h-1 bg-orange-500 mx-auto rounded-full" />
+        </div>
 
         <div className="md:flex md:gap-6">
           {/* Filters sidebar - desktop */}
           <div className=" hidden md:block w-64 flex-shrink-0">
-          <div className="bg-neutral-50 border-2 border-orange-500 border-solid rounded-lg shadow p-4 sticky top-24">
-          <div className="flex justify-between items-center mb-4">
+            <div className="bg-neutral-50 border-2 border-orange-500 border-solid rounded-lg shadow p-4 sticky top-24">
+              <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-semibold">{t("common.filters")}</h2>
                 <Button
                   variant="ghost"
@@ -763,7 +768,9 @@ const BrowseCars = () => {
               // Grid view
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {paginatedCars.map((car) => {
-                  const carWithSeller = carsWithSeller.find((c) => c.id === car.id);
+                  const carWithSeller = carsWithSeller.find(
+                    (c) => c.id === car.id
+                  );
                   return carWithSeller ? (
                     <CarCard key={car.id} car={carWithSeller} />
                   ) : null;
@@ -773,7 +780,9 @@ const BrowseCars = () => {
               // List view
               <div className="space-y-4">
                 {paginatedCars.map((car) => {
-                  const carWithSeller = carsWithSeller.find((c) => c.id === car.id);
+                  const carWithSeller = carsWithSeller.find(
+                    (c) => c.id === car.id
+                  );
                   return carWithSeller ? (
                     <CarListItem key={car.id} car={carWithSeller} />
                   ) : null;
@@ -838,7 +847,6 @@ const BrowseCars = () => {
               </Pagination>
             )}
           </div>
-
         </div>
       </div>
 
@@ -1149,7 +1157,6 @@ const BrowseCars = () => {
       )}
     </div>
   );
-
 };
 
 export default BrowseCars;
