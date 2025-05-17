@@ -407,6 +407,8 @@
     "profile": "Profile"
   },
   "listing": {
+    "saveAsDraft":"Save As Draft",
+"publishListing":"Publish Listing",
     "basicInfo": "Basic Information",
     "title": "Title",
     "price": "Price",

@@ -4,6 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { StepProps } from '@shared/schema';
 import { useFormContext } from "react-hook-form";
+import { ArrowRight } from 'lucide-react';
 
 interface BasicInfoFormData {
   basicInfo: {
@@ -78,9 +79,14 @@ export function BasicInfoStep({ data, updateData, nextStep, prevStep }: StepProp
       </div>
 
       <div className="flex justify-end pt-4">
-        <Button type="submit" disabled={isSubmitting}>
-          Next: Specifications
-        </Button>
+         <Button
+    className="bg-orange-500 flex items-center gap-2"
+    type="submit"
+    disabled={isSubmitting}
+  >
+    Next: Specifications
+    <ArrowRight className="w-4 h-4" />
+  </Button>
       </div>
     </form>
   );

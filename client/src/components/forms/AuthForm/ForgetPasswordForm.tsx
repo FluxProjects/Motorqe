@@ -111,8 +111,8 @@ export const ForgotPasswordForm = ({
 
             <Button
               type="submit"
-              className="w-full py-3 bg-primary text-white font-medium rounded-md hover:bg-primary/90 transition-colors"
-              disabled={isSubmitting || !step1Form.formState.isValid}
+         className="w-full py-3 bg-orange-500 text-white font-medium rounded-md hover:bg-blue-900 transition-colors"
+               disabled={isSubmitting || !step1Form.formState.isValid}
             >
               {isSubmitting ? t("common.loading") : t("auth.sendOTP")}
             </Button>
@@ -153,8 +153,8 @@ export const ForgotPasswordForm = ({
               <Button
                 type="button"
                 variant="link"
-                className="text-sm text-primary hover:text-primary/90 p-0 h-auto"
-                onClick={onResendOTP}
+              className="w-full py-3 bg-orange-500 text-white font-medium rounded-md hover:bg-blue-900 transition-colors"
+            onClick={onResendOTP}
                 disabled={isSubmitting}
               >
                 {t("auth.resendOTP")}
@@ -162,8 +162,8 @@ export const ForgotPasswordForm = ({
 
               <Button
                 type="submit"
-                className="py-3 bg-primary text-white font-medium rounded-md hover:bg-primary/90 transition-colors"
-                disabled={isSubmitting || !step2Form.formState.isValid}
+            className="w-full py-3 bg-orange-500 text-white font-medium rounded-md hover:bg-blue-900 transition-colors"
+              disabled={isSubmitting || !step2Form.formState.isValid}
               >
                 {isSubmitting ? t("common.loading") : t("auth.verifyOTP")}
               </Button>
@@ -216,8 +216,8 @@ export const ForgotPasswordForm = ({
 
             <Button
               type="submit"
-              className="w-full py-3 bg-primary text-white font-medium rounded-md hover:bg-primary/90 transition-colors"
-              disabled={isSubmitting || !step3Form.formState.isValid}
+           className="w-full py-3 bg-orange-500 text-white font-medium rounded-md hover:bg-blue-900 transition-colors"
+            disabled={isSubmitting || !step3Form.formState.isValid}
             >
               {isSubmitting ? t("common.loading") : t("auth.resetPassword")}
             </Button>

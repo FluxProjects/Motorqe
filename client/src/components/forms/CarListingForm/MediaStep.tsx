@@ -1,6 +1,6 @@
 // src/components/listings/MediaStep.tsx
 import { useDropzone } from "react-dropzone";
-import { ImagePlus, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, ImagePlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
@@ -77,11 +77,17 @@ export function MediaStep({ data, updateData, nextStep, prevStep }: StepProps) {
       )}
 
       <div className="flex justify-between pt-4">
-        <Button variant="outline" type="button" onClick={prevStep}>
+         <Button 
+        className="bg-blue-900 flex items-center gap-2"
+        type="button" onClick={prevStep}>
+          <ArrowLeft className="w-4 h-4" />
           Back
         </Button>
-        <Button type="submit" disabled={files.length === 0}>
+        <Button 
+         className="bg-orange-500 flex items-center gap-2"
+        type="submit" disabled={files.length === 0}>
           Next: Review
+           <ArrowRight className="w-4 h-4" />
         </Button>
       </div>
     </form>

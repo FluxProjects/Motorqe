@@ -9,9 +9,10 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CarCategory, CarMake, CarModel } from "@shared/schema";
 import { StepProps } from "@shared/schema";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 
 export function SpecsStep({ data, updateData, nextStep, prevStep }: StepProps) {
   const [formData, setFormData] = useState({
@@ -54,6 +55,20 @@ export function SpecsStep({ data, updateData, nextStep, prevStep }: StepProps) {
     updateData({ specifications: formData });
     nextStep();
   };
+
+  useEffect(() => {
+  if (
+    formData.makeId &&
+    models?.length &&
+    !formData.modelId
+  ) {
+    setFormData((prev) => ({
+      ...prev,
+      modelId: models[0].id.toString(),
+    }));
+  }
+}, [formData.makeId, models]);
+
 
   return (
     <form
@@ -215,10 +230,18 @@ export function SpecsStep({ data, updateData, nextStep, prevStep }: StepProps) {
 
       {/* Navigation buttons */}
       <div className="md:col-span-2 flex justify-between pt-4">
-        <Button variant="outline" type="button" onClick={prevStep}>
+        <Button 
+        className="bg-blue-900 flex items-center gap-2"
+        type="button" 
+        onClick={prevStep}>
+          <ArrowLeft className="w-4 h-4" />
           Back
         </Button>
-        <Button type="submit">Next: Features</Button>
+        <Button 
+        className="bg-orange-500 flex items-center gap-2"
+        type="submit">Next: Features
+        <ArrowRight className="w-4 h-4" />
+        </Button>
       </div>
     </form>
   );

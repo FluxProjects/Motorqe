@@ -4,6 +4,7 @@ import { PromotionPackage, StepProps } from "@shared/schema";
 import { useQuery } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import clsx from "clsx";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 
 export function PricingStep({
   data,
@@ -137,11 +138,17 @@ export function PricingStep({
       </div>
 
       <div className="flex justify-between pt-4">
-        <Button variant="outline" type="button" onClick={prevStep}>
+         <Button 
+        className="bg-blue-900 flex items-center gap-2"
+        type="button" onClick={prevStep}>
+          <ArrowLeft className="w-4 h-4" />
           Back
         </Button>
-        <Button type="submit" disabled={!formData.selectedPackageId}>
+        <Button 
+        className="bg-orange-500 flex items-center gap-2"
+        type="submit" disabled={!formData.selectedPackageId}>
           Next: Promotion
+          <ArrowRight className="w-4 h-4" />
         </Button>
       </div>
     </form>

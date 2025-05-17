@@ -130,7 +130,7 @@ export function ListingForm({ listing, onSuccess }: Props) {
 
   return (
     <FormProvider {...methods}>
-      <Card className="mx-auto mt-2">
+      <Card className="mx-auto mt-2 shadow-none border-none">
         <ProgressHeader
           currentStep={step}
           totalSteps={steps.length}

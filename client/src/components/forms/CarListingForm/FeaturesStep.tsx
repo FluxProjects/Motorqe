@@ -7,6 +7,7 @@ import { useQuery } from '@tanstack/react-query';
 import { CarFeature } from '@shared/schema';
 import { useFormContext } from 'react-hook-form';
 import { useEffect } from 'react';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 
 export function FeaturesStep({ listingId, data, updateData, nextStep, prevStep }: StepProps) {
   const { setValue, watch } = useFormContext();
@@ -86,10 +87,17 @@ export function FeaturesStep({ listingId, data, updateData, nextStep, prevStep }
       </div>
 
       <div className="flex justify-between pt-4">
-        <Button variant="outline" type="button" onClick={prevStep}>
+        <Button 
+        className="bg-blue-900 flex items-center gap-2"
+        type="button" onClick={prevStep}>
+          <ArrowLeft className="w-4 h-4" />
           Back
         </Button>
-        <Button type="submit">Next: Media</Button>
+        <Button 
+        className="bg-orange-500 flex items-center gap-2"
+        type="submit">Next: Media
+        <ArrowRight className="w-4 h-4" />
+        </Button>
       </div>
     </form>
   );

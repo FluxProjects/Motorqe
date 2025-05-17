@@ -248,8 +248,8 @@ export const RegisterForm = ({ onSubmit, isSubmitting }: RegisterFormProps) => {
 
         <Button
           type="submit"
-          className="w-full py-3 bg-primary text-white font-medium rounded-md hover:bg-primary/90 transition-colors"
-          disabled={isSubmitting || !form.formState.isValid}
+        className="w-full py-3 bg-orange-500 text-white font-medium rounded-md hover:bg-blue-900 transition-colors"
+           disabled={isSubmitting || !form.formState.isValid}
         >
           {isSubmitting ? t("common.loading") : t("auth.createAccount")}
         </Button>

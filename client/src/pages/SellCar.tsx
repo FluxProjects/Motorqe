@@ -7,7 +7,9 @@ import { useState, useEffect } from "react";
 export default function SellCar() {
   const { t } = useTranslation();
   const { isAuthenticated } = useAuth();
-  const [authModal, setAuthModal] = useState<"login" | "register" | "forget-password" | null>(null);
+  const [authModal, setAuthModal] = useState<
+    "login" | "register" | "forget-password" | null
+  >(null);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -28,15 +30,14 @@ export default function SellCar() {
               <ListingForm />
             ) : (
               <div className="text-neutral-600">
-  {t("common.pleaseLoginToContinue")}{" "}
-  <button
-    onClick={() => setAuthModal("login")}
-    className="text-primary font-medium underline hover:no-underline"
-  >
-    {t("common.login")}
-  </button>
-</div>
-
+                {t("common.pleaseLoginToContinue")}{" "}
+                <button
+                  onClick={() => setAuthModal("login")}
+                  className="text-primary font-medium underline hover:no-underline"
+                >
+                  {t("common.login")}
+                </button>
+              </div>
             )}
           </div>
         </div>

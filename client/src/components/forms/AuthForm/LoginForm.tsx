@@ -90,7 +90,7 @@ export const LoginForm = ({ onSubmit, isSubmitting, switchView }: LoginFormProps
 
         <Button
           type="submit"
-          className="w-full py-3 bg-primary text-white font-medium rounded-md hover:bg-primary/90 transition-colors"
+          className="w-full py-3 bg-orange-500 text-white font-medium rounded-md hover:bg-blue-900 transition-colors"
           disabled={isSubmitting || !form.formState.isValid}
         >
           {isSubmitting ? t("common.loading") : t("auth.login")}

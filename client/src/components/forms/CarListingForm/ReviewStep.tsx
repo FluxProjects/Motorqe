@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import {CarCategory, PromotionPackage, StepProps } from "@shared/schema";
 import { Button } from "@/components/ui/button";
+import { ArrowLeft, FilePen, Rocket } from "lucide-react";
 
 export function ReviewStep({
   data,
@@ -198,22 +199,29 @@ export function ReviewStep({
 
       {/* Review Action Buttons */}
        <div className="flex justify-between pt-4">
-        <Button variant="outline" type="button" onClick={prevStep}>
-          {t("listing.back")}
+         <Button 
+        className="bg-blue-900 flex items-center gap-2"
+        type="button" onClick={prevStep}>
+          <ArrowLeft className="w-4 h-4" />
+          Back
         </Button>
         <div className="flex gap-2">
           <Button 
             variant="outline" 
+            className="border-blue-900 text-blue-900 flex items-center gap-2"
             type="button" 
-            onClick={() => handleSubmit('draft')}
+            onClick={() => handleSubmit?.('draft')}
           >
             {t("listing.saveAsDraft")}
+            <FilePen className="w-4 h-4" />
           </Button>
           <Button 
+          className="bg-orange-500 flex items-center gap-2"
             type="button" 
-            onClick={() => handleSubmit('publish')}
+            onClick={() => handleSubmit?.('publish')}
           >
             {t("listing.publishListing")}
+            <Rocket className="w-4 h-4" />
           </Button>
         </div>
       </div>

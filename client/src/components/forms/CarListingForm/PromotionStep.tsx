@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import type { StepProps } from '@shared/schema';
 import type { PromotionPackage } from '@shared/schema';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 
 export function PromotionStep({ data, updateData, prevStep }: StepProps) {
   const { data: packages = [] } = useQuery<PromotionPackage[]>({
@@ -64,11 +65,17 @@ export function PromotionStep({ data, updateData, prevStep }: StepProps) {
       </div>
 
       <div className="flex justify-between pt-4">
-        <Button variant="outline" type="button" onClick={prevStep}>
+         <Button 
+        className="bg-blue-900 flex items-center gap-2"
+        type="button" onClick={prevStep}>
+          <ArrowLeft className="w-4 h-4" />
           Back
         </Button>
-        <Button type="submit" disabled={!selectedPackageId}>
+        <Button 
+        className="bg-orange-500 flex items-center gap-2"
+        type="submit" disabled={!selectedPackageId}>
           Submit Listing
+          <ArrowRight className="w-4 h-4" />
         </Button>
       </div>
     </form>
