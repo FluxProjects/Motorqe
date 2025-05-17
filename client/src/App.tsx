@@ -98,9 +98,7 @@ function App() {
           
           {/* Sell Car - Protected by CREATE_LISTINGS permission */}
           <Route path="/sell-car">
-            <ProtectedRoute permissions={[Permission.CREATE_LISTINGS]}>
               <SellCar />
-            </ProtectedRoute>
           </Route>
 
           {/* Buyer Dashboard Routes */}

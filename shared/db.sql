@@ -54,6 +54,7 @@ CREATE TABLE showrooms (
   location TEXT,
   phone TEXT,
   logo TEXT
+  is_featured boolean DEFAULT false
 );
 
 -- Car Makes
@@ -112,6 +113,7 @@ CREATE TABLE car_listings (
   description TEXT NOT NULL,
   description_ar TEXT,
   price INTEGER NOT NULL,
+  currency TEXT,
   year INTEGER NOT NULL,
   make_id INTEGER NOT NULL,
   model_id INTEGER NOT NULL,
@@ -329,6 +331,55 @@ CREATE TABLE password_reset_tokens (
   used BOOLEAN DEFAULT false,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Table: public.settings
+
+-- DROP TABLE IF EXISTS public.settings;
+
+CREATE TABLE settings
+(
+    id INTEGER PRIMARY KEY,    
+    logo text COLLATE pg_catalog."default",
+    favicon text COLLATE pg_catalog."default",
+    site_name text COLLATE pg_catalog."default" NOT NULL DEFAULT 'CarMarket'::text,
+    site_name_ar text COLLATE pg_catalog."default" NOT NULL DEFAULT 'سوق السيارات'::text,
+    site_description text COLLATE pg_catalog."default",
+    site_description_ar text COLLATE pg_catalog."default",
+    contact_email text COLLATE pg_catalog."default",
+    phone_number text COLLATE pg_catalog."default",
+    address text COLLATE pg_catalog."default",
+    address_ar text COLLATE pg_catalog."default",
+    primary_color text COLLATE pg_catalog."default" NOT NULL DEFAULT '#3563E9'::text,
+    secondary_color text COLLATE pg_catalog."default" NOT NULL DEFAULT '#1A202C'::text,
+    enable_registration boolean NOT NULL DEFAULT true,
+    require_email_verification boolean NOT NULL DEFAULT false,
+    allow_user_rating boolean NOT NULL DEFAULT true,
+    max_listings_per_user integer NOT NULL DEFAULT 5,
+    max_images_per_listing integer NOT NULL DEFAULT 10,
+    email_config jsonb,
+    integrations jsonb,
+    allowed_languages text[] COLLATE pg_catalog."default" NOT NULL DEFAULT ARRAY['en'::text, 'ar'::text],
+    default_language text COLLATE pg_catalog."default" NOT NULL DEFAULT 'en'::text,
+    created_at timestamp with time zone NOT NULL DEFAULT now(),
+    updated_at timestamp with time zone NOT NULL DEFAULT now(),
+    sms_config jsonb,
+    google_maps_config jsonb
+)
+
+CREATE TABLE permissions
+(
+    id integer PRIMARY KEY,
+    code text COLLATE pg_catalog."default" NOT NULL,
+    description text COLLATE pg_catalog."default",
+    created_at timestamp without time zone NOT NULL DEFAULT now()
+)
+
+CREATE TABLE role_permissions
+(
+    role_id integer NOT NULL,
+    permission_id integer NOT NULL,
+)
+
 
 -------------- Insert Queries ---------------
 
@@ -581,6 +632,26 @@ INSERT INTO showroom_services (showroom_id, service_id, price, currency, descrip
 (10, 5, 230, 'QAR', 'Polishing with ceramic coating', 'تلميع مع طبقة سيراميكية', false),
 (10, 7, 295, 'QAR', 'ABS brake check', 'فحص فرامل ABS', false),
 (10, 10, 470, 'QAR', 'Long-term paint protection', 'حماية الطلاء طويلة الأمد', false);
+
+INSERT INTO service_promotion_packages (
+  id,
+  name,
+  name_ar,
+  description,
+  description_ar,
+  price,
+  currency,
+  duration_days,
+  is_featured,
+  priority,
+  is_active,
+  created_at
+) VALUES
+  (1, 'Basic Promo', 'عرض ترويجي أساسي', 'Highlight your service for 3 days in basic listings.', 'تمييز خدمتك لمدة 3 أيام في القوائم الأساسية.', 10, 'QAR', 3, FALSE, 1, TRUE, '2025-05-13 22:08:02.45357'),
+  (2, 'Featured Spotlight', 'ترويج مميز', 'Get top placement and more visibility for a week.', 'احصل على مكانة عالية ورؤية أفضل لمدة أسبوع.', 25, 'QAR', 7, TRUE, 3, TRUE, '2025-05-13 22:08:02.45357'),
+  (3, 'Weekend Boost', 'تعزيز عطلة نهاية الأسبوع', 'Boost your listing over the weekend to increase bookings.', 'عزز قائمتك في عطلة نهاية الأسبوع لزيادة الحجز.', 15, 'QAR', 2, TRUE, 2, TRUE, '2025-05-13 22:08:02.45357'),
+  (4, 'Monthly Power Pack', 'باقة الطاقة الشهرية', 'Maximum exposure for 30 days, including homepage placement.', 'أقصى ظهور لمدة 30 يومًا، بما في ذلك الظهور في الصفحة الرئيسية.', 90, 'QAR', 30, TRUE, 5, TRUE, '2025-05-13 22:08:02.45357');
+
 
 -- Service Bookings
 INSERT INTO service_bookings (user_id, service_id, scheduled_at, status, notes) VALUES
