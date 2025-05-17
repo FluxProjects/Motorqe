@@ -347,7 +347,7 @@ export default function ShowroomServiceDetails() {
               <CardHeader>
                 <div className="flex justify-between items-start">
                   <CardTitle className="text-2xl">
-                    {service.name}
+                    {service?.name}
                     {isFeatured && (
                       <Badge className="ml-3 bg-blue-900">
                         <Star className="h-3 w-3 mr-1 fill-current" />
@@ -364,8 +364,8 @@ export default function ShowroomServiceDetails() {
                 <div className="flex flex-col md:flex-row gap-6">
                   <div className="w-full md:w-1/3">
                     <Avatar className="h-40 w-40 rounded-lg mx-auto">
-                      <AvatarImage src={service.image} alt={service.name} />
-                      <AvatarFallback>{service.name.charAt(0)}</AvatarFallback>
+                      <AvatarImage src={service?.image} alt={service?.name} />
+                      <AvatarFallback>{service?.name.charAt(0)}</AvatarFallback>
                     </Avatar>
                   </div>
                   <div className="w-full md:w-2/3">
@@ -430,15 +430,15 @@ export default function ShowroomServiceDetails() {
             <Card className="sticky bg-neutral-50 rounded-2xl border-orange-500 border-2">
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  {t("showroom.about")} {showroom.name || showroom.nameAr}{" "}
-                  {showroom.is_main_branch && (
+                  {t("showroom.about")} {showroom?.name || showroom?.nameAr}{" "}
+                  {showroom?.is_main_branch && (
                     <Badge className="ml-3 bg-orange-500">
                       {t("showroom.mainBranch")}
                     </Badge>
                   )}
                 </CardTitle>
                 <div className="max-w-none">
-                  <p>{showroom.description || t("showroom.description")}</p>
+                  <p>{showroom?.description || t("showroom.description")}</p>
                 </div>
               </CardHeader>
 
@@ -476,18 +476,18 @@ export default function ShowroomServiceDetails() {
 
                 <Separator className="my-4" />
 
-                {showroom.address && (
+                {showroom?.address && (
                   <div className="mt-4">
                     <h3 className="text-lg font-semibold mb-4">
                       {t("showroom.businessAddress")}
                     </h3>
-                    <p className="text-sm text-gray-700">{showroom.address}</p>
+                    <p className="text-sm text-gray-700">{showroom?.address}</p>
 
                     {/* Location & Directions Buttons */}
                     <div className="mt-4 flex justify-center gap-2 items-center">
-                      {showroom.location &&
+                      {showroom?.location &&
                         (() => {
-                          const [lat, lng] = showroom.location
+                          const [lat, lng] = showroom?.location
                             .split(",")
                             .map(Number);
                           const mapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
@@ -520,7 +520,7 @@ export default function ShowroomServiceDetails() {
                     <div className="flex justify-center mt-4">
                       <div className="flex flex-col items-center w-[250px]">
                         {showroom.phone && (
-                          <a href={`tel:${showroom.phone}`} className="w-full">
+                          <a href={`tel:${showroom?.phone}`} className="w-full">
                             <Button className="mt-2 w-full rounded-full bg-blue-900 text-white">
                               <Phone size={16} className="mr-1" />
                               {t("showroom.callShowroom")}
@@ -536,7 +536,7 @@ export default function ShowroomServiceDetails() {
                         </Button>
                         {showroom.phone && (
                           <a
-                            href={`https://wa.me/${showroom.phone.replace(
+                            href={`https://wa.me/${showroom?.phone.replace(
                               /\D/g,
                               ""
                             )}`}
@@ -577,7 +577,7 @@ export default function ShowroomServiceDetails() {
             >
               <div className="bg-neutral-50 p-3 rounded-md text-sm mb-4">
                 <p className="font-medium">
-                  {t("showroom.regarding")}: {showroom.name}
+                  {t("showroom.regarding")}: {showroom?.name}
                 </p>
               </div>
 

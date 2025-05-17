@@ -331,6 +331,7 @@
     "listMyCar": "List My Car"
   },
   "showroom": {
+    "description": "Description",
     "dashboard": "Dashboard",
     "viewShowroom": "View Showroom",
     "manageListings": "Manage Listings",
