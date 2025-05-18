@@ -1,4 +1,4 @@
-import { useForm } from "react-hook-form";
+import { UseFormReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -21,25 +21,31 @@ const loginFormSchema = z.object({
 type LoginFormValues = z.infer<typeof loginFormSchema>;
 
 interface LoginFormProps {
+  form: UseFormReturn<LoginFormValues>;
   onSubmit: (values: LoginFormValues) => Promise<void>;
   isSubmitting: boolean;
   switchView: (view: "login" | "register" | "forget-password") => void;
 }
 
-export const LoginForm = ({ onSubmit, isSubmitting, switchView }: LoginFormProps) => {
+export const LoginForm = ({ form, onSubmit, isSubmitting, switchView }: LoginFormProps) => {
   const { t } = useTranslation();
-  
-  const form = useForm<LoginFormValues>({
-    resolver: zodResolver(loginFormSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-    },
-  });
+
+  const handleFormSubmit = async (values: LoginFormValues) => {
+    try {
+      await onSubmit(values);
+    } catch (err: any) {
+      // In case you still want to catch at the child level:
+      form.setError("root", {
+        type: "server",
+        message: err?.response?.data?.message ?? "Login failed",
+      });
+    }
+  };
+
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+       <form onSubmit={form?.handleSubmit(handleFormSubmit)} className="space-y-4">
         <FormField
           control={form.control}
           name="email"
@@ -49,7 +55,7 @@ export const LoginForm = ({ onSubmit, isSubmitting, switchView }: LoginFormProps
               <FormControl>
                 <Input
                   type="email"
-                  placeholder="your@email.com"
+                  placeholder="you@youremail.com"
                   {...field}
                   disabled={isSubmitting}
                 />

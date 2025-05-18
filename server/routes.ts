@@ -51,7 +51,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({ token, user });
     } catch (err: any) {
-      res.status(401).json({ message: err.message });
+      res.status(409).json({ message: err.message });
     }
   })
 

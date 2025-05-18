@@ -530,11 +530,15 @@ export const AuthForms = ({
       <AuthHeader view={view} onClose={onClose} />
 
       {view === "login" ? (
-        <LoginForm
+        <FormProvider {...loginForm}>
+           <LoginForm
+          form={loginForm}
           onSubmit={onLoginSubmit}
           isSubmitting={isSubmitting}
           switchView={switchView}
         />
+        </FormProvider>
+       
       ) : view === "register" ? (
         <FormProvider {...registerForm}>
           <RegisterForm
