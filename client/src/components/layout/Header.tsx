@@ -129,24 +129,6 @@ const Header = ({ openAuthModal }: HeaderProps) => {
     }
   };
 
-  const getSellCarLink = () => {
-    if (!user) return "/";
-    switch (user.roleId) {
-      case 8: // SUPER_ADMIN
-      case 7: // ADMIN
-      case 6: // MODERATOR
-      case 5: // SENIOR_MODERATOR
-      case 4: // SHOWROOM_PREMIUM
-      case 3: // SHOWROOM_BASIC
-      case 2: // SELLER
-        return "/sell-car";
-      case 1: // BUYER
-        return "/";
-      default:
-        return "/sell-car";
-    }
-  };
-
   const getMessagesLink = () => {
     if (!user) return "/";
     switch (user.roleId) {
@@ -249,13 +231,20 @@ const Header = ({ openAuthModal }: HeaderProps) => {
 
         {/* Right Menu */}
         <div className="flex items-center space-x-4">
+         <Link href="/sell-car">
+  <a className="inline-flex items-center bg-orange-500 hover:bg-orange-600 text-white font-semibold px-6 py-2 rounded-full transition">
+    <Car className="h-4 w-4 mr-2" />
+    Sell My Car
+  </a>
+</Link>
+
           {/* Language Switcher */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
                 size="sm"
-                className="flex items-center text-neutral-700 hover:text-primary"
+                className="flex items-center border-none bg-transparent text-neutral-700 hover:text-blue-900 hover:bg-transparent"
               >
                 <Globe className="h-4 w-4 mr-1" />
                 <span>
@@ -294,7 +283,7 @@ const Header = ({ openAuthModal }: HeaderProps) => {
                     </AvatarFallback>
                   </Avatar>
                   <span className="text-sm font-medium">
-                    {user.firstName || user.username || "User"}
+                    {user.username || "User"}
                   </span>
                   <ChevronDown className="h-4 w-4" />
                 </Button>
@@ -303,13 +292,6 @@ const Header = ({ openAuthModal }: HeaderProps) => {
               <DropdownMenuContent align="end" className="w-48">
                 <DropdownMenuLabel>{t("common.myAccount")}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-
-                {user.roleId !== 1 && (
-                  <DropdownMenuItem onClick={() => navigate(getSellCarLink())}>
-                    <User className="mr-2 h-4 w-4" />
-                    <span>{t("common.sellCar")}</span>
-                  </DropdownMenuItem>
-                )}
 
                 <DropdownMenuItem onClick={() => navigate(getProfileLink())}>
                   <User className="mr-2 h-4 w-4" />
@@ -338,8 +320,7 @@ const Header = ({ openAuthModal }: HeaderProps) => {
             </DropdownMenu>
           ) : (
             <Button
-              variant="outline"
-              className="hidden md:flex items-center text-primary bg-primary-light hover:bg-primary hover:text-white"
+              className="hidden md:flex items-center border-2 border-blue-900 text-blue-900 bg-white hover:bg-orange-500 hover:border-orange-500 hover:text-white"
               onClick={openLoginModal}
             >
               {t("auth.login")}
@@ -377,12 +358,29 @@ const Header = ({ openAuthModal }: HeaderProps) => {
           >
             {t("common.browseCars")}
           </Link>
-          <Link
-            href="/about"
+         <Link
+            href="/browse-showrooms"
             className="block px-3 py-2 rounded-md text-base font-medium text-neutral-900 hover:bg-neutral-100"
           >
-            {t("common.aboutUs")}
+            {t("common.browseShowrooms")}
           </Link>
+          <Link
+            href="/browse-services"
+            className="block px-3 py-2 rounded-md text-base font-medium text-neutral-900 hover:bg-neutral-100"
+          >
+            {t("common.browseServices")}
+          </Link>
+
+          {/* Dynamic links from pages */}
+          {Array.isArray(pages) && pages.length > 0 && pages.map((page) => (
+          <Link
+            key={page.key}
+            href={`/page/${page.key}`}
+            className="block px-3 py-2 rounded-md text-base font-medium text-neutral-900 hover:bg-neutral-100"
+          >
+            {page.title}
+          </Link>
+          ))}
           <div className="border-t border-neutral-200 my-2"></div>
           {isAuthenticated && user ? (
             <>

@@ -20,7 +20,7 @@ const Footer = () => {
   const { t } = useTranslation();
   const language = i18n.language;
   const direction = language === "ar" ? "rtl" : "ltr";
-  const { pages, error } = usePagesByPlacement("footer");
+  const { pages } = usePagesByPlacement("footer");
 
   return (
     <footer className="bg-blue-900 text-white pt-16 pb-8">
@@ -94,44 +94,49 @@ const Footer = () => {
           </div>
 
           {/* Quick Links */}
-          <div>
-            <h4 className="text-lg font-semibold mb-4">
-              {t("footer.quickLinks")}
-            </h4>
-            <ul className="space-y-2">
-              <li>
-                <Link href="/">{t("common.home")}</Link>
-              </li>
-              <li>
-                <Link href="/browse">{t("common.browseCars")}</Link>
-              </li>
-              <li>
-                <Link href="/sell">{t("common.sellCar")}</Link>
-              </li>
-              <li>
-                <Link href="/about">{t("common.aboutUs")}</Link>
-              </li>
-              <li>
-                <Link href="/contact">{t("common.contactUs")}</Link>
-              </li>
-            </ul>
-          </div>
+<div>
+  <h4 className="text-lg font-semibold mb-4">
+    {t("footer.quickLinks")}
+  </h4>
+  <ul className="space-y-2">
+    <li>
+      <Link href="/">{t("common.home")}</Link>
+    </li>
+    <li>
+      <Link href="/browse">{t("common.browseCars")}</Link>
+    </li>
+    <li>
+      <Link href="/sell">{t("common.sellCar")}</Link>
+    </li>
 
-          {/* Support */}
-          <div>
-            <h4 className="text-lg font-semibold mb-4">
-              {t("footer.support")}
-            </h4>
-            <ul className="space-y-2">
-              {Array.isArray(pages) && pages.length > 0 && pages.map((page) => (
-                  <li>
-                    <Link key={page.key} href={`/page/${page.key}`}>
-                      {page.title}
-                    </Link>
-                  </li>
-                ))}
-            </ul>
-          </div>
+    {/* First 2 dynamic pages */}
+    {Array.isArray(pages) && pages.slice(0, 2).map((page) => (
+      <li key={page.key}>
+        <Link href={`/page/${page.key}`}>
+          {page.title}
+        </Link>
+      </li>
+    ))}
+  </ul>
+</div>
+
+{/* Support */}
+<div>
+  <h4 className="text-lg font-semibold mb-4">
+    {t("footer.support")}
+  </h4>
+  <ul className="space-y-2">
+    {/* Remaining dynamic pages */}
+    {Array.isArray(pages) && pages.slice(2).map((page) => (
+      <li key={page.key}>
+        <Link href={`/page/${page.key}`}>
+          {page.title}
+        </Link>
+      </li>
+    ))}
+  </ul>
+</div>
+
 
           {/* Contact */}
           <div>

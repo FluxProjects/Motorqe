@@ -1364,11 +1364,10 @@ async getPublishedStaticContentByKey(key: string): Promise<StaticContent | undef
 
 async getStaticContentByPlacement(placement: string): Promise<StaticContent[]> {
   return await db.query(
-    'SELECT key, title FROM static_content WHERE placement = $1 AND status = $2 ORDER BY key',
-    [placement, 'published']
+    'SELECT key, title FROM static_content WHERE (placement = $1 OR placement = $2) AND status = $3 ORDER BY key',
+    [placement, 'both', 'published']
   );
 }
-
 
   async createStaticContent(content: InsertStaticContent): Promise<StaticContent> {
     const result = await db.query(
