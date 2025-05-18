@@ -88,6 +88,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json({ token, user });
     } catch (err: any) {
       console.error("Registration error:", err);
+      if (err.message === "Email or username already in use") {
+    return res.status(409).json({ message: err.message });
+  }
       res.status(500).json({ message: err.message || "An unexpected error occurred" });
     }
   });

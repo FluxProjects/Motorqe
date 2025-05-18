@@ -1,4 +1,4 @@
-import { useForm } from "react-hook-form";
+import { UseFormReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -37,34 +37,34 @@ const registerFormSchema = z
 type RegisterFormValues = z.infer<typeof registerFormSchema>;
 
 interface RegisterFormProps {
+  form: UseFormReturn<RegisterFormValues>;  // ← receive the parent’s form
   onSubmit: (values: RegisterFormValues) => Promise<void>;
   isSubmitting: boolean;
 }
 
-export const RegisterForm = ({ onSubmit, isSubmitting }: RegisterFormProps) => {
+
+
+export const RegisterForm = ({ form, onSubmit, isSubmitting }: RegisterFormProps) => {
   const { t } = useTranslation();
 
-  const form = useForm<RegisterFormValues>({
-    resolver: zodResolver(registerFormSchema),
-    defaultValues: {
-      firstName: "",
-      lastName: "",
-      username: "",
-      email: "",
-      password: "",
-      confirmPassword: "",
-      role: "BUYER",
-      roleId: 1,
-      termsAgreement: true,
-    },
-  });
+  const handleFormSubmit = async (values: RegisterFormValues) => {
+    try {
+      await onSubmit(values);
+    } catch (err: any) {
+      // In case you still want to catch at the child level:
+      form.setError("root", {
+        type: "server",
+        message: err?.response?.data?.message ?? "Registration failed",
+      });
+    }
+  };
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={form?.handleSubmit(handleFormSubmit)} className="space-y-4">
         <Controller
           name="role"
-          control={form.control}
+          control={form?.control}
           defaultValue="BUYER"
           render={({ field }) => (
             <div role="radiogroup" className="gap-2 flex space-x-4">
@@ -103,7 +103,7 @@ export const RegisterForm = ({ onSubmit, isSubmitting }: RegisterFormProps) => {
         />
 
         <FormField
-          control={form.control}
+          control={form?.control}
           name="roleId"
           render={({ field }) => (
             <FormItem>
@@ -117,7 +117,7 @@ export const RegisterForm = ({ onSubmit, isSubmitting }: RegisterFormProps) => {
 
         <div className="grid grid-cols-2 gap-4">
           <FormField
-            control={form.control}
+            control={form?.control}
             name="firstName"
             render={({ field }) => (
               <FormItem>
@@ -131,7 +131,7 @@ export const RegisterForm = ({ onSubmit, isSubmitting }: RegisterFormProps) => {
           />
 
           <FormField
-            control={form.control}
+            control={form?.control}
             name="lastName"
             render={({ field }) => (
               <FormItem>
@@ -146,7 +146,7 @@ export const RegisterForm = ({ onSubmit, isSubmitting }: RegisterFormProps) => {
         </div>
 
         <FormField
-          control={form.control}
+          control={form?.control}
           name="username"
           render={({ field }) => (
             <FormItem>
@@ -166,7 +166,7 @@ export const RegisterForm = ({ onSubmit, isSubmitting }: RegisterFormProps) => {
         />
 
         <FormField
-          control={form.control}
+          control={form?.control}
           name="email"
           render={({ field }) => (
             <FormItem>
@@ -185,7 +185,7 @@ export const RegisterForm = ({ onSubmit, isSubmitting }: RegisterFormProps) => {
         />
 
         <FormField
-          control={form.control}
+          control={form?.control}
           name="password"
           render={({ field }) => (
             <FormItem>
@@ -199,7 +199,7 @@ export const RegisterForm = ({ onSubmit, isSubmitting }: RegisterFormProps) => {
         />
 
         <FormField
-          control={form.control}
+          control={form?.control}
           name="confirmPassword"
           render={({ field }) => (
             <FormItem>
@@ -213,7 +213,7 @@ export const RegisterForm = ({ onSubmit, isSubmitting }: RegisterFormProps) => {
         />
 
         <FormField
-          control={form.control}
+          control={form?.control}
           name="termsAgreement"
           render={({ field }) => (
             <FormItem className="mb-6">
@@ -240,16 +240,16 @@ export const RegisterForm = ({ onSubmit, isSubmitting }: RegisterFormProps) => {
           )}
         />
 
-        {form.formState.errors.root && (
+        {form?.formState?.errors.root && (
           <p className="text-red-500 text-sm">
-            {form.formState.errors.root.message}
+            {form?.formState?.errors.root.message}
           </p>
         )}
 
         <Button
           type="submit"
         className="w-full py-3 bg-orange-500 text-white font-medium rounded-md hover:bg-blue-900 transition-colors"
-           disabled={isSubmitting || !form.formState.isValid}
+           disabled={isSubmitting || !form?.formState?.isValid}
         >
           {isSubmitting ? t("common.loading") : t("auth.createAccount")}
         </Button>
