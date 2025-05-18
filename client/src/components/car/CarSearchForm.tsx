@@ -94,6 +94,8 @@ const CarSearchForm = () => {
     queryKey: ["/api/car-categories"],
   });
 
+  const totalCount = categories?.reduce((sum, category) => sum + (category.count || 0), 0) || 0;
+
   // Handle search form submission
   const onSubmit = (values: SearchFormValues) => {
     // Build query string
@@ -357,7 +359,7 @@ const CarSearchForm = () => {
                 className="bg-orange-500 hover:bg-orange-600 font-semibold px-6 py-2 rounded-full"
               >
                 <Search className="mr-2 h-4 w-4" />
-                {t("common.search")} 5838 Cars
+                {t("common.search")} {totalCount || '0'} Cars
               </Button>
             </div>
           </form>
