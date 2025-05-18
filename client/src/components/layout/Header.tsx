@@ -229,40 +229,7 @@ const Header = ({ openAuthModal }: HeaderProps) => {
 
         {/* Right Menu */}
         <div className="flex items-center space-x-4">
-          <Link href="/sell-car">
-            <a className="inline-flex items-center bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold px-4 py-2 rounded-full transition">
-              <Car className="h-4 w-4 mr-2" />
-              Sell My Car
-            </a>
-          </Link>
-
-          {/* Language Switcher */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="flex items-center border-none bg-transparent text-neutral-700 text-sm hover:text-blue-900 hover:bg-transparent"
-              >
-                <Globe className="h-4 w-4 mr-1" />
-                <span>
-                  {i18n.language ? i18n.language.toUpperCase() : "EN"}
-                </span>
-
-                <ChevronDown className="h-4 w-4 ml-1" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => handleLanguageChange("en")}>
-                {t("english")} (EN)
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleLanguageChange("ar")}>
-                {t("arabic")} (AR)
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          {/* User Menu or Sign In Button */}
+           {/* User Menu or Sign In Button */}
           {isAuthenticated && user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -317,13 +284,40 @@ const Header = ({ openAuthModal }: HeaderProps) => {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <Button
-              className="hidden md:flex items-center border-2 border-blue-900 text-blue-900 text-sm bg-white hover:bg-orange-500 hover:border-orange-500 hover:text-white"
-              onClick={openLoginModal}
-            >
-              {t("auth.login")}
-            </Button>
+          <Link href="/sell-car">
+            <a className="inline-flex items-center bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold px-4 py-2 rounded-full transition">
+              <Car className="h-4 w-4 mr-2" />
+              Sell My Car
+            </a>
+          </Link>
           )}
+
+          {/* Language Switcher */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="flex items-center border-none bg-transparent text-neutral-700 text-sm hover:text-blue-900 hover:bg-transparent"
+              >
+                <Globe className="h-4 w-4 mr-1" />
+                <span>
+                  {i18n.language ? i18n.language.toUpperCase() : "EN"}
+                </span>
+
+                <ChevronDown className="h-4 w-4 ml-1" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => handleLanguageChange("en")}>
+                {t("english")} (EN)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleLanguageChange("ar")}>
+                {t("arabic")} (AR)
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          
 
           {/* Mobile menu button */}
           <Button
