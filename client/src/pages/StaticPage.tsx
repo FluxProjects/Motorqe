@@ -33,9 +33,8 @@ export default function StaticPage({ keyParam }: StaticPageProps) {
 
   if (loading) return <p className="text-center p-8">Loading...</p>;
   if (!data) return <p className="text-center text-red-600 p-8">Page not found</p>;
-
   return (
-    <div className={`${data?.full_width ? "w-full px-0" : "max-w-4xl px-4"} mx-auto py-8`}>
+    <div className={`${data?.full_width ? "w-full px-0" : "max-w-7xl px-4 sm:px-6 lg:px-8"} mx-auto py-8`}>
       {data.coverImage && (
         <img src={data.coverImage} alt={data.title} className="w-full h-64 object-cover rounded-lg mb-6" />
       )}
