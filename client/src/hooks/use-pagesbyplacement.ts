@@ -10,24 +10,33 @@ export function usePagesByPlacement(placement: string) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    console.log(`Fetching pages for placement: ${placement}`);
+
     fetch(`/api/published/static-content/placement/${placement}`)
-      .then((res) => res.json())
+      .then((res) => {
+        console.log("Received response:", res);
+        return res.json();
+      })
       .then((data) => {
+        console.log("Parsed JSON data:", data);
+
         if (Array.isArray(data)) {
+          console.log("Setting pages:", data);
           setPages(data);
           setError(null);
         } else {
           console.error("Expected array but got:", data);
-          setPages([]); // ensure fallback to empty list
+          setPages([]);
           setError(data?.message || "Unexpected response");
         }
       })
       .catch((err) => {
-        console.error("Failed to fetch pages:", err);
+        console.error("Fetch error:", err);
         setPages([]);
         setError("Network error or bad response");
       });
   }, [placement]);
 
+  console.log("Returning pages and error:", { pages, error });
   return { pages, error };
 }

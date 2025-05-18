@@ -20,7 +20,7 @@ const Footer = () => {
   const { t } = useTranslation();
   const language = i18n.language;
   const direction = language === "ar" ? "rtl" : "ltr";
-  const pages = usePagesByPlacement("footer");
+  const { pages, error } = usePagesByPlacement("footer");
 
   return (
     <footer className="bg-blue-900 text-white pt-16 pb-8">
@@ -123,23 +123,7 @@ const Footer = () => {
               {t("footer.support")}
             </h4>
             <ul className="space-y-2">
-              <li>
-                <Link href="/help">{t("footer.helpCenter")}</Link>
-              </li>
-              <li>
-                <Link href="/safety">{t("footer.safetyTips")}</Link>
-              </li>
-              <li>
-                <Link href="/terms">{t("footer.termsOfService")}</Link>
-              </li>
-              <li>
-                <Link href="/privacy">{t("footer.privacyPolicy")}</Link>
-              </li>
-              <li>
-                <Link href="/cookie">{t("footer.cookiePolicy")}</Link>
-              </li>
-              {Array.isArray(pages) &&
-                pages.map((page) => (
+              {Array.isArray(pages) && pages.length > 0 && pages.map((page) => (
                   <li>
                     <Link key={page.key} href={`/page/${page.key}`}>
                       {page.title}

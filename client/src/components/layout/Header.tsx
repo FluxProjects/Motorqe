@@ -36,11 +36,10 @@ const Header = ({ openAuthModal }: HeaderProps) => {
   const { user, isAuthenticated, logout } = auth;
   const { t } = useTranslation();
   const [location, navigate] = useLocation();
-  const normalizedLocation = location.split('?')[0].replace(/\/$/, '');
+  const normalizedLocation = location.split("?")[0].replace(/\/$/, "");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
-
-  const pages = usePagesByPlacement("header");
+  const { pages, error } = usePagesByPlacement("header");
 
   // Debugging logs to check current states
   console.log("Location: ", location);
@@ -52,6 +51,16 @@ const Header = ({ openAuthModal }: HeaderProps) => {
       setLoading(false);
     }
   }, [isAuthenticated]);
+
+  useEffect(() => {
+    console.log("🔥 pages array changed. length =", pages.length);
+    pages.forEach((page, idx) => {
+      console.log(`pages[${idx}]:`, page);
+    });
+    if (error) {
+      console.warn("usePagesByPlacement error:", error);
+    }
+  }, [pages, error]);
 
   const toggleMobileMenu = () => {
     console.log("Toggling mobile menu...");
@@ -158,7 +167,7 @@ const Header = ({ openAuthModal }: HeaderProps) => {
     }
   };
 
-  console.log("Pages by placement:", pages);
+  console.log("Pages by placement in header:", pages);
   console.log("Current location:", location);
 
   return (
@@ -176,62 +185,67 @@ const Header = ({ openAuthModal }: HeaderProps) => {
 
         {/* Navigation - Desktop */}
         <nav className="hidden md:flex space-x-6">
-          <Link
-            href="/"
-            className={`text-neutral-900 hover:text-orange-500 font-medium pb-1 ${
-              location === "/"
-                ? "border-b-2 border-orange-500 text-orange-500"
-                : ""
-            }`}
-          >
-            {t("common.home")}
-          </Link>
-          <Link
-            href="/browse"
-            className={`text-neutral-900 hover:text-orange-500 font-medium pb-1 ${
-              location === "/browse"
-                ? "border-b-2 border-orange-500 text-orange-500"
-                : ""
-            }`}
-          >
-            {t("common.browseCars")}
-          </Link>
-          <Link
-            href="/browse-showrooms"
-            className={`text-neutral-900 hover:text-orange-500 font-medium pb-1 ${
-              location === "/browse-showrooms"
-                ? "border-b-2 border-orange-500 text-orange-500"
-                : ""
-            }`}
-          >
-            {t("common.browseShowrooms")}
-          </Link>
-          <Link
-            href="/browse-services"
-            className={`text-neutral-900 hover:text-orange-500 font-medium pb-1 ${
-              location === "/browse-services"
-                ? "border-b-2 border-orange-500 text-orange-500"
-                : ""
-            }`}
-          >
-            {t("common.browseServices")}
-          </Link>
-          {Array.isArray(pages) &&
-        pages.map((page) => (
-          <>
-          <Link
-            key={page.key}
-            href={`/page/${page.key}`}
-            className={`text-neutral-900 hover:text-orange-500 font-medium pb-1 ${
-              location === `/page/${page.key}`
-                ? "border-b-2 border-orange-500 text-orange-500"
-                : ""}`}
-          >
-            {page.title}
-          </Link>
-          </>
-        ))}
-        </nav>
+  {/* Static links */}
+  <Link
+    href="/"
+    className={`text-neutral-900 hover:text-orange-500 font-medium pb-1 ${
+      location === "/"
+        ? "border-b-2 border-orange-500 text-orange-500"
+        : ""
+    }`}
+  >
+    {t("common.home")}
+  </Link>
+  <Link
+    href="/browse"
+    className={`text-neutral-900 hover:text-orange-500 font-medium pb-1 ${
+      location === "/browse"
+        ? "border-b-2 border-orange-500 text-orange-500"
+        : ""
+    }`}
+  >
+    {t("common.browseCars")}
+  </Link>
+  <Link
+    href="/browse-showrooms"
+    className={`text-neutral-900 hover:text-orange-500 font-medium pb-1 ${
+      location === "/browse-showrooms"
+        ? "border-b-2 border-orange-500 text-orange-500"
+        : ""
+    }`}
+  >
+    {t("common.browseShowrooms")}
+  </Link>
+  <Link
+    href="/browse-services"
+    className={`text-neutral-900 hover:text-orange-500 font-medium pb-1 ${
+      location === "/browse-services"
+        ? "border-b-2 border-orange-500 text-orange-500"
+        : ""
+    }`}
+  >
+    {t("common.browseServices")}
+  </Link>
+
+  {/* Dynamic links from pages */}
+ {Array.isArray(pages) && pages.length > 0 && pages.map((page) => (
+  <Link
+    key={page.key}
+    href={`/page/${page.key}`}
+    className={`text-neutral-900 hover:text-orange-500 font-medium pb-1 ${
+      location === `/page/${page.key}`
+        ? "border-b-2 border-orange-500 text-orange-500"
+        : ""
+    }`}
+  >
+    {page.title}
+  </Link>
+))}
+
+
+
+</nav>
+
 
         {/* Right Menu */}
         <div className="flex items-center space-x-4">
