@@ -167,76 +167,74 @@ const Header = ({ openAuthModal }: HeaderProps) => {
 
         {/* Navigation - Desktop */}
         <nav className="hidden md:flex space-x-6">
-  {/* Static links */}
-  <Link
-    href="/"
-    className={`text-neutral-900 hover:text-orange-500 font-medium pb-1 ${
-      location === "/"
-        ? "border-b-2 border-orange-500 text-orange-500"
-        : ""
-    }`}
-  >
-    {t("common.home")}
-  </Link>
-  <Link
-    href="/browse"
-    className={`text-neutral-900 hover:text-orange-500 font-medium pb-1 ${
-      location === "/browse"
-        ? "border-b-2 border-orange-500 text-orange-500"
-        : ""
-    }`}
-  >
-    {t("common.browseCars")}
-  </Link>
-  <Link
-    href="/browse-showrooms"
-    className={`text-neutral-900 hover:text-orange-500 font-medium pb-1 ${
-      location === "/browse-showrooms"
-        ? "border-b-2 border-orange-500 text-orange-500"
-        : ""
-    }`}
-  >
-    {t("common.browseShowrooms")}
-  </Link>
-  <Link
-    href="/browse-services"
-    className={`text-neutral-900 hover:text-orange-500 font-medium pb-1 ${
-      location === "/browse-services"
-        ? "border-b-2 border-orange-500 text-orange-500"
-        : ""
-    }`}
-  >
-    {t("common.browseServices")}
-  </Link>
+          {/* Static links */}
+          <Link
+            href="/"
+            className={`text-sm text-neutral-900 hover:text-orange-500 font-medium pb-1 ${
+              location === "/"
+                ? "border-b-2 border-orange-500 text-orange-500"
+                : ""
+            }`}
+          >
+            {t("common.home")}
+          </Link>
+          <Link
+            href="/browse"
+            className={`text-sm text-neutral-900 hover:text-orange-500 font-medium pb-1 ${
+              location === "/browse"
+                ? "border-b-2 border-orange-500 text-orange-500"
+                : ""
+            }`}
+          >
+            {t("common.browseCars")}
+          </Link>
+          <Link
+            href="/browse-showrooms"
+            className={`text-sm text-neutral-900 hover:text-orange-500 font-medium pb-1 ${
+              location === "/browse-showrooms"
+                ? "border-b-2 border-orange-500 text-orange-500"
+                : ""
+            }`}
+          >
+            {t("common.browseShowrooms")}
+          </Link>
+          <Link
+            href="/browse-services"
+            className={`text-sm text-neutral-900 hover:text-orange-500 font-medium pb-1 ${
+              location === "/browse-services"
+                ? "border-b-2 border-orange-500 text-orange-500"
+                : ""
+            }`}
+          >
+            {t("common.browseServices")}
+          </Link>
 
-  {/* Dynamic links from pages */}
- {Array.isArray(pages) && pages.length > 0 && pages.map((page) => (
-  <Link
-    key={page.key}
-    href={`/page/${page.key}`}
-    className={`text-neutral-900 hover:text-orange-500 font-medium pb-1 ${
-      location === `/page/${page.key}`
-        ? "border-b-2 border-orange-500 text-orange-500"
-        : ""
-    }`}
-  >
-    {page.title}
-  </Link>
-))}
-
-
-
-</nav>
-
+          {/* Dynamic links from pages */}
+          {Array.isArray(pages) &&
+            pages.length > 0 &&
+            pages.map((page) => (
+              <Link
+                key={page.key}
+                href={`/page/${page.key}`}
+                className={`text-sm text-neutral-900 hover:text-orange-500 font-medium pb-1 ${
+                  location === `/page/${page.key}`
+                    ? "border-b-2 border-orange-500 text-orange-500"
+                    : ""
+                }`}
+              >
+                {page.title}
+              </Link>
+            ))}
+        </nav>
 
         {/* Right Menu */}
         <div className="flex items-center space-x-4">
-         <Link href="/sell-car">
-  <a className="inline-flex items-center bg-orange-500 hover:bg-orange-600 text-white font-semibold px-6 py-2 rounded-full transition">
-    <Car className="h-4 w-4 mr-2" />
-    Sell My Car
-  </a>
-</Link>
+          <Link href="/sell-car">
+            <a className="inline-flex items-center bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold px-4 py-2 rounded-full transition">
+              <Car className="h-4 w-4 mr-2" />
+              Sell My Car
+            </a>
+          </Link>
 
           {/* Language Switcher */}
           <DropdownMenu>
@@ -244,7 +242,7 @@ const Header = ({ openAuthModal }: HeaderProps) => {
               <Button
                 variant="ghost"
                 size="sm"
-                className="flex items-center border-none bg-transparent text-neutral-700 hover:text-blue-900 hover:bg-transparent"
+                className="flex items-center border-none bg-transparent text-neutral-700 text-sm hover:text-blue-900 hover:bg-transparent"
               >
                 <Globe className="h-4 w-4 mr-1" />
                 <span>
@@ -271,7 +269,7 @@ const Header = ({ openAuthModal }: HeaderProps) => {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="flex items-center space-x-2"
+                  className="flex items-center space-x-1"
                 >
                   <Avatar className="h-8 w-8">
                     <AvatarImage
@@ -282,7 +280,7 @@ const Header = ({ openAuthModal }: HeaderProps) => {
                       {user.username?.charAt(0).toUpperCase() || "U"}
                     </AvatarFallback>
                   </Avatar>
-                  <span className="text-sm font-medium">
+                  <span className="text-xs font-medium">
                     {user.username || "User"}
                   </span>
                   <ChevronDown className="h-4 w-4" />
@@ -320,7 +318,7 @@ const Header = ({ openAuthModal }: HeaderProps) => {
             </DropdownMenu>
           ) : (
             <Button
-              className="hidden md:flex items-center border-2 border-blue-900 text-blue-900 bg-white hover:bg-orange-500 hover:border-orange-500 hover:text-white"
+              className="hidden md:flex items-center border-2 border-blue-900 text-blue-900 text-sm bg-white hover:bg-orange-500 hover:border-orange-500 hover:text-white"
               onClick={openLoginModal}
             >
               {t("auth.login")}
@@ -358,7 +356,7 @@ const Header = ({ openAuthModal }: HeaderProps) => {
           >
             {t("common.browseCars")}
           </Link>
-         <Link
+          <Link
             href="/browse-showrooms"
             className="block px-3 py-2 rounded-md text-base font-medium text-neutral-900 hover:bg-neutral-100"
           >
@@ -372,15 +370,17 @@ const Header = ({ openAuthModal }: HeaderProps) => {
           </Link>
 
           {/* Dynamic links from pages */}
-          {Array.isArray(pages) && pages.length > 0 && pages.map((page) => (
-          <Link
-            key={page.key}
-            href={`/page/${page.key}`}
-            className="block px-3 py-2 rounded-md text-base font-medium text-neutral-900 hover:bg-neutral-100"
-          >
-            {page.title}
-          </Link>
-          ))}
+          {Array.isArray(pages) &&
+            pages.length > 0 &&
+            pages.map((page) => (
+              <Link
+                key={page.key}
+                href={`/page/${page.key}`}
+                className="block px-3 py-2 rounded-md text-base font-medium text-neutral-900 hover:bg-neutral-100"
+              >
+                {page.title}
+              </Link>
+            ))}
           <div className="border-t border-neutral-200 my-2"></div>
           {isAuthenticated && user ? (
             <>
