@@ -486,6 +486,7 @@ export const staticContent = pgTable("static_content", {
   contentAr: text("content_ar"),                  // Content body in Arabic
   author: integer("user_id").references(() => users.id).notNull(), // Owner user ID
   status: text('status').default("draft").notNull().$type<"draft" | "published">(),
+  fullWidth: boolean('full_width').default(false),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(), // Last update timestamp
 });
@@ -497,6 +498,8 @@ export const insertStaticContentSchema = createInsertSchema(staticContent).pick(
   content: true,
   contentAr: true,
   author: true,
+  status: true,
+  fullWidth: true,
 });
 
 export type InsertStaticContent = z.infer<typeof insertStaticContentSchema>;

@@ -2,30 +2,18 @@
 import { useEffect, useState } from "react";
 import { useParams, useRoute } from "wouter";
 import { useTranslation } from "react-i18next";
-
-interface StaticContent {
-  key: string;
-  title: string;
-  content: string;
-  coverImage?: string;
-}
+import { StaticContent } from "@shared/schema";
 
 interface StaticPageProps {
   keyParam: string;
 }
 
 export default function StaticPage({ keyParam }: StaticPageProps) {
-    const [match] = useRoute("/page/:key");
-    const key = keyParam;
-    const [data, setData] = useState<StaticContent | null>(null);
+  const [match] = useRoute("/page/:key");
+  const key = keyParam;
+  const [data, setData] = useState<StaticContent | null>(null);
   const [loading, setLoading] = useState(true);
   const { i18n } = useTranslation();
-
-  
-  console.log("StaticPage rendered with key:", key);
-
-  
-  
 
   useEffect(() => {
     const fetchContent = async () => {
@@ -47,13 +35,12 @@ export default function StaticPage({ keyParam }: StaticPageProps) {
   if (!data) return <p className="text-center text-red-600 p-8">Page not found</p>;
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
+    <div className={`${data?.full_width ? "w-full px-0" : "max-w-4xl px-4"} mx-auto py-8`}>
       {data.coverImage && (
         <img src={data.coverImage} alt={data.title} className="w-full h-64 object-cover rounded-lg mb-6" />
       )}
-      <h1 className="text-3xl font-bold mb-4">{data.title}</h1>
       <div
-        className="prose prose-lg max-w-none"
+        className="w-full"
         dangerouslySetInnerHTML={{ __html: data.content }}
       />
     </div>
