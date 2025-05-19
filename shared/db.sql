@@ -127,6 +127,7 @@ CREATE TABLE car_listings (
   images TEXT[], -- PostgreSQL array type
   status TEXT DEFAULT 'draft' CHECK (status IN ('draft', 'pending', 'active', 'sold', 'expired', 'rejected')),
   is_featured BOOLEAN DEFAULT FALSE,
+  is_imported BOOLEAN DEFAULT FALSE,
   views INTEGER DEFAULT 0,
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP
@@ -384,6 +385,15 @@ CREATE TABLE role_permissions
     role_id integer NOT NULL,
     permission_id integer NOT NULL,
 )
+
+CREATE TABLE car_engine_capacities (
+    id SERIAL PRIMARY KEY,
+    size_liters DECIMAL(3,1) NOT NULL UNIQUE, -- e.g., 1.2, 2.0, 3.5
+    description TEXT,                         -- Optional: e.g., "1.2L Inline-4"
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 
 
 -------------- Insert Queries ---------------

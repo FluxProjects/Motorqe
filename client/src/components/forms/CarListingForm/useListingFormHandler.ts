@@ -45,6 +45,7 @@ export const useListingFormHandler = (onSuccess?: () => void) => {
         description: formData.basicInfo?.description,
         price: formData.basicInfo?.price,
         location: formData.basicInfo?.location,
+        is_imported: formData.basicInfo?.isImported,
         category_id: formData.specifications?.categoryId,
         make_id: formData.specifications?.makeId,
         model_id: formData.specifications?.modelId,

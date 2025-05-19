@@ -31,6 +31,8 @@ const searchFormSchema = z.object({
   keyword: z.string().optional(),
   location: z.string().optional(),
   category: z.string().optional(),
+  is_imported: z.string().optional(),
+  condition: z.string().optional(),
   make: z.string().optional(),
   model: z.string().optional(),
   minPrice: z.string().optional(),
@@ -55,6 +57,8 @@ const CarSearchForm = () => {
     if (params.has("keyword")) values.keyword = params.get("keyword");
     if (params.has("location")) values.location = params.get("location");
     if (params.has("category")) values.category = params.get("category");
+    if (params.has("condition")) values.condition = params.get("condition");
+    if (params.has("is_imported")) values.is_imported = params.get("is_imported");
     if (params.has("make")) values.make = params.get("make");
     if (params.has("model")) values.model = params.get("model");
     if (params.has("minPrice")) values.minPrice = params.get("minPrice");
@@ -104,6 +108,8 @@ const CarSearchForm = () => {
     if (values.keyword) params.append("keyword", values.keyword);
     if (values.location) params.append("location", values.location);
     if (values.category) params.append("category", values.category);
+    if (values.condition) params.append("condition", values.condition);
+    if (values.is_imported) params.append("is_imported", values.is_imported);
     if (values.make) params.append("make", values.make);
     if (values.model) params.append("model", values.model);
     if (values.minPrice) params.append("minPrice", values.minPrice);

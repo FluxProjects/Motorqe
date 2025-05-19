@@ -166,66 +166,59 @@ const Header = ({ openAuthModal }: HeaderProps) => {
         </div>
 
         {/* Navigation - Desktop */}
-        <nav className="hidden md:flex space-x-6">
-          {/* Static links */}
-          <Link
-            href="/"
-            className={`text-sm text-neutral-900 hover:text-orange-500 font-medium pb-1 ${
-              location === "/"
-                ? "border-b-2 border-orange-500 text-orange-500"
-                : ""
-            }`}
-          >
-            {t("common.home")}
-          </Link>
-          <Link
-            href="/browse"
-            className={`text-sm text-neutral-900 hover:text-orange-500 font-medium pb-1 ${
-              location === "/browse"
-                ? "border-b-2 border-orange-500 text-orange-500"
-                : ""
-            }`}
-          >
-            {t("common.browseCars")}
-          </Link>
-          <Link
-            href="/browse-showrooms"
-            className={`text-sm text-neutral-900 hover:text-orange-500 font-medium pb-1 ${
-              location === "/browse-showrooms"
-                ? "border-b-2 border-orange-500 text-orange-500"
-                : ""
-            }`}
-          >
-            {t("common.browseShowrooms")}
-          </Link>
-          <Link
-            href="/browse-services"
-            className={`text-sm text-neutral-900 hover:text-orange-500 font-medium pb-1 ${
-              location === "/browse-services"
-                ? "border-b-2 border-orange-500 text-orange-500"
-                : ""
-            }`}
-          >
-            {t("common.browseServices")}
-          </Link>
+       <nav className="hidden md:flex space-x-6">
+  {/* Static links */}
+  <Link
+    href="/"
+    className={`text-sm text-neutral-900 hover:text-orange-500 font-medium pb-1 uppercase ${
+      location === "/"
+        ? "border-b-2 border-orange-500 text-orange-500"
+        : ""
+    }`}
+  >
+    {t("common.home")}
+  </Link>
 
-          {/* Dynamic links from pages */}
-          {Array.isArray(pages) &&
-            pages.length > 0 &&
-            pages.map((page) => (
-              <Link
-                key={page.key}
-                href={`/page/${page.key}`}
-                className={`text-sm text-neutral-900 hover:text-orange-500 font-medium pb-1 ${
-                  location === `/page/${page.key}`
-                    ? "border-b-2 border-orange-500 text-orange-500"
-                    : ""
-                }`}
-              >
-                {page.title}
-              </Link>
-            ))}
-        </nav>
+<Link
+    href="/browse?is_imported=true"
+    className={`text-sm text-neutral-900 hover:text-orange-500 font-medium pb-1 uppercase ${
+      location === "/browse"
+        ? "border-b-2 border-orange-500 text-orange-500"
+        : ""
+    }`}
+  >
+    {t("common.importedCars")}
+  </Link>
+
+  <Link
+    href="/browse-services"
+    className={`text-sm text-neutral-900 hover:text-orange-500 font-medium pb-1 uppercase ${
+      location === "/browse-services"
+        ? "border-b-2 border-orange-500 text-orange-500"
+        : ""
+    }`}
+  >
+    {t("common.carServices")}
+  </Link>
+
+  {/* Dynamic links from pages */}
+  {Array.isArray(pages) &&
+    pages.length > 0 &&
+    pages.map((page) => (
+      <Link
+        key={page.key}
+        href={`/page/${page.key}`}
+        className={`text-sm text-neutral-900 hover:text-orange-500 font-medium pb-1 uppercase ${
+          location === `/page/${page.key}`
+            ? "border-b-2 border-orange-500 text-orange-500"
+            : ""
+        }`}
+      >
+        {page.title}
+      </Link>
+    ))}
+</nav>
+
 
         {/* Right Menu */}
         <div className="flex items-center space-x-4">

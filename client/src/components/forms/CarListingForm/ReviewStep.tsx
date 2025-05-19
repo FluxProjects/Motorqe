@@ -1,7 +1,7 @@
 import { Label } from "@/components/ui/label";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
-import {CarCategory, PromotionPackage, StepProps } from "@shared/schema";
+import { CarCategory, PromotionPackage, StepProps } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, FilePen, Rocket } from "lucide-react";
 
@@ -16,9 +16,9 @@ export function ReviewStep({
   const formData = data;
 
   const { data: categories = [] } = useQuery<CarCategory[]>({
-      queryKey: ["car-categories"],
-      queryFn: () => fetch("/api/car-categories").then((res) => res.json()),
-    });
+    queryKey: ["car-categories"],
+    queryFn: () => fetch("/api/car-categories").then((res) => res.json()),
+  });
 
   const { data: makes = [] } = useQuery({
     queryKey: ["car-makes"],
@@ -38,13 +38,15 @@ export function ReviewStep({
     queryKey: ["car-features"],
     queryFn: () => fetch("/api/car-features").then((res) => res.json()),
   });
-  
+
   const { data: promotionPackage } = useQuery<PromotionPackage>({
-    queryKey: ['promotion-package', formData.package?.packageId],
+    queryKey: ["promotion-package", formData.package?.packageId],
     queryFn: async () => {
-      const response = await fetch(`/api/promotion-packages/${formData.package?.packageId}`);
+      const response = await fetch(
+        `/api/promotion-packages/${formData.package?.packageId}`
+      );
       if (!response.ok) {
-        throw new Error('Failed to fetch package');
+        throw new Error("Failed to fetch package");
       }
       return response.json();
     },
@@ -61,7 +63,7 @@ export function ReviewStep({
   const selectedModel = models.find(
     (m: any) => String(m.id) === formData.specifications?.modelId
   );
-  
+
   const selectedFeatures = features.filter((f) =>
     (formData.features as string[]).includes(String(f.id))
   );
@@ -74,14 +76,38 @@ export function ReviewStep({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <Label>{t("listing.title")}</Label>
-            <p className="font-medium">{formData.basicInfo?.title || t("listing.notSpecified")}</p>
+            <p className="font-medium">
+              {formData.basicInfo?.title || t("listing.notSpecified")}
+            </p>
           </div>
+
           <div>
             <Label>{t("listing.price")}</Label>
             <p className="font-medium">
-              {formData.basicInfo?.price ? `${formData.basicInfo?.price} ${t("listing.currency")}` : t("listing.notSpecified")}
+              {formData.basicInfo?.price
+                ? `${formData.basicInfo?.price} ${t("listing.currency")}`
+                : t("listing.notSpecified")}
             </p>
           </div>
+
+          <div>
+            <Label>{t("listing.location")}</Label>
+            <p className="font-medium">
+              {formData.basicInfo?.location || t("listing.notSpecified")}
+            </p>
+          </div>
+
+          <div>
+            <Label>{t("listing.origin")}</Label>
+            <p className="font-medium">
+              {formData.basicInfo?.isImported === true
+                ? t("listing.imported")
+                : formData.basicInfo?.isImported === false
+                ? t("listing.local")
+                : t("listing.notSpecified")}
+            </p>
+          </div>
+
           <div className="md:col-span-2">
             <Label>{t("listing.description")}</Label>
             <p className="whitespace-pre-line">
@@ -95,7 +121,7 @@ export function ReviewStep({
       <div className="space-y-4">
         <h3 className="font-medium">{t("listing.specifications")}</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
+          <div>
             <Label>{t("listing.category")}</Label>
             <p>{selectedCategory?.name || t("listing.notSpecified")}</p>
           </div>
@@ -113,15 +139,24 @@ export function ReviewStep({
           </div>
           <div>
             <Label>{t("listing.mileage")}</Label>
-            <p>{formData.specifications?.mileage ? `${formData.specifications.mileage} km` : t("listing.notSpecified")}</p>
+            <p>
+              {formData.specifications?.mileage
+                ? `${formData.specifications.mileage} km`
+                : t("listing.notSpecified")}
+            </p>
           </div>
           <div>
             <Label>{t("listing.fuelType")}</Label>
-            <p>{formData.specifications?.fuelType || t("listing.notSpecified")}</p>
+            <p>
+              {formData.specifications?.fuelType || t("listing.notSpecified")}
+            </p>
           </div>
           <div>
             <Label>{t("listing.transmission")}</Label>
-            <p>{formData.specifications?.transmission || t("listing.notSpecified")}</p>
+            <p>
+              {formData.specifications?.transmission ||
+                t("listing.notSpecified")}
+            </p>
           </div>
           <div>
             <Label>{t("listing.color")}</Label>
@@ -160,13 +195,20 @@ export function ReviewStep({
             </div>
             <div>
               <Label>{t("listing.packageDuration")}</Label>
-              <p>{promotionPackage.duration_days ? `${promotionPackage.duration_days} ${t("listing.days")}` : t("listing.notSpecified")}</p>
+              <p>
+                {promotionPackage.duration_days
+                  ? `${promotionPackage.duration_days} ${t("listing.days")}`
+                  : t("listing.notSpecified")}
+              </p>
             </div>
             <div>
               <Label>{t("listing.packagePrice")}</Label>
-              <p>{promotionPackage.price ? `${promotionPackage.price} ${promotionPackage.currency}` : t("listing.notSpecified")}</p>
+              <p>
+                {promotionPackage.price
+                  ? `${promotionPackage.price} ${promotionPackage.currency}`
+                  : t("listing.notSpecified")}
+              </p>
             </div>
-            
           </div>
         </div>
       )}
@@ -186,7 +228,9 @@ export function ReviewStep({
                   />
                 ) : (
                   <div className="flex justify-center items-center text-gray-500">
-                    <span>{t("listing.file")} {index + 1}</span>
+                    <span>
+                      {t("listing.file")} {index + 1}
+                    </span>
                   </div>
                 )}
               </div>
@@ -198,27 +242,29 @@ export function ReviewStep({
       </div>
 
       {/* Review Action Buttons */}
-       <div className="flex justify-between pt-4">
-         <Button 
-        className="bg-blue-900 flex items-center gap-2"
-        type="button" onClick={prevStep}>
+      <div className="flex justify-between pt-4">
+        <Button
+          className="bg-blue-900 flex items-center gap-2"
+          type="button"
+          onClick={prevStep}
+        >
           <ArrowLeft className="w-4 h-4" />
           Back
         </Button>
         <div className="flex gap-2">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             className="border-blue-900 text-blue-900 flex items-center gap-2"
-            type="button" 
-            onClick={() => handleSubmit?.('draft')}
+            type="button"
+            onClick={() => handleSubmit?.("draft")}
           >
             {t("listing.saveAsDraft")}
             <FilePen className="w-4 h-4" />
           </Button>
-          <Button 
-          className="bg-orange-500 flex items-center gap-2"
-            type="button" 
-            onClick={() => handleSubmit?.('publish')}
+          <Button
+            className="bg-orange-500 flex items-center gap-2"
+            type="button"
+            onClick={() => handleSubmit?.("publish")}
           >
             {t("listing.publishListing")}
             <Rocket className="w-4 h-4" />

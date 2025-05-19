@@ -627,6 +627,21 @@ app.get("/api/car-makes/:id/models", async (req, res) => {
         console.log("No make filter or 'all' selected");
       }
 
+      // Model
+      if (req.query.model && req.query.model !== "all") {
+        console.log("Processing model filter with value:", req.query.model);
+        const modelId = parseInt(req.query.model as string, 10);
+        if (!isNaN(modelId)) {
+          filters.model_id = modelId;
+          console.log("Added model_id filter:", modelId);
+        } else {
+          console.log("Invalid model_id - not a number");
+        }
+      } else {
+        console.log("No model filter or 'all' selected");
+      }
+
+
       // Category
       if (req.query.category && req.query.category !== "all") {
         console.log("Processing category filter with value:", req.query.category);
@@ -651,12 +666,21 @@ app.get("/api/car-makes/:id/models", async (req, res) => {
       }
 
       // isFeatured
-      if (req.query.isFeatured) {
-        console.log("Processing isFeatured filter with value:", req.query.isFeatured);
-        filters.isFeatured = req.query.isFeatured === "true";
-        console.log("Added isFeatured filter:", filters.isFeatured);
+      if (req.query.is_featured) {
+        console.log("Processing is_featured filter with value:", req.query.is_featured);
+        filters.is_featured = req.query.is_featured === "true";
+        console.log("Added is_featured filter:", filters.is_featured);
       } else {
-        console.log("No isFeatured filter");
+        console.log("No is_featured filter");
+      }
+
+      // isImported
+      if (req.query.is_imported) {
+        console.log("Processing is_imported filter with value:", req.query.is_imported);
+        filters.is_imported = req.query.is_imported === "true";
+        console.log("Added is_imported filter:", filters.is_imported);
+      } else {
+        console.log("No is_imported filter");
       }
 
       // Date Range

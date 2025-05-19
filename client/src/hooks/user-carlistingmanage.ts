@@ -46,6 +46,7 @@ export const useCarListingManage = () => {
         fuel_type: [],
         transmission: [],
         isFeatured: false,
+        isImported: false,
         status: "all",
         sort: "newest",
         page: 1, // Typically starts at page 1
@@ -137,6 +138,9 @@ export const useCarListingManage = () => {
             }
             if (filters.isFeatured === true) {
                 searchParams.append("isFeatured", "true");
+            }
+            if (filters.isImported === true) {
+                searchParams.append("isImported", "true");
             }
 
             // ✅ Date range
@@ -524,6 +528,7 @@ export const useCarListingManage = () => {
             fuel_type: [],
             transmission: [],
             isFeatured: false,
+            isImported: true,
             status: "all",
             sort: "newest",
             page: 1, // Typically starts at page 1

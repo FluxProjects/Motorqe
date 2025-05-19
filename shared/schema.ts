@@ -268,6 +268,7 @@ export const carListings = pgTable("car_listings", {
   images: text("images").array(),                 // Array of image URLs
   status: text("status").default("draft").notNull().$type<"draft" | "pending" | "active" | "sold" | "expired" | "rejected">(), // Listing status
   isFeatured: boolean("is_featured").default(false), // Featured listing flag
+  isImported: boolean("is_imported").default(false),
   views: integer("views").default(0),             // View count
   createdAt: timestamp("created_at").defaultNow(), // Creation timestamp
   updatedAt: timestamp("updated_at"),             // Last update timestamp
@@ -292,6 +293,7 @@ export const insertCarListingSchema = createInsertSchema(carListings).pick({
   condition: true,
   location: true,
   isFeatured: true,
+  isImported: true,
   images: true,
   status: true,
 });
@@ -921,6 +923,7 @@ export type ListingFormData = {
     description?: string;
     location?: string;
     price?: string;
+    isImported?: boolean;
     currency?: string;
   };
   specifications?: {
@@ -964,11 +967,13 @@ export interface AdminCarListingFilters {
   make: string;
   model: string;
   category: string;
+  condition?: string;
   location: string[];
   year?: number[];
   fuel_type: string[];
   transmission: string[];
   isFeatured: boolean | null;
+  isImported: boolean | null;
   status: string;
   sort: string;
   page: number;
@@ -990,11 +995,13 @@ export interface CarListingFilters {
   minPrice: string;
   maxPrice: string;
   category: string;
+  condition: string;
   location: string[];
   year: number[];
   fuel_type: string[];
   transmission: string[];
-  isFeatured: boolean | null;
+  is_imported?: string;
+  is_featured?: string;
   status: string;
   sort: string;
   page: number;
@@ -1019,6 +1026,7 @@ export interface AdminCarListing {
   locationAr?: string;
   status: 'draft' | 'active' | 'pending' | 'reject' | 'sold';
   is_featured: boolean;
+  is_imported: boolean;
   is_active: boolean;
   views?: number;
   contact_number?: string;

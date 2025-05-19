@@ -1,8 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
-import i18n, { resources } from "@/lib/i18n";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
-import { useLocation } from "wouter";
 import { CarSearchForm, CarCard, CarListItem } from "@/components/car";
 import { LayoutGrid, List } from "lucide-react";
 import {
@@ -43,6 +41,7 @@ import {
   CarListing,
   UserWithStats,
   User,
+  CarModel,
 } from "@shared/schema";
 
 const BrowseCars = () => {
@@ -55,11 +54,13 @@ const BrowseCars = () => {
     minPrice: "all",
     maxPrice: "all",
     category: "all",
+    condition: "all",
     location: [],
     year: [1990, new Date().getFullYear()],
     fuel_type: [],
     transmission: [],
-    isFeatured: false,
+    is_featured: "all",
+    is_imported: "all",
     sort: "newest",
     page: 1,
     limit: 10,
@@ -85,6 +86,10 @@ const BrowseCars = () => {
     if (params.has("model")) {
       const modelValue = params.get("model") || "";
       setFilters((prev) => ({ ...prev, model: modelValue }));
+    }
+    if (params.has("condition")) {
+      const conditionValue = params.get("condition") || "";
+      setFilters((prev) => ({ ...prev, condition: conditionValue }));
     }
     if (params.has("minPrice")) {
       const minPriceValue = params.get("minPrice") || "";
@@ -135,12 +140,24 @@ const BrowseCars = () => {
       setFilters((prev) => ({ ...prev, sort: params.get("sort")! }));
     }
 
-    if (params.has("isFeatured")) {
-      const val = params.get("isFeatured");
-      setFilters((prev) => ({
-        ...prev,
-        isFeatured: val === "true" ? true : val === "false" ? false : null,
-      }));
+    if (params.has("is_featured")) {
+      const val = params.get("is_featured");
+      if (val === "true" || val === "false" || val === "all") {
+        setFilters((prev) => ({
+          ...prev,
+          is_featured: val,
+        }));
+      }
+    }
+
+    if (params.has("is_imported")) {
+      const val = params.get("is_imported");
+      if (val === "true" || val === "false" || val === "all") {
+        setFilters((prev) => ({
+          ...prev,
+          is_imported: val,
+        }));
+      }
     }
   }, []);
 
@@ -148,6 +165,19 @@ const BrowseCars = () => {
   const { data: makes = [] } = useQuery<CarMake[]>({
     queryKey: ["/api/car-makes"],
   });
+
+  const fetchModelsByMake = async (makeId: string) => {
+      const res = await fetch(`/api/car-models?makeId=${makeId}`);
+      if (!res.ok) throw new Error("Failed to fetch models");
+      return res.json();
+    };
+  
+    const { data: models = [] } = useQuery({
+  queryKey: ["car-models", filters.make],
+  queryFn: () => fetchModelsByMake(filters.make),
+  enabled: !!filters.make && filters.make !== "all", // Only fetch if a specific make is selected
+});
+
 
   // Fetch car categories for filter
   const { data: categories = [] } = useQuery<CarCategory[]>({
@@ -211,10 +241,10 @@ const BrowseCars = () => {
       if (
         filters.model &&
         filters.model !== "all" &&
-        car.modelId !== Number(filters.model)
+        car.model_id !== Number(filters.model)
       ) {
         console.log(
-          `Filtered out by model: car.modelId=${car.modelId}, filter=${filters.model}`
+          `Filtered out by model: car.modelId=${car.model_id}, filter=${filters.model}`
         );
         return false;
       }
@@ -223,6 +253,15 @@ const BrowseCars = () => {
         if (car.category_id !== Number(filters.category)) {
           console.log(
             `Filtered out by category: car.category_id=${car.category_id}, filter=${filters.category}`
+          );
+          return false;
+        }
+      }
+
+      if (filters.condition && filters.condition !== "all") {
+        if (car.condition !== filters.condition) {
+          console.log(
+            `Filtered out by condition: car.condition_id=${car.condition}, filter=${filters.condition}`
           );
           return false;
         }
@@ -281,14 +320,34 @@ const BrowseCars = () => {
         return false;
       }
 
-      // if (
-      //   filters.isFeatured !== null &&
-      //   filters.isFeatured !== undefined &&
-      //   car.is_featured !== filters.isFeatured
-      // ) {
-      //   console.log(`Filtered out by isFeatured: ${car.is_featured}`);
-      //   return false;
-      // }
+     if (
+        typeof filters.is_imported !== "undefined" &&
+        filters.is_imported !== "all"
+      ) {
+        const filterValue = filters.is_imported === "true";
+        if (car.is_imported !== filterValue) {
+          console.log(
+            `Filtered out by isImported: car.isImported=${car.is_imported}, filter=${filters.is_imported}`
+          );
+          return false;
+        }
+      }
+
+
+      // ✅ New: Filter by isFeatured (boolean or "all")
+      if (
+        typeof filters.is_featured !== "undefined" &&
+        filters.is_featured !== "all"
+      ) {
+        const filterValue = filters.is_featured === "true";
+        if (car.isFeatured !== filterValue) {
+          console.log(
+            `Filtered out by isFeatured: car.isFeatured=${car.isFeatured}, filter=${filters.is_featured}`
+          );
+          return false;
+        }
+      }
+
 
       return true;
     });
@@ -314,7 +373,12 @@ const BrowseCars = () => {
         params.append("maxPrice", updatedFilters.maxPrice);
       if (updatedFilters.category)
         params.append("category", updatedFilters.category);
-
+      if (updatedFilters.condition)
+        params.append("condition", updatedFilters.condition);
+      if (updatedFilters.is_imported)
+        params.append("is_imported", updatedFilters.is_imported);
+      if (updatedFilters.is_featured)
+        params.append("is_featured", updatedFilters.is_featured);
       // Handle arrays
       updatedFilters.fuel_type.forEach((type: string) => {
         params.append("fuel_type", type);
@@ -355,11 +419,13 @@ const BrowseCars = () => {
       minPrice: "all",
       maxPrice: "all",
       category: "all",
+      condition: "all",
       location: [],
       year: [1990, new Date().getFullYear()],
       fuel_type: [],
       transmission: [],
-      isFeatured: null,
+      is_imported: "all",
+      is_featured: "all",
       sort: "newest",
       page: 1,
       limit: 10,
@@ -451,188 +517,260 @@ const BrowseCars = () => {
                   <FilterX size={18} />
                 </Button>
               </div>
+              
+                {/* Condition Filter */}
+                <div className="mb-4">
+                  <Label className="block text-sm font-medium mb-1">
+                    {t("car.condition")}
+                  </Label>
+                  <Select
+                    value={filters.condition}
+                    onValueChange={(value) => updateFilters({ condition: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={t("car.allConditions")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{t("car.allConditions")}</SelectItem>
+                      <SelectItem value="new">{t("car.new")}</SelectItem>
+                      <SelectItem value="used">{t("car.used")}</SelectItem>
+                      <SelectItem value="scrap">{t("car.scrap")}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              {/* Make filter */}
-              <div className="mb-4">
-                <Label className="block text-sm font-medium mb-1">
-                  {t("car.make")}
-                </Label>
-                <Select
-                  value={filters.make}
-                  onValueChange={(value) => updateFilters({ make: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={t("car.allMakes")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">{t("car.allMakes")}</SelectItem>
-                    {makes?.map((make: CarMake) => (
-                      <SelectItem key={make.id} value={make.id.toString()}>
-                        {make.name}
+                {/* Make filter */}
+                <div className="mb-4">
+                  <Label className="block text-sm font-medium mb-1">
+                    {t("car.make")}
+                  </Label>
+                  <Select
+                    value={filters.make}
+                    onValueChange={(value) => updateFilters({ make: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={t("car.allMakes")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{t("car.allMakes")}</SelectItem>
+                      {makes?.map((make: CarMake) => (
+                        <SelectItem key={make.id} value={make.id.toString()}>
+                          {make.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Model filter */}
+                <div className="mb-4">
+                  <Label className="block text-sm font-medium mb-1">
+                    {t("car.model")}
+                  </Label>
+                  <Select
+                    value={filters.model}
+                    onValueChange={(value) => updateFilters({ model: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={t("car.allModels")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{t("car.allModels")}</SelectItem>
+                      {models?.map((model: CarModel) => (
+                        <SelectItem key={model.id} value={model.id.toString()}>
+                          {model.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Category filter */}
+                <div className="mb-4">
+                  <Label className="block text-sm font-medium mb-1">
+                    {t("common.category")}
+                  </Label>
+                  <Select
+                    value={filters.category}
+                    onValueChange={(value) => updateFilters({ category: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={t("car.allCategories")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">
+                        {t("car.allCategories")}
                       </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                      {categories?.map((category: CarCategory) => (
+                        <SelectItem
+                          key={category.id}
+                          value={category.id.toString()}
+                        >
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              {/* Category filter */}
-              <div className="mb-4">
-                <Label className="block text-sm font-medium mb-1">
-                  {t("common.category")}
-                </Label>
-                <Select
-                  value={filters.category}
-                  onValueChange={(value) => updateFilters({ category: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={t("car.allCategories")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">
-                      {t("car.allCategories")}
-                    </SelectItem>
-                    {categories?.map((category: CarCategory) => (
-                      <SelectItem
-                        key={category.id}
-                        value={category.id.toString()}
-                      >
-                        {category.name}
+                {/* Imported Filter */}
+                <div className="mb-4">
+                  <Label className="block text-sm font-medium mb-1">
+                    {t("car.imported")}
+                  </Label>
+                  <Select
+                    value={filters.is_imported ?? "all"}
+                    onValueChange={(value) =>
+                      updateFilters({ is_imported: value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={t("car.allImports")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{t("car.allImports")}</SelectItem>
+                      <SelectItem value="true">
+                        {t("common.isImported")}
                       </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                      <SelectItem value="false">{t("common.local")}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              {/* Year Range */}
-              <div className="mb-4">
-                <Label className="block text-sm font-medium mb-1">
-                  {t("car.year")}
-                </Label>
-                <div className="mt-2">
-                  <Slider
-                    value={filters.year}
-                    min={1990}
-                    max={new Date().getFullYear()}
-                    step={1}
-                    onValueChange={(value) => updateFilters({ year: value })}
-                  />
-                  <div className="flex justify-between mt-1 text-sm text-neutral-500">
-                    <span>{filters.year ? filters.year[0] : 1990}</span>
-                    <span>
-                      {filters.year
-                        ? filters.year[1]
-                        : new Date().getFullYear()}
-                    </span>
+                {/* Year Range */}
+                <div className="mb-4">
+                  <Label className="block text-sm font-medium mb-1">
+                    {t("car.year")}
+                  </Label>
+                  <div className="mt-2">
+                    <Slider
+                      value={filters.year}
+                      min={1990}
+                      max={new Date().getFullYear()}
+                      step={1}
+                      onValueChange={(value) => updateFilters({ year: value })}
+                    />
+                    <div className="flex justify-between mt-1 text-sm text-neutral-500">
+                      <span>{filters.year ? filters.year[0] : 1990}</span>
+                      <span>
+                        {filters.year
+                          ? filters.year[1]
+                          : new Date().getFullYear()}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Price Range */}
-              <div className="mb-4">
-                <Label className="block text-sm font-medium mb-1">
-                  {t("common.price")}
-                </Label>
-                <div className="grid grid-cols-2 gap-2">
-                  <Select
-                    value={filters.minPrice}
-                    onValueChange={(value) =>
-                      updateFilters({ minPrice: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={t("car.minPrice")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">{t("car.noMin")}</SelectItem>
-                      <SelectItem value="5000">$5,000</SelectItem>
-                      <SelectItem value="10000">$10,000</SelectItem>
-                      <SelectItem value="20000">$20,000</SelectItem>
-                      <SelectItem value="30000">$30,000</SelectItem>
-                      <SelectItem value="50000">$50,000</SelectItem>
-                    </SelectContent>
-                  </Select>
+                {/* Price Range */}
+                <div className="mb-4">
+                  <Label className="block text-sm font-medium mb-1">
+                    {t("common.price")}
+                  </Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Select
+                      value={filters.minPrice}
+                      onValueChange={(value) =>
+                        updateFilters({ minPrice: value })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={t("car.minPrice")} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">{t("car.noMin")}</SelectItem>
+                        <SelectItem value="5000">$5,000</SelectItem>
+                        <SelectItem value="10000">$10,000</SelectItem>
+                        <SelectItem value="20000">$20,000</SelectItem>
+                        <SelectItem value="30000">$30,000</SelectItem>
+                        <SelectItem value="50000">$50,000</SelectItem>
+                      </SelectContent>
+                    </Select>
 
-                  <Select
-                    value={filters.maxPrice}
-                    onValueChange={(value) =>
-                      updateFilters({ maxPrice: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={t("car.maxPrice")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">{t("car.noMax")}</SelectItem>
-                      <SelectItem value="10000">$10,000</SelectItem>
-                      <SelectItem value="20000">$20,000</SelectItem>
-                      <SelectItem value="30000">$30,000</SelectItem>
-                      <SelectItem value="50000">$50,000</SelectItem>
-                      <SelectItem value="100000">$100,000</SelectItem>
-                      <SelectItem value="200000">$200,000</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    <Select
+                      value={filters.maxPrice}
+                      onValueChange={(value) =>
+                        updateFilters({ maxPrice: value })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={t("car.maxPrice")} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">{t("car.noMax")}</SelectItem>
+                        <SelectItem value="10000">$10,000</SelectItem>
+                        <SelectItem value="20000">$20,000</SelectItem>
+                        <SelectItem value="30000">$30,000</SelectItem>
+                        <SelectItem value="50000">$50,000</SelectItem>
+                        <SelectItem value="100000">$100,000</SelectItem>
+                        <SelectItem value="200000">$200,000</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-              </div>
 
-              {/* Fuel Type */}
-              <div className="mb-4">
-                <Label className="block text-sm font-medium mb-1">
-                  {t("car.fuel_type")}
-                </Label>
-                <div className="space-y-2 mt-1">
-                  {["gasoline", "diesel", "electric", "hybrid"].map(
-                    (fuel_type) => (
-                      <div key={fuel_type} className="flex items-center">
+                {/* Fuel Type */}
+                <div className="mb-4">
+                  <Label className="block text-sm font-medium mb-1">
+                    {t("car.fuel_type")}
+                  </Label>
+                  <div className="space-y-2 mt-1">
+                    {["gasoline", "diesel", "electric", "hybrid"].map(
+                      (fuel_type) => (
+                        <div key={fuel_type} className="flex items-center">
+                          <Checkbox
+                            id={fuel_type}
+                            checked={filters.fuel_type.includes(fuel_type)}
+                            onCheckedChange={(checked) => {
+                              const updatedFuel_types = checked
+                                ? [...filters.fuel_type, fuel_type]
+                                : filters.fuel_type.filter(
+                                    (type) => type !== fuel_type
+                                  );
+                              updateFilters({ fuel_type: updatedFuel_types });
+                            }}
+                          />
+                          <Label htmlFor={fuel_type} className="ml-2">
+                            {t(`car.${fuel_type}`)}
+                          </Label>
+                        </div>
+                      )
+                    )}
+                  </div>
+                </div>
+
+                {/* Transmission */}
+                <div className="mb-4">
+                  <Label className="block text-sm font-medium mb-1">
+                    {t("car.transmission")}
+                  </Label>
+                  <div className="space-y-2 mt-1">
+                    {["automatic", "manual"].map((transmissionType) => (
+                      <div key={transmissionType} className="flex items-center">
                         <Checkbox
-                          id={fuel_type}
-                          checked={filters.fuel_type.includes(fuel_type)}
+                          id={transmissionType}
+                          checked={filters.transmission.includes(
+                            transmissionType
+                          )}
                           onCheckedChange={(checked) => {
-                            const updatedFuel_types = checked
-                              ? [...filters.fuel_type, fuel_type]
-                              : filters.fuel_type.filter(
-                                  (type) => type !== fuel_type
+                            const updatedTransmission = checked
+                              ? [...filters.transmission, transmissionType]
+                              : filters.transmission.filter(
+                                  (type) => type !== transmissionType
                                 );
-                            updateFilters({ fuel_type: updatedFuel_types });
+                            updateFilters({ transmission: updatedTransmission });
                           }}
                         />
-                        <Label htmlFor={fuel_type} className="ml-2">
-                          {t(`car.${fuel_type}`)}
+                        <Label htmlFor={transmissionType} className="ml-2">
+                          {t(`car.${transmissionType}`)}
                         </Label>
                       </div>
-                    )
-                  )}
+                    ))}
+                  </div>
                 </div>
-              </div>
+              
 
-              {/* Transmission */}
-              <div className="mb-4">
-                <Label className="block text-sm font-medium mb-1">
-                  {t("car.transmission")}
-                </Label>
-                <div className="space-y-2 mt-1">
-                  {["automatic", "manual"].map((transmissionType) => (
-                    <div key={transmissionType} className="flex items-center">
-                      <Checkbox
-                        id={transmissionType}
-                        checked={filters.transmission.includes(
-                          transmissionType
-                        )}
-                        onCheckedChange={(checked) => {
-                          const updatedTransmission = checked
-                            ? [...filters.transmission, transmissionType]
-                            : filters.transmission.filter(
-                                (type) => type !== transmissionType
-                              );
-                          updateFilters({ transmission: updatedTransmission });
-                        }}
-                      />
-                      <Label htmlFor={transmissionType} className="ml-2">
-                        {t(`car.${transmissionType}`)}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
+
+
             </div>
           </div>
 
@@ -866,6 +1004,28 @@ const BrowseCars = () => {
             </div>
 
             <div className="overflow-y-auto flex-1">
+
+              {/* Condition Filter */}
+                <div className="mb-4">
+                  <Label className="block text-sm font-medium mb-1">
+                    {t("car.condition")}
+                  </Label>
+                  <Select
+                    value={filters.condition}
+                    onValueChange={(value) => updateFilters({ condition: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={t("car.allConditions")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{t("car.allConditions")}</SelectItem>
+                      <SelectItem value="new">{t("car.new")}</SelectItem>
+                      <SelectItem value="used">{t("car.used")}</SelectItem>
+                      <SelectItem value="scrap">{t("car.scrap")}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
               {/* Make filter */}
               <div className="mb-4">
                 <Label className="block text-sm font-medium mb-1">
@@ -888,6 +1048,29 @@ const BrowseCars = () => {
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Model filter */}
+                <div className="mb-4">
+                  <Label className="block text-sm font-medium mb-1">
+                    {t("car.model")}
+                  </Label>
+                  <Select
+                    value={filters.model}
+                    onValueChange={(value) => updateFilters({ model: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={t("car.allModels")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{t("car.allModels")}</SelectItem>
+                      {models?.map((model: CarModel) => (
+                        <SelectItem key={model.id} value={model.id.toString()}>
+                          {model.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
               {/* Category filter */}
               <div className="mb-4">
@@ -916,6 +1099,30 @@ const BrowseCars = () => {
                   </SelectContent>
                 </Select>
               </div>
+
+               {/* Imported Filter */}
+                <div className="mb-4">
+                  <Label className="block text-sm font-medium mb-1">
+                    {t("car.imported")}
+                  </Label>
+                  <Select
+                    value={filters.is_imported ?? "all"}
+                    onValueChange={(value) =>
+                      updateFilters({ is_imported: value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={t("car.allImports")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{t("car.allImports")}</SelectItem>
+                      <SelectItem value="true">
+                        {t("common.isImported")}
+                      </SelectItem>
+                      <SelectItem value="false">{t("common.local")}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
               {/* Year Range */}
               <div className="mb-4">

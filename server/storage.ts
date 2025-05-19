@@ -743,9 +743,13 @@ async invalidateResetToken(token: string): Promise<void> {
     filter: Partial<CarListing> & {
       updated_from?: string;
       updated_to?: string;
+      condition?: string;
+      make?: string;
+      model?: string;
       year_from?: number;
       year_to?: number;
-      isFeatured?: boolean;
+      is_featured?: boolean;
+      is_imported?: boolean;
       miles_from?: number | string;
       miles_to?: number | string;
       price_from?: number | string;
@@ -800,6 +804,30 @@ LEFT JOIN promotion_packages p ON lp.package_id = p.id
 
         if (value !== undefined && value !== null) {
           switch (key) {
+            case 'make':
+              whereClauses.push(`make = $${paramIndex}`);
+              values.push(value);
+              console.log(`Added make filter: make = ${value}`);
+              paramIndex++;
+              break;
+            case 'model':
+              whereClauses.push(`model = $${paramIndex}`);
+              values.push(value);
+              console.log(`Added model filter: model = ${value}`);
+              paramIndex++;
+              break;
+            case 'category':
+              whereClauses.push(`category = $${paramIndex}`);
+              values.push(value);
+              console.log(`Added category filter: category = ${value}`);
+              paramIndex++;
+              break;
+            case 'condition':
+              whereClauses.push(`condition <= $${paramIndex}`);
+              values.push(value);
+              console.log(`Added condition filter: condition <= ${value}`);
+              paramIndex++;
+              break;
             case 'updated_from': {
               if (typeof value === 'string' || value instanceof Date) {
                 const date = new Date(value);
@@ -837,16 +865,22 @@ LEFT JOIN promotion_packages p ON lp.package_id = p.id
               console.log(`Added year filter: year <= ${Number(value)}`);
               paramIndex++;
               break;
-            case 'isFeatured':
+            case 'is_featured':
               whereClauses.push(`is_featured = $${paramIndex}`);
               values.push(value);
               console.log(`Added featured filter: is_featured = ${value}`);
               paramIndex++;
               break;
+            case 'is_imported':
+              whereClauses.push(`is_imported = $${paramIndex}`);
+              values.push(value);
+              console.log(`Added imported filter: is_imported = ${value}`);
+              paramIndex++;
+              break;
             case 'user_id':
               whereClauses.push(`user_id = $${paramIndex}`);
               values.push(value);
-              console.log(`Added featured filter: user_id = ${value}`);
+              console.log(`Added user filter: user_id = ${value}`);
               paramIndex++;
               break;
             case 'miles_from':
@@ -875,7 +909,7 @@ LEFT JOIN promotion_packages p ON lp.package_id = p.id
               break;
             default:
               const column = ['id', 'created_at', 'updated_at'].includes(key) ? `cl.${key}` : key;
-whereClauses.push(`${column} = $${paramIndex}`);
+              whereClauses.push(`${column} = $${paramIndex}`);
               values.push(value);
               console.log(`Added generic filter: ${key} = ${value}`);
               paramIndex++;

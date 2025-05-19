@@ -34,6 +34,7 @@ import {
   Calendar,
   DollarSign,
   GaugeCircle,
+  Globe,
   Fuel,
   Settings,
   MessageSquare,
@@ -509,8 +510,14 @@ const CarDetails = () => {
 
             {/* Car summary */}
             <div className="bg-neutral-50 p-4 rounded-2xl border-2 py-6 border-orange-500">
-              <h1 className="text-2xl font-bold text-neutral-900 mb-2">
+              <h1 className="text-2xl font-bold text-neutral-900 mb-2 flex items-center gap-2">
                 {title}
+                {car?.is_imported && (
+                  <Badge variant="outline" className="text-sm px-2 py-0.5">
+                    <Globe size={12} className="mr-1" />
+                    {t("common.isImported")}
+                  </Badge>
+                )}
               </h1>
 
               <div className="flex items-center text-neutral-600 mb-4">

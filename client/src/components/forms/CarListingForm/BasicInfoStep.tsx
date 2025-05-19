@@ -12,6 +12,7 @@ interface BasicInfoFormData {
     description: string;
     price: string;
     location: string;
+    isImported: boolean;
   };
 }
 
@@ -65,6 +66,32 @@ export function BasicInfoStep({ data, updateData, nextStep, prevStep }: StepProp
           <p className="text-sm text-red-500">{errors.basicInfo.price.message}</p>
         )}
       </div>
+
+      <div>
+  <Label className="block mb-1">Origin*</Label>
+  <div className="flex items-center gap-4">
+    <label className="flex items-center gap-2">
+      <input
+        type="radio"
+        value="true"
+        {...register("basicInfo.isImported", { required: "Please select if the car is imported or local" })}
+      />
+      Imported
+    </label>
+    <label className="flex items-center gap-2">
+      <input
+        type="radio"
+        value="false"
+        {...register("basicInfo.isImported", { required: "Please select if the car is imported or local" })}
+      />
+      Local
+    </label>
+  </div>
+  {errors.basicInfo?.isImported && (
+    <p className="text-sm text-red-500">{errors.basicInfo.isImported.message}</p>
+  )}
+</div>
+
 
       <div>
         <Label htmlFor="location">Location*</Label>
