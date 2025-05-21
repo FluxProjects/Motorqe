@@ -11,23 +11,36 @@ CREATE TABLE roles (
 -- Users Table
 CREATE TABLE users (
   id SERIAL PRIMARY KEY,
+
+  -- Core identity
   username TEXT NOT NULL UNIQUE,
   email TEXT NOT NULL UNIQUE,
   phone TEXT,
   password TEXT NOT NULL,
+
+  -- Personal info
   first_name TEXT,
   last_name TEXT,
+  avatar TEXT,
+
+  -- Role and permissions
   role_id INTEGER REFERENCES roles(id),
+
+  -- Status and verification
+  status TEXT NOT NULL DEFAULT 'inactive' CHECK (status IN ('inactive', 'active', 'suspended', 'removed')),
   is_email_verified BOOLEAN DEFAULT FALSE,
   verification_token TEXT,
   password_reset_token TEXT,
-  avatar TEXT,
+
+  -- Notification preferences
   email_notifications BOOLEAN DEFAULT TRUE,
   sms_notifications BOOLEAN DEFAULT TRUE,
   notification_email TEXT,
   notification_phone TEXT,
-  status TEXT DEFAULT 'inactive' CHECK (status IN ('inactive', 'active', 'suspended', 'removed')),
-  created_at TIMESTAMP DEFAULT NOW()
+
+  -- Timestamps
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP
 );
 
 -- User Roles Switch
@@ -107,7 +120,7 @@ CREATE TABLE car_services (
 -- Car Listings
 CREATE TABLE car_listings (
   id SERIAL PRIMARY KEY,
-  seller_id INTEGER NOT NULL,
+  seller_id INTEGER NOT NULL,                             -- FK to users
   title TEXT NOT NULL,
   title_ar TEXT,
   description TEXT NOT NULL,
@@ -115,23 +128,36 @@ CREATE TABLE car_listings (
   price INTEGER NOT NULL,
   currency TEXT,
   year INTEGER NOT NULL,
-  make_id INTEGER NOT NULL,
-  model_id INTEGER NOT NULL,
-  category_id INTEGER NOT NULL,
+  make_id INTEGER NOT NULL,                               -- FK to car_makes
+  model_id INTEGER NOT NULL,                              -- FK to car_models
+  category_id INTEGER NOT NULL,                           -- FK to car_categories
   mileage INTEGER NOT NULL,
   fuel_type TEXT NOT NULL,
   transmission TEXT NOT NULL,
+  engine_capacity_id INTEGER,
+  cylinder_count INTEGER DEFAULT 0,
   color TEXT NOT NULL,
+  interior_color TEXT,
+  tinted BOOLEAN DEFAULT FALSE,
   condition TEXT NOT NULL,
   location TEXT NOT NULL,
-  images TEXT[], -- PostgreSQL array type
-  status TEXT DEFAULT 'draft' CHECK (status IN ('draft', 'pending', 'active', 'sold', 'expired', 'rejected')),
+  images TEXT[],                                          -- Array of image URLs
+  status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'pending', 'active', 'sold', 'expired', 'rejected')),
   is_featured BOOLEAN DEFAULT FALSE,
   is_imported BOOLEAN DEFAULT FALSE,
+
+  owner_type TEXT CHECK (owner_type IN ('first', 'second', 'third', 'fourth', 'fifth')),
+  has_warranty BOOLEAN DEFAULT FALSE,
+  warranty_expiry TIMESTAMP,
+  has_insurance BOOLEAN DEFAULT FALSE,
+  insurance_type TEXT CHECK (insurance_type IN ('comprehensive', 'third-party', 'none')),
+  insurance_expiry TIMESTAMP,
+
   views INTEGER DEFAULT 0,
-  created_at TIMESTAMP DEFAULT NOW(),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP
 );
+
 
 -- Car Listing Features
 CREATE TABLE car_listing_features (
@@ -339,8 +365,6 @@ CREATE TABLE password_reset_tokens (
 );
 
 -- Table: public.settings
-
--- DROP TABLE IF EXISTS public.settings;
 
 CREATE TABLE settings
 (

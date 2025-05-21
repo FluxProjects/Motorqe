@@ -34,3 +34,9 @@ export const redirectToCorrectDashboard = (userRole: Role, currentPath: string, 
   }
 };
 
+export const fetchModelsByMake = async (makeId: string) => {
+  const res = await fetch(`/api/car-models?makeId=${makeId}`);
+  if (!res.ok) throw new Error("Failed to fetch models");
+  return res.json();
+};
+

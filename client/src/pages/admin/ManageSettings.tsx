@@ -67,13 +67,13 @@ const ManageSettings = () => {
 
   // Settings query
   const settingsQuery = useQuery({
-    queryKey: ['/api/admin/settings'],
+    queryKey: ['/api/settings'],
     queryFn: async () => {
-      const response = await fetch('/api/admin/settings');
+      const response = await fetch('/api/settings');
       if (!response.ok) throw new Error('Failed to fetch settings');
       return response.json();
     },
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       if (data.general) setGeneralSettings(prev => ({ ...prev, ...data.general }));
       if (data.email) setEmailSettings(prev => ({ ...prev, ...data.email }));
       if (data.integrations) setIntegrationSettings(prev => ({ ...prev, ...data.integrations }));

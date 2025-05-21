@@ -484,8 +484,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-
-
   /**
    * CAR DATA
    */
@@ -501,6 +499,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Instance:", error instanceof Error);
       console.dir(error, { depth: null });
       res.status(500).json({ message: "Failed to fetch car categories" });
+    }
+  });
+
+  // Get all Car Engine Capacities
+  app.get("/api/car-carenginecapacities", async (_req, res) => {
+    try {
+      const carenginecapacities = await storage.getAllEngineCapacities();
+      console.log("Fetched car carenginecapacities from Routes:", carenginecapacities);
+      res.json(carenginecapacities);
+    } catch (error) {
+      console.error("❌ Error fetching car carenginecapacities from route:");
+      console.error("Type:", typeof error);
+      console.error("Instance:", error instanceof Error);
+      console.dir(error, { depth: null });
+      res.status(500).json({ message: "Failed to fetch car carenginecapacities" });
     }
   });
 
@@ -554,8 +567,6 @@ app.get("/api/car-makes/:id", async (req, res) => {
   }
 });
 
-
-
  // Fetch all models for a specific make
 app.get("/api/car-makes/:id/models", async (req, res) => {
   try {
@@ -573,7 +584,6 @@ app.get("/api/car-makes/:id/models", async (req, res) => {
     return res.status(500).json({ error: "Internal server error" });
   }
 });
-
 
   // Get single car model
   app.get("/api/car-model/:id", async (req, res) => {
@@ -606,6 +616,66 @@ app.get("/api/car-makes/:id/models", async (req, res) => {
     }
   });
 
+  // GET all engine capacities
+app.get("/api/engine-capacities", async (_req, res) => {
+  try {
+    const capacities = await storage.getAllEngineCapacities();
+    res.json(capacities);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch engine capacities", error });
+  }
+});
+
+// GET a single engine capacity by ID
+app.get("/api/engine-capacities/:id", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const capacity = await storage.getEngineCapacity(id);
+    if (!capacity) {
+      return res.status(404).json({ message: "Engine capacity not found" });
+    }
+    res.json(capacity);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch engine capacity", error });
+  }
+});
+
+// POST - create new engine capacity
+app.post("/api/engine-capacities", async (req, res) => {
+  try {
+    const newCapacity = await storage.createEngineCapacity(req.body);
+    res.status(201).json(newCapacity);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to create engine capacity", error });
+  }
+});
+
+// PUT - update engine capacity by ID
+app.put("/api/engine-capacities/:id", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const updated = await storage.updateEngineCapacity(id, req.body);
+    if (!updated) {
+      return res.status(404).json({ message: "Engine capacity not found" });
+    }
+    res.json(updated);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to update engine capacity", error });
+  }
+});
+
+// DELETE - remove engine capacity by ID
+app.delete("/api/engine-capacities/:id", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    await storage.deleteEngineCapacity(id);
+    res.status(204).send();
+  } catch (error) {
+    res.status(500).json({ message: "Failed to delete engine capacity", error });
+  }
+});
+
+
   // Car Listings
   app.get("/api/car-listings", async (req, res) => {
     console.log("Received request to /api/car-listings with query:", req.query);
@@ -613,6 +683,49 @@ app.get("/api/car-makes/:id/models", async (req, res) => {
       const filters: any = {};
       console.log("Initial filters object:", filters);
 
+      // User Id
+      if (req.query.user_id) {
+        console.log("Processing userid filter with value:", req.query.user_id);
+        filters.user_id = req.query.user_id;
+        console.log("Added user filter:", filters.user_id);
+      } else {
+        console.log("No userid filter");
+      }
+
+      // Price Range
+      if (req.query.price_from && req.query.price_to) {
+        console.log("Processing price range filter with values:", req.query.price_from, "to", req.query.price_to);
+        filters.price_from = req.query.price_from;
+        filters.price_to = req.query.price_to;
+        console.log("Added price range filter:", filters.price_from, "to", filters.price_to);
+      } else {
+        console.log("No price range filter or incomplete range");
+      }
+
+      // Year Range
+      if (req.query.year_from && req.query.year_to) {
+        console.log("Processing year range filter with values:", req.query.year_from, "to", req.query.year_to);
+        const year_from = req.query.year_from;
+        const year_to = req.query.year_to;
+
+        const parsedYearFrom = Number(year_from);
+        const parsedYearTo = Number(year_to);
+
+        if (
+          (year_from && isNaN(parsedYearFrom)) ||
+          (year_to && isNaN(parsedYearTo))
+        ) {
+          console.log("Invalid year filter - not a number");
+          return res.status(400).json({ message: 'Invalid year filter' });
+        }
+
+        filters.year_from = parsedYearFrom;
+        filters.year_to = parsedYearTo;
+        console.log("Added year range filter:", filters.year_from, "to", filters.year_to);
+      } else {
+        console.log("No year range filter or incomplete range");
+      }
+      
       // Make
       if (req.query.make && req.query.make !== "all") {
         console.log("Processing make filter with value:", req.query.make);
@@ -641,7 +754,6 @@ app.get("/api/car-makes/:id/models", async (req, res) => {
         console.log("No model filter or 'all' selected");
       }
 
-
       // Category
       if (req.query.category && req.query.category !== "all") {
         console.log("Processing category filter with value:", req.query.category);
@@ -656,6 +768,91 @@ app.get("/api/car-makes/:id/models", async (req, res) => {
         console.log("No category filter or 'all' selected");
       }
 
+      // Miles Range
+      if (req.query.miles_from && req.query.miles_to) {
+        console.log("Processing miles range filter with values:", req.query.miles_from, "to", req.query.miles_to);
+        filters.miles_from = req.query.miles_from;
+        filters.miles_to = req.query.miles_to;
+        console.log("Added miles range filter:", filters.miles_from, "to", filters.miles_to);
+      } else {
+        console.log("No miles range filter or incomplete range");
+      }
+
+      // Fuel Type
+      if (req.query.fuel_type && req.query.fuel_type !== "all") {
+        console.log("Processing fuel type filter with value:", req.query.fuel_type);
+        filters.fuel_type = req.query.fuel_type;
+      } else {
+        console.log("No fuel_type filter or 'all' selected");
+      }
+
+       // Transmission
+      if (req.query.transmission && req.query.transmission !== "all") {
+        console.log("Processing transmission filter with value:", req.query.transmission);
+        filters.transmission = req.query.transmission;
+        console.log("Added transmission filter:", req.query.transmission);
+      } else {
+        console.log("No transmission filter or 'all' selected");
+      }
+
+      // Car Engine Capacity
+      if (req.query.car_engine_capacities && req.query.car_engine_capacities !== "all") {
+        console.log("Processing car_engine_capacities filter with value:", req.query.car_engine_capacities);
+        filters.car_engine_capacities = req.query.car_engine_capacities;
+      } else {
+        console.log("No car_engine_capacities filter or 'all' selected");
+      }
+
+       // Cylinder Count
+      if (req.query.cylinder_count && req.query.cylinder_count !== "all") {
+        console.log("Processing cylinder_count filter with value:", req.query.cylinder_count);
+        filters.cylinder_count = req.query.cylinder_count;
+      } else {
+        console.log("No cylinder_count filter or 'all' selected");
+      }
+
+      // Condition
+      if (req.query.condition && req.query.condition !== "all") {
+        console.log("Processing date condition with values:", req.query.condition);
+        filters.condition = req.query.condition;
+        console.log("Added date range filter:", filters.condition, "to", filters.condition);
+      } else {
+        console.log("No date condition or incomplete range");
+      }
+
+       // Location
+      if (req.query.location && req.query.location !== "all") {
+        console.log("Processing date location with values:", req.query.location);
+        filters.location = req.query.location;
+        console.log("Added date range filter:", filters.location, "to", filters.location);
+      } else {
+        console.log("No date location or incomplete range");
+      }      
+
+      // Color
+      if (req.query.color && req.query.color !== "all") {
+        console.log("Processing color filter with value:", req.query.color);
+        filters.color = req.query.color;
+      } else {
+        console.log("No color filter or 'all' selected");
+      }
+
+      // Interior Color
+      if (req.query.interior_color && req.query.interior_color !== "all") {
+        console.log("Processing interior_color filter with value:", req.query.interior_color);
+        filters.interior_color = req.query.interior_color;
+      } else {
+        console.log("No interior_color filter or 'all' selected");
+      }
+
+      // Tinted
+      if (req.query.tinted && req.query.tinted !== "all") {
+        console.log("Processing tinted filter with value:", req.query.tinted);
+        filters.tinted = req.query.tinted;
+      } else {
+        console.log("No tinted filter or 'all' selected");
+      }
+      
       // Status
       if (req.query.status && req.query.status !== "all") {
         console.log("Processing status filter with value:", req.query.status);
@@ -683,7 +880,33 @@ app.get("/api/car-makes/:id/models", async (req, res) => {
         console.log("No is_imported filter");
       }
 
-      // Date Range
+      // Owner Type
+      if (req.query.owner_type && req.query.owner_type !== "all") {
+        console.log("Processing owner_type filter with value:", req.query.owner_type);
+        filters.owner_type = req.query.owner_type;
+      } else {
+        console.log("No owner_type filter or 'all' selected");
+      }
+
+      // Has Warranty
+      if (req.query.has_warranty) {
+        console.log("Processing has_warranty filter with value:", req.query.has_warranty);
+        filters.has_warranty = req.query.has_warranty === "true";
+        console.log("Added has_warranty filter:", filters.has_warranty);
+      } else {
+        console.log("No has_warranty filter");
+      }
+      
+      // Has Insurance
+      if (req.query.has_insurance) {
+        console.log("Processing has_insurance filter with value:", req.query.has_insurance);
+        filters.has_insurance = req.query.has_insurance === "true";
+        console.log("Added has_insurance filter:", filters.has_insurance);
+      } else {
+        console.log("No has_insurance filter");
+      }
+
+            // Date Range
       if (req.query.updated_from && req.query.updated_to) {
         console.log("Processing date range filter with values:", req.query.updated_from, "to", req.query.updated_to);
         filters.updated_from = req.query.updated_from;
@@ -691,59 +914,6 @@ app.get("/api/car-makes/:id/models", async (req, res) => {
         console.log("Added date range filter:", filters.updated_from, "to", filters.updated_to);
       } else {
         console.log("No date range filter or incomplete range");
-      }
-
-      // Year Range
-      if (req.query.year_from && req.query.year_to) {
-        console.log("Processing year range filter with values:", req.query.year_from, "to", req.query.year_to);
-        const year_from = req.query.year_from;
-        const year_to = req.query.year_to;
-
-        const parsedYearFrom = Number(year_from);
-        const parsedYearTo = Number(year_to);
-
-        if (
-          (year_from && isNaN(parsedYearFrom)) ||
-          (year_to && isNaN(parsedYearTo))
-        ) {
-          console.log("Invalid year filter - not a number");
-          return res.status(400).json({ message: 'Invalid year filter' });
-        }
-
-        filters.year_from = parsedYearFrom;
-        filters.year_to = parsedYearTo;
-        console.log("Added year range filter:", filters.year_from, "to", filters.year_to);
-      } else {
-        console.log("No year range filter or incomplete range");
-      }
-
-      // Miles Range
-      if (req.query.miles_from && req.query.miles_to) {
-        console.log("Processing miles range filter with values:", req.query.miles_from, "to", req.query.miles_to);
-        filters.miles_from = req.query.miles_from;
-        filters.miles_to = req.query.miles_to;
-        console.log("Added miles range filter:", filters.miles_from, "to", filters.miles_to);
-      } else {
-        console.log("No miles range filter or incomplete range");
-      }
-
-      // Price Range
-      if (req.query.price_from && req.query.price_to) {
-        console.log("Processing price range filter with values:", req.query.price_from, "to", req.query.price_to);
-        filters.price_from = req.query.price_from;
-        filters.price_to = req.query.price_to;
-        console.log("Added price range filter:", filters.price_from, "to", filters.price_to);
-      } else {
-        console.log("No price range filter or incomplete range");
-      }
-
-      // User Id
-      if (req.query.user_id) {
-        console.log("Processing userid filter with value:", req.query.user_id);
-        filters.user_id = req.query.user_id;
-        console.log("Added user filter:", filters.user_id);
-      } else {
-        console.log("No userid filter");
       }
 
       console.log("Final filters object before querying storage:", filters);
@@ -1181,10 +1351,10 @@ app.put("/api/car-listings/:id/actions", async (req, res) => {
 
   app.post("/api/service-bookings", async (req, res) => {
     try {
-      const { userId, serviceId, scheduledAt, status, notes } = req.body;
+      const { userId, serviceId, price, scheduledAt, status, notes } = req.body;
       console.log("Received new service booking request:", req.body);
 
-      const booking = await storage.createServiceBooking({ userId, serviceId, scheduledAt, status, notes });
+      const booking = await storage.createServiceBooking({ userId, serviceId, price, scheduledAt, status, notes });
       console.log("Created service booking:", booking);
 
       res.status(201).json(booking);

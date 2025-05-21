@@ -31,37 +31,77 @@ export type Role = typeof roles.$inferSelect;
 // =============================================
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
+
+  // Core identity
   username: text("username").notNull().unique(),  // Unique username
   email: text("email").notNull().unique(),        // User email address
-  phone: text("phone"),                           // User phone number
+  phone: text("phone"),                           // Primary phone number
   password: text("password").notNull(),           // Hashed password
-  firstName: text("first_name"),                  // First name
-  lastName: text("last_name"),                    // Last name
-  roleId: integer("role_id").references(() => roles.id), // Foreign key to roles
-  isEmailVerified: boolean("is_email_verified").default(false), // Email verification status
-  verificationToken: text("verification_token"),  // Email verification token
-  passwordResetToken: text("password_reset_token"), // Password reset token
+
+  // Personal info
+  firstName: text("first_name"),
+  lastName: text("last_name"),
   avatar: text("avatar"),                         // Profile picture URL
-  emailNotifications: boolean("email_notifications").default(true), // Email notifications preference
-  smsNotifications: boolean("sms_notifications").default(true), // SMS notifications preference
-  notificationEmail: text("notification_email"),  // Alternate notification email
-  notificationPhone: text("notification_phone"),  // Alternate notification phone
-  status: text("status").default("inactive").notNull().$type<"inactive" | "active" | "suspended" | "removed">(),      // Account status (active, suspended, etc.)
-  createdAt: timestamp("created_at").defaultNow(), // Account creation timestamp
+
+  // Role and permissions
+  roleId: integer("role_id").references(() => roles.id),
+
+  // Status and verification
+  status: text("status").default("inactive").notNull().$type<
+    "inactive" | "active" | "suspended" | "removed"
+  >(),                                            // Account status
+  isEmailVerified: boolean("is_email_verified").default(false),
+  verificationToken: text("verification_token"),
+  passwordResetToken: text("password_reset_token"),
+
+  // Notification preferences
+  emailNotifications: boolean("email_notifications").default(true),
+  smsNotifications: boolean("sms_notifications").default(true),
+  notificationEmail: text("notification_email"),
+  notificationPhone: text("notification_phone"),
+
+  // Audit logging
+  lastLoginAt: timestamp("last_login_at"),
+  loginIp: text("login_ip"),
+  loginCount: integer("login_count").default(0),
+
+  // Timestamps
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at"),
 });
+
 
 export const insertUserSchema = createInsertSchema(users, {
   roleId: roleSchema,
 }).pick({
-  firstName: true,
-  lastName: true,
+  // Core identity
   username: true,
   email: true,
   phone: true,
   password: true,
+
+  // Personal info
+  firstName: true,
+  lastName: true,
+  avatar: true,
+
+  // Role and status
   roleId: true,
   status: true,
+
+  // Notification preferences
+  emailNotifications: true,
+  smsNotifications: true,
+  notificationEmail: true,
+  notificationPhone: true,
+
+  // Audit Logging
+  lastLoginAt: true,
+  loginIp: true,
+  loginCount: true,
+
 });
+
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -222,6 +262,23 @@ export const insertCarFeatureSchema = createInsertSchema(carFeatures).pick({
 export type InsertCarListingFeature = z.infer<typeof insertCarListingFeatureSchema>;
 export type CarListingFeature = typeof carListingFeatures.$inferSelect;
 
+export const carEngineCapacities = pgTable("car_engine_capacities", {
+  id: serial("id").primaryKey(),                        // Unique engine size ID
+  sizeLiters: integer("size_liters").notNull(), // e.g., 1.6, 2.0
+  label: text("label").notNull(),                       // Human-friendly label, e.g., "2.0L"
+  description:  text("description"),
+});
+
+export const insertCarEngineCapacitySchema = createInsertSchema(carEngineCapacities).pick({
+  sizeLiters: true,
+  label: true,
+  description: true,
+});
+
+export type InsertCarEngineCapacity = z.infer<typeof insertCarEngineCapacitySchema>;
+export type CarEngineCapacity = typeof carEngineCapacities.$inferSelect;
+
+
 // =============================================
 // SERVICES TABLE
 // Stores available services (Maintenance, Detailing, etc.)
@@ -248,54 +305,107 @@ export type CarService = typeof carServices.$inferSelect;
 // =============================================
 export const carListings = pgTable("car_listings", {
   id: serial("id").primaryKey(),
-  sellerId: integer("seller_id").notNull(),       // Foreign key to users table
-  title: text("title").notNull(),                 // Listing title in English
-  titleAr: text("title_ar"),                      // Listing title in Arabic
-  description: text("description").notNull(),     // Detailed description in English
-  descriptionAr: text("description_ar"),          // Detailed description in Arabic
-  price: integer("price").notNull(),              // Vehicle price
+
+  // Seller and basic info
+  sellerId: integer("seller_id").notNull(),
+  title: text("title").notNull(),
+  titleAr: text("title_ar"),
+  description: text("description").notNull(),
+  descriptionAr: text("description_ar"),
+
+  // Price and year
+  price: integer("price").notNull(),
   currency: text("currency"),
-  year: integer("year").notNull(),                // Manufacturing year
-  makeId: integer("make_id").notNull(),           // Foreign key to car_makes
-  modelId: integer("model_id").notNull(),         // Foreign key to car_models
-  categoryId: integer("category_id").notNull(),   // Foreign key to car_categories
-  mileage: integer("mileage").notNull(),          // Vehicle mileage
-  fuelType: text("fuel_type").notNull(),          // Fuel type (gasoline, diesel, etc.)
-  transmission: text("transmission").notNull(),   // Transmission type (automatic, manual)
-  color: text("color").notNull(),                 // Vehicle color
-  condition: text("condition").notNull(),         // Vehicle condition (new, used, etc.)
-  location: text("location").notNull(),           // Vehicle location
-  images: text("images").array(),                 // Array of image URLs
-  status: text("status").default("draft").notNull().$type<"draft" | "pending" | "active" | "sold" | "expired" | "rejected">(), // Listing status
-  isFeatured: boolean("is_featured").default(false), // Featured listing flag
+  year: integer("year").notNull(),
+
+  // Vehicle make/model/category
+  makeId: integer("make_id").notNull(),
+  modelId: integer("model_id").notNull(),
+  categoryId: integer("category_id").notNull(),
+
+  // Vehicle specs
+  mileage: integer("mileage").notNull(),
+  fuelType: text("fuel_type").notNull(),
+  transmission: text("transmission").notNull(),
+  engineCapacityId: integer("engine_capacity_id"),
+  cylinerCount: integer("cylinder_count").default(0),
+
+  // Appearance
+  color: text("color").notNull(),
+  interiorColor: text("interior_color"),
+  tinted: boolean("tinted").default(false),
+
+  // Condition and location
+  condition: text("condition").notNull(),
+  location: text("location").notNull(),
+
+  // Media and status
+  images: text("images").array(),
+  status: text("status").default("draft").notNull().$type<"draft" | "pending" | "active" | "sold" | "expired" | "rejected">(),
+  isFeatured: boolean("is_featured").default(false),
   isImported: boolean("is_imported").default(false),
-  views: integer("views").default(0),             // View count
-  createdAt: timestamp("created_at").defaultNow(), // Creation timestamp
-  updatedAt: timestamp("updated_at"),             // Last update timestamp
+
+  // Ownership and insurance
+  ownerType: text("owner_type").$type<"first" | "second" | "third" | "fourth" | "fifth">(),
+  hasWarranty: boolean("has_warranty").default(false),
+  warrantyExpirty: timestamp("warranty_expiry"),
+  hasInsurance: boolean("has_insurance").default(false),
+  insuranceType: text("insurance_type").$type<"comprehensive" | "third-party" | "none">(),
+  insuranceExpiry: timestamp("insurance_expiry"),
+
+  // System info
+  views: integer("views").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at"),
 });
 
 export const insertCarListingSchema = createInsertSchema(carListings).pick({
+  // Seller and basic info
   sellerId: true,
   title: true,
   titleAr: true,
   description: true,
   descriptionAr: true,
+
+  // Price and year
   price: true,
   currency: true,
   year: true,
+
+  // Vehicle make/model/category
   makeId: true,
   modelId: true,
   categoryId: true,
+
+  // Vehicle specs
   mileage: true,
   fuelType: true,
   transmission: true,
+  engineCapacityId: true,
+  cylinerCount: true,
+
+  // Appearance
   color: true,
+  interiorColor: true,
+  tinted: true,
+
+  // Condition and location
   condition: true,
   location: true,
-  isFeatured: true,
-  isImported: true,
+
+  // Media and status
   images: true,
   status: true,
+  isFeatured: true,
+  isImported: true,
+
+  // Ownership and insurance
+  ownerType: true,
+  hasWarranty: true,
+  warrantyExpirty: true,
+  hasInsurance: true,
+  insuranceType: true,
+  insuranceExpiry: true,
 });
 
 export type InsertCarListing = z.infer<typeof insertCarListingSchema>;
@@ -385,13 +495,13 @@ export type ServiceBooking = typeof serviceBookings.$inferSelect;
 export const favorites = pgTable("favorites", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),           // Foreign key to users
-  carId: integer('listing_id').references(() => carListings.id, { onDelete: 'cascade' }),           // Foreign key to car_listings
+  listingId: integer('listing_id').references(() => carListings.id, { onDelete: 'cascade' }),           // Foreign key to car_listings
   createdAt: timestamp("created_at").defaultNow(), // Timestamp when favorited
 });
 
 export const insertFavoriteSchema = createInsertSchema(favorites).pick({
   userId: true,
-  carId: true,
+  listingId: true,
 });
 
 export type InsertFavorite = z.infer<typeof insertFavoriteSchema>;
@@ -565,7 +675,7 @@ export const settings = pgTable("settings", {
   }>(),
 
   // Integration Settings
-  integrations: jsonb("integrations").$type<{
+  integrationsConfig: jsonb("integrations").$type<{
     enableGoogleAnalytics: boolean;
     googleAnalyticsId: string;
     enableFacebookPixel: boolean;
@@ -620,7 +730,7 @@ const googleMapsConfigSchema = z.object({
 });
 
 // Integrations schema
-const integrationsSchema = z.object({
+const integrationsConfigSchema = z.object({
   enableGoogleAnalytics: z.boolean().default(false),
   googleAnalyticsId: z.string().optional(),
   enableFacebookPixel: z.boolean().default(false),
@@ -639,7 +749,7 @@ export const insertSettingsSchema = createInsertSchema(settings).extend({
   emailConfig: emailConfigSchema,
   smsConfig: smsConfigSchema,
   googleMapsConfig: googleMapsConfigSchema,
-  integrations: integrationsSchema,
+  integrationsConfig: integrationsConfigSchema,
 }).pick({
   logo: true,
   favicon: true,
@@ -661,18 +771,17 @@ export const insertSettingsSchema = createInsertSchema(settings).extend({
   emailConfig: true,
   smsConfig: true,
   googleMapsConfig: true,
-  integrations: true,
+  integrationsConfig: true,
   allowedLanguages: true,
   defaultLanguage: true,
 });
 
-export type InsertSettings = z.infer<typeof insertSettingsSchema>;
+export type InsertSetting = z.infer<typeof insertSettingsSchema>;
 export type EmailConfig = z.infer<typeof emailConfigSchema>;
 export type SmsConfig = z.infer<typeof smsConfigSchema>;
 export type GoogleMapsConfig = z.infer<typeof googleMapsConfigSchema>;
-export type IntegrationSettings = z.infer<typeof integrationsSchema>;
-export type Settings = typeof settings.$inferSelect;
-
+export type IntegrationConfig = z.infer<typeof integrationsConfigSchema>;
+export type Setting = typeof settings.$inferSelect;s
 // =============================================
 // SUBSCRIPTION PLANS TABLE
 // Stores available subscription plans for users
@@ -891,8 +1000,8 @@ export type ListingPromotion = typeof listingPromotions.$inferSelect;
 
 export const servicePromotions = pgTable("service_promotions", {
   id: serial("id").primaryKey(),
-  listingId: integer("listing_id").references(() => carListings.id).notNull(),
-  packageId: integer("package_id").references(() => promotionPackages.id).notNull(),
+  serviceId: integer("service_id").references(() => carServices.id).notNull(),
+  packageId: integer("package_id").references(() => servicePromotionPackages.id).notNull(),
   startDate: timestamp("start_date").notNull().defaultNow(),
   endDate: timestamp("end_date").notNull(),
   transactionId: integer("transaction_id").references(() => transactions.id),
@@ -901,7 +1010,7 @@ export const servicePromotions = pgTable("service_promotions", {
 });
 
 export const insertServicePromotionSchema = createInsertSchema(servicePromotions).pick({
-  listingId: true,
+  serviceId: true,
   packageId: true,
   startDate: true,
   endDate: true,
@@ -964,45 +1073,80 @@ export type ListingStatus = 'draft' | 'active' | 'pending' | 'reject' | 'sold';
 
 // Filter Interface
 export interface AdminCarListingFilters {
+  // Price and year
+  priceRange?: { from: string; to: string };
+  yearRange?: { from: string; to: string };
+  year?: number[];
+  // Vehicle make/model/category
   make: string;
   model: string;
   category: string;
+  // Vehicle specs
+  milesRange?: { from: string; to: string };
+  fuel_type?: string[];
+  transmission?: string[];
+  engineCapacity?: string[];
+  cylinderCount?: string;
+  // Appearance
+  color?: string;
+  interiorColor?: string;
+  tinted?: boolean | null;
+  // Condition and location
   condition?: string;
-  location: string[];
-  year?: number[];
-  fuel_type: string[];
-  transmission: string[];
-  isFeatured: boolean | null;
-  isImported: boolean | null;
+  location?: string[];
+  // Status 
   status: string;
+  isFeatured?: boolean | null;
+  isImported?: boolean | null;
+  // Ownership and insurance
+  user_id?: number;
+  ownerType?: string;
+  hasWarranty?: boolean | null;
+  hasInsurance?: boolean | null;
+  // Promotion
+  hasPromotion?: boolean;
+  packageType?: string;
+  promotionStatus?: string;
+  // Sorting and Pagination
   sort: string;
   page: number;
   limit: number;
   dateRange: { from: string; to: string };
   dateRangePreset?: string;
-  yearRange?: { from: string; to: string };
-  milesRange?: { from: string; to: string };
-  priceRange?: { from: string; to: string };
-  user_id?: number;
-  hasPromotion?: boolean;
-  packageType?: string;
-  promotionStatus?: string;
+  
 }
 
 export interface CarListingFilters {
+  // Price and year
+  minPrice?: string;
+  maxPrice?: string;
+  year?: number[];
+  // Vehicle make/model/category
   make: string;
   model: string;
-  minPrice: string;
-  maxPrice: string;
   category: string;
-  condition: string;
-  location: string[];
-  year: number[];
-  fuel_type: string[];
-  transmission: string[];
-  is_imported?: string;
-  is_featured?: string;
+  // Vehicle specs
+  milesRange?: { from: string | undefined; to: string | undefined };
+  fuelType?: string[];
+  transmission?: string[];
+  engineCapacity?: string[];
+  cylinderCount?: string[];
+  // Appearance
+  color?: string[];
+  interiorColor?: string[];
+  tinted?: string;
+  // Condition and location
+  condition?: string;
+  location?: string[];
+  // Status 
   status: string;
+  isImported?: string;
+  isFeatured?: string;
+  // Ownership and insurance
+  ownerType?: string[];
+  hasWarranty?: boolean | string;
+  hasInsurance?: boolean | string;
+  // Sorting and Pagination
   sort: string;
   page: number;
   limit: number;
@@ -1012,31 +1156,51 @@ export interface AdminCarListing {
   id: number;
   title: string;
   titleAr?: string;
-  price: number;
-  currency: string;
-  fuel_type: string;
-  transmission: string;
-  year: number;
-  mileage: number;
-  color: string;
-  condition: string;
   description?: string;
   descriptionAr?: string;
-  location: string;
-  locationAr?: string;
-  status: 'draft' | 'active' | 'pending' | 'reject' | 'sold';
-  is_featured: boolean;
-  is_imported: boolean;
-  is_active: boolean;
-  views?: number;
-  contact_number?: string;
-  created_at: string;
-  updated_at?: string;
-  images?: string[];
-  user_id: number;
+
+  price: number;
+  currency?: string;
+  year?: number;
+
   make_id: number;
   model_id: number;
   category_id?: number;
+
+  mileage?: number;
+  fuel_type?: string;
+  transmission?: string;
+  engine_capacity_id?: number;
+  cylinder_count?: number;
+  
+  color?: string;
+  interior_color?: string;
+  tinted?: boolean;
+
+  condition?: string;
+  location?: string;
+  locationAr?: string;
+
+  images?: string[];
+
+  status: 'draft' | 'active' | 'pending' | 'reject' | 'sold';
+  is_active?: boolean;
+  is_featured?: boolean;
+  is_imported?: boolean;
+  
+  owner_type?: 'first' | 'second' |'third' | 'fourth' | 'fifth';
+  has_warranty?: boolean;
+  warranty_expirty?: string;
+  has_insurance?: boolean;
+  insurance_type?: 'comprehensive' | 'third-party' | 'none';
+  insurance_expirty?: string;
+
+  views?: number;
+  created_at: string;
+  updated_at?: string;
+  
+  user_id: number;
+  contact_number?: string;
   seller?: {
     id: number;
     username: string;
@@ -1059,7 +1223,7 @@ export interface AdminCarListing {
   package_id?: number;
   package_name?: string;
   package_price?: string;
-  durationDays?: number;
+  duration_days?: number;
   start_date?: Date;
   end_date?: Date;
 }
