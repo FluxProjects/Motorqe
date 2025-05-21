@@ -18,7 +18,7 @@ export const CarEngineCapacityStorage = {
     
      async getAllEngineCapacities(): Promise<CarEngineCapacity[]> {
         const result = await db.query('SELECT * FROM car_engine_capacities ORDER BY id');
-        return result[0];
+        return result;
       },
     
       async getEngineCapacity(id: number): Promise<CarEngineCapacity | undefined> {

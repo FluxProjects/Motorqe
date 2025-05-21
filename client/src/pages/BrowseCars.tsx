@@ -128,21 +128,57 @@ const BrowseCars = () => {
       setFilters((prev) => ({ ...prev, category: categoryValue }));
     }
 
+    if (params.has("minMile")) {
+  const minMileValue = params.get("minMile") || "";
+  setFilters((prev) => ({
+    ...prev,
+    milesRange: {
+      from: minMileValue,
+      to: prev.milesRange?.to ?? undefined,
+    },
+  }));
+}
+
+if (params.has("maxMile")) {
+  const maxMileValue = params.get("maxMile") || "";
+  setFilters((prev) => ({
+    ...prev,
+    milesRange: {
+      from: prev.milesRange?.from ?? '0',
+      to: maxMileValue,
+    },
+  }));
+}
+
+
     if (params.has("fuel_type")) {
       const fuelTypes = params.getAll("fuel_type");
-      setFilters((prev) => ({ ...prev, fuel_type: fuelTypes }));
+      setFilters((prev) => ({ ...prev, fuelType: fuelTypes }));
+    }
+    if (params.has("fuelType")) {
+      const fuelTypes = params.getAll("fuelType");
+      setFilters((prev) => ({ ...prev, fuelType: fuelTypes }));
     }
     if (params.has("transmission")) {
       const transmissions = params.getAll("transmission");
       setFilters((prev) => ({ ...prev, transmission: transmissions }));
     }
     if (params.has("engine_capacity")) {
-      const engineCapacity = params.getAll("engine_capacity");
-      setFilters((prev) => ({ ...prev, engine_capacity: engineCapacity }));
+      const engineCapacityVal = params.getAll("engine_capacity");
+      setFilters((prev) => ({ ...prev, engineCapacity: engineCapacityVal }));
+    }
+    if (params.has("engineCapacity")) {
+      const engineCapacitys = params.getAll("engineCapacity");
+      setFilters((prev) => ({ ...prev, engineCapacity: engineCapacitys }));
     }
     if (params.has("cylinder_count")) {
       const cylinderCount = params.getAll("cylinder_count");
-      setFilters((prev) => ({ ...prev, cylinder_count: cylinderCount }));
+      setFilters((prev) => ({ ...prev, cylinderCount: cylinderCount }));
+    }
+
+    if (params.has("cylinderCount")) {
+      const cylinderCount = params.getAll("cylinderCount");
+      setFilters((prev) => ({ ...prev, cylinderCount: cylinderCount }));
     }
 
     if (params.has("color")) {
@@ -151,7 +187,11 @@ const BrowseCars = () => {
     }
     if (params.has("interior_color")) {
       const interiorColor = params.getAll("interior_color");
-      setFilters((prev) => ({ ...prev, interior_color: interiorColor }));
+      setFilters((prev) => ({ ...prev, interiorColor: interiorColor }));
+    }
+     if (params.has("interiorColor")) {
+      const interiorColor = params.getAll("interiorColor");
+      setFilters((prev) => ({ ...prev, interiorColor: interiorColor }));
     }
     if (params.has("tinted")) {
       const val = params.get("tinted");
@@ -174,14 +214,23 @@ const BrowseCars = () => {
 
     if (params.has("owner_type")) {
       const ownerTypes = params.getAll("owner_type");
-      setFilters((prev) => ({ ...prev, owner_type: ownerTypes }));
+      setFilters((prev) => ({ ...prev, ownerType: ownerTypes }));
     }
     if (params.has("is_featured")) {
       const val = params.get("is_featured");
       if (val === "true" || val === "false" || val === "all") {
         setFilters((prev) => ({
           ...prev,
-          is_featured: val,
+          isFeatured: val,
+        }));
+      }
+    }
+    if (params.has("isFeatured")) {
+      const val = params.get("isFeatured");
+      if (val === "true" || val === "false" || val === "all") {
+        setFilters((prev) => ({
+          ...prev,
+          isFeatured: val,
         }));
       }
     }
@@ -190,7 +239,16 @@ const BrowseCars = () => {
       if (val === "true" || val === "false" || val === "all") {
         setFilters((prev) => ({
           ...prev,
-          is_imported: val,
+          isImported: val,
+        }));
+      }
+    }
+     if (params.has("isImported")) {
+      const val = params.get("isImported");
+      if (val === "true" || val === "false" || val === "all") {
+        setFilters((prev) => ({
+          ...prev,
+          isImported: val,
         }));
       }
     }
@@ -228,7 +286,7 @@ const BrowseCars = () => {
 
   // First, ensure your query has the correct type and default value
   const { data: carEngineCapacities = [] } = useQuery<CarEngineCapacity[]>({
-    queryKey: ["car-engine-capacities"], // Changed to a more standard key
+    queryKey: ["/api/car-enginecapacities"], // Changed to a more standard key
   });
 
   // Then create a safe mapping function
@@ -366,7 +424,7 @@ const BrowseCars = () => {
       }
 
       // Engine Capacity Filter
-     if (filters.engineCapacity && filters.engineCapacity.length > 0 && !filters.engineCapacity.includes(car.engineCapacityId.toString())) {
+     if (filters.engineCapacity && filters.engineCapacity.length > 0 && !filters.engineCapacity.includes(car.engineCapacityId)) {
         return false;
       }
       // Cylinder Count Filter

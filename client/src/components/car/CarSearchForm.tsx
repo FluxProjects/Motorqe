@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import i18n, { resources } from "@/lib/i18n";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
@@ -24,121 +24,285 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Search, MapPin, Car } from "lucide-react";
+import { Search, MapPin, Car, ChevronDown, ChevronUp } from "lucide-react";
+import { CarCategory, CarEngineCapacity, CarMake } from "@shared/schema";
+import { fetchModelsByMake } from "@/lib/utils";
+import { Checkbox } from "@/components/ui/checkbox";
+import { MultiSelect } from "@/components/ui/multiselect";
 
 // Search form schema
 const searchFormSchema = z.object({
   keyword: z.string().optional(),
-  location: z.string().optional(),
-  category: z.string().optional(),
-  is_imported: z.string().optional(),
-  condition: z.string().optional(),
-  make: z.string().optional(),
-  model: z.string().optional(),
   minPrice: z.string().optional(),
   maxPrice: z.string().optional(),
+  minYear: z.string().optional(),
+  maxYear: z.string().optional(),
+  minMiles: z.string().optional(),
+  maxMiles: z.string().optional(),
+
+  make: z.string().optional(),
+  model: z.string().optional(),
+  category: z.string().optional(),
+
+  fuel_type: z.array(z.string()).optional(),
+  transmission: z.array(z.string()).optional(),
+  engine_capacity: z.array(z.string()).optional(),
+  cylinder_count: z.array(z.string()).optional(),
+
+  color: z.array(z.string()).optional(),
+  interior_color: z.array(z.string()).optional(),
+  tinted: z.string().optional(),
+
+  location: z.string().optional(),
+  condition: z.string().optional(),
+
+  owner_type: z.array(z.string()).optional(),
+  is_featured: z.string().optional(),
+  is_imported: z.string().optional(),
+  has_warranty: z.union([z.boolean(), z.string()]).optional(),
+  has_insurance: z.union([z.boolean(), z.string()]).optional(),
+
+  status: z.string().optional(),
+  sort: z.string().optional(),
+  page: z.number().optional(),
+  limit: z.number().optional(),
 });
 
 type SearchFormValues = z.infer<typeof searchFormSchema>;
+
+// Options for various select fields
+const fuelTypeOptions = [
+  { value: "gasoline", label: "Gasoline" },
+  { value: "diesel", label: "Diesel" },
+  { value: "hybrid", label: "Hybrid" },
+  { value: "electric", label: "Electric" },
+];
+
+const transmissionOptions = [
+  { value: "automatic", label: "Automatic" },
+  { value: "manual", label: "Manual" },
+  { value: "semi-automatic", label: "Semi-Automatic" },
+];
+
+const cylinderCountOptions = [
+  { value: "2", label: "2 Cylinders" },
+  { value: "3", label: "3 Cylinders" },
+  { value: "4", label: "4 Cylinders" },
+  { value: "6", label: "6 Cylinders" },
+  { value: "8", label: "8 Cylinders" },
+];
+
+const colorOptions = [
+  { value: "white", label: "White" },
+  { value: "black", label: "Black" },
+  { value: "silver", label: "Silver" },
+  { value: "gray", label: "Gray" },
+  { value: "red", label: "Red" },
+  { value: "blue", label: "Blue" },
+];
+
+const interiorColorOptions = [
+  { value: "black", label: "Black" },
+  { value: "beige", label: "Beige" },
+  { value: "brown", label: "Brown" },
+  { value: "gray", label: "Gray" },
+];
+
+const ownerTypeOptions = [
+  { value: "first", label: "third" },
+  { value: "second", label: "second" },
+  { value: "third", label: "third" },
+  { value: "fourth", label: "fourth" },
+];
+
+const conditionOptions = [
+  { value: "new", label: "New" },
+  { value: "used", label: "Used" },
+  { value: "scrap", label: "Scrap" },
+];
+
+const tintedOptions = [
+  { value: "true", label: "Yes" },
+  { value: "false", label: "No" },
+];
 
 const CarSearchForm = () => {
   const { t } = useTranslation();
   const language = i18n.language;
   const direction = language === "ar" ? "rtl" : "ltr";
   const [, navigate] = useLocation();
+  const [activeTab, setActiveTab] = useState<"all" | "new" | "scrap">("all");
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const { reset } = useForm();
 
-  // Get URL search params
-  const getURLParams = () => {
-    if (typeof window === "undefined") return {};
-
-    const params = new URLSearchParams(window.location.search);
-    const values: any = {};
-
-    if (params.has("keyword")) values.keyword = params.get("keyword");
-    if (params.has("location")) values.location = params.get("location");
-    if (params.has("category")) values.category = params.get("category");
-    if (params.has("condition")) values.condition = params.get("condition");
-    if (params.has("is_imported")) values.is_imported = params.get("is_imported");
-    if (params.has("make")) values.make = params.get("make");
-    if (params.has("model")) values.model = params.get("model");
-    if (params.has("minPrice")) values.minPrice = params.get("minPrice");
-    if (params.has("maxPrice")) values.maxPrice = params.get("maxPrice");
-
-    return values;
+  const handleClearForm = () => {
+    reset(); // This clears the entire form to default values
+    setShowAdvanced(false); // Optional: hide advanced search when clearing
   };
 
   // Form with default values from URL
   const form = useForm<SearchFormValues>({
     resolver: zodResolver(searchFormSchema),
-    defaultValues: getURLParams(),
+    defaultValues: {
+      status: "all",
+    },
   });
-
-  // Fetch car makes
-  const { data: makes } = useQuery({
-    queryKey: ["/api/car-makes"],
-  });
-
-  const fetchModelsByMake = async (makeId: string) => {
-    const res = await fetch(`/api/car-models?makeId=${makeId}`);
-    if (!res.ok) throw new Error("Failed to fetch models");
-    return res.json();
-  };
 
   const selectedMakeId = form.watch("make");
 
-  // Fetch car models based on selected make
-  const { data: models } = useQuery({
-    queryKey: ["/api/car-models", selectedMakeId],
-    queryFn: () => fetchModelsByMake(selectedMakeId!),
+  useEffect(() => {
+    form.setValue("status", activeTab);
+  }, [activeTab]);
+
+  // Fetch car makes
+  const { data: makes = [] } = useQuery<CarMake[]>({
+    queryKey: ["/api/car-makes"],
+  });
+
+  const { data: models = [] } = useQuery({
+    queryKey: ["car-models", selectedMakeId],
+    queryFn: () => fetchModelsByMake(selectedMakeId),
     enabled: !!selectedMakeId && selectedMakeId !== "all",
   });
 
-  // Fetch car categories
-  const { data: categories } = useQuery({
+  // Fetch car categories for filter
+  const { data: categories = [] } = useQuery<CarCategory[]>({
     queryKey: ["/api/car-categories"],
   });
 
-  const totalCount = categories?.reduce((sum, category) => sum + (category.count || 0), 0) || 0;
+  // Engine capacities
+  const { data: carEngineCapacities = [] } = useQuery<CarEngineCapacity[]>({
+    queryKey: ["/api/car-enginecapacities"],
+  });
+
+  const engineCapacityOptions = useMemo(() => {
+    if (!Array.isArray(carEngineCapacities)) return [];
+    return carEngineCapacities.map((capacity) => ({
+      value: capacity.id.toString(),
+      label: capacity.size_liters,
+    }));
+  }, [carEngineCapacities]);
+
+  const totalCount =
+    categories?.reduce((sum, category) => sum + (category.count || 0), 0) || 0;
 
   // Handle search form submission
   const onSubmit = (values: SearchFormValues) => {
-    // Build query string
     const params = new URLSearchParams();
 
-    if (values.keyword) params.append("keyword", values.keyword);
-    if (values.location) params.append("location", values.location);
-    if (values.category) params.append("category", values.category);
-    if (values.condition) params.append("condition", values.condition);
-    if (values.is_imported) params.append("is_imported", values.is_imported);
-    if (values.make) params.append("make", values.make);
-    if (values.model) params.append("model", values.model);
-    if (values.minPrice) params.append("minPrice", values.minPrice);
-    if (values.maxPrice) params.append("maxPrice", values.maxPrice);
+    Object.entries(values).forEach(([key, value]) => {
+      if (
+        value === undefined ||
+        value === null ||
+        value === "" ||
+        value === "all" ||
+        (Array.isArray(value) && value.length === 0)
+      ) {
+        return; // skip empty or default 'all' values
+      }
 
-    // Navigate to browse page with search params
+      // Arrays: append multiple entries with same key
+      if (Array.isArray(value)) {
+        value.forEach((v) => {
+          if (v !== "" && v !== "all") {
+            params.append(key, v.toString());
+          }
+        });
+      }
+      // Boolean values (like hasWarranty, hasInsurance)
+      else if (typeof value === "boolean") {
+        params.append(key, value ? "true" : "false");
+      }
+      // Sometimes boolean might come as string "true" or "false"
+      else if (value === "true" || value === "false") {
+        params.append(key, value);
+      } else {
+        params.append(key, value.toString());
+      }
+    });
+
+    // Navigate to /browse with query string
     const queryString = params.toString();
     const url = `/browse${queryString ? `?${queryString}` : ""}`;
     navigate(url);
   };
 
+  // Determine which fields to show based on active tab
+  const showField = (fieldName: keyof SearchFormValues) => {
+    if (activeTab === "all") return true;
+    if (activeTab === "new") {
+      // Hide fields not relevant for new cars
+      return ![
+        "condition", 
+        "minMiles", 
+        "maxMiles", 
+        "keyword", 
+        "ownerType", 
+        "tinted", 
+        "category", 
+        "is_imported"
+      ].includes(fieldName);
+    }
+    if (activeTab === "scrap") {
+      // Hide fields not relevant for scrap cars
+      return ![
+        "keyword",
+        "minPrice", 
+        "maxPrice",
+        "category",
+        "minMiles", 
+        "maxMiles",
+        "fuel_type",
+        "transmission",
+        "engine_capacity",
+        "cylinder_count",
+        "color",
+        "interior_color",
+        "tinted", 
+        "condition",
+        "is_featured",
+        "is_imported",
+        "has_warranty",
+        "has_insurance",
+        
+      ].includes(fieldName);
+    }
+    return true;
+  };
+
   return (
     <Card className="border-2 border-solid rounded-2xl border-neutral-700">
       <CardContent className="p-6">
+        {/* Tabs for status */}
+        <div className="flex flex-wrap justify-center mb-8 gap-3">
+          {["all", "new", "scrap"].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab as "all" | "new" | "scrap")}
+              className={`px-5 py-2 text-sm font-medium transition-all ${
+                activeTab === tab
+                  ? "text-orange-500 border-b-4 border-b-orange-500 hover:font-bold"
+                  : "text-blue-900"
+              }`}
+            >
+              {t(`common.${tab}cars`)}
+            </button>
+          ))}
+        </div>
+
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(onSubmit)}
             className="space-y-4 md:space-y-0 md:grid md:grid-cols-4 md:gap-4"
-            dir={direction}
           >
-            {/* Keyword search */}
+            {/* Keyword */}
+            {showField("keyword") && (
             <FormField
               control={form.control}
               name="keyword"
               render={({ field }) => (
                 <FormItem className="col-span-4 md:col-span-1">
-                  <FormLabel className="text-slate-500">
-                    {t("common.keyword")}
-                  </FormLabel>
+                  <FormLabel>{t("common.keyword")}</FormLabel>
                   <FormControl>
                     <div className="relative">
                       <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
@@ -153,139 +317,30 @@ const CarSearchForm = () => {
                 </FormItem>
               )}
             />
+            )}
 
-            {/* Location */}
-            <FormField
-              control={form.control}
-              name="location"
-              render={({ field }) => (
-                <FormItem className="col-span-4 md:col-span-1">
-                  <FormLabel className="text-slate-500">
-                    {t("common.location")}
-                  </FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <MapPin className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                      <Input
-                        {...field}
-                        placeholder={t("search.locationPlaceholder")}
-                        className="pl-9 bg-slate-50 border-slate-200"
-                      />
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Category */}
-            <FormField
-              control={form.control}
-              name="category"
-              render={({ field }) => (
-                <FormItem className="col-span-4 md:col-span-1">
-                  <FormLabel className="text-slate-500">
-                    {t("common.category")}
-                  </FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger className="bg-slate-50 border-slate-200">
-                        <SelectValue placeholder={t("search.selectCategory")} />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="all">
-                        {t("common.allCategories")}
-                      </SelectItem>
-                      {Array.isArray(categories) &&
-                        categories.map((category: any) => (
-                          <SelectItem
-                            key={category.id}
-                            value={category.id.toString()}
-                          >
-                            {language === "ar" && category.nameAr
-                              ? category.nameAr
-                              : category.name}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
+            
             {/* Make */}
-            <FormField
-              control={form.control}
-              name="make"
-              render={({ field }) => (
-                <FormItem className="col-span-4 md:col-span-1">
-                  <FormLabel className="text-slate-500">
-                    {t("car.make")}
-                  </FormLabel>
-                  <Select
-                    onValueChange={(value) => {
-                      field.onChange(value);
-                      form.setValue("model", ""); // Reset model when make changes
-                    }}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger className="bg-slate-50 border-slate-200">
-                        <SelectValue placeholder={t("search.selectMake")} />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="all">{t("car.allMakes")}</SelectItem>
-                      {Array.isArray(makes) &&
-                        makes.map((make: any) => (
-                          <SelectItem key={make.id} value={make.id.toString()}>
-                            {make.name}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Model (only shown if make is selected) */}
-            {form.watch("make") && (
+            {showField("make") && (
               <FormField
                 control={form.control}
-                name="model"
+                name="make"
                 render={({ field }) => (
                   <FormItem className="col-span-4 md:col-span-1">
-                    <FormLabel className="text-slate-500">
-                      {t("car.model")}
-                    </FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
+                    <FormLabel>{t("car.make")}</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger className="bg-slate-50 border-slate-200">
-                          <SelectValue placeholder={t("search.selectModel")} />
+                        <SelectTrigger>
+                          <SelectValue placeholder={t("car.selectMake")} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="all">
-                          {t("car.allModels")}
-                        </SelectItem>
-                        {Array.isArray(models) &&
-                          models.map((model: any) => (
-                            <SelectItem
-                              key={model.id}
-                              value={model.id.toString()}
-                            >
-                              {model.name}
-                            </SelectItem>
-                          ))}
+                        <SelectItem value="all">{t("common.all")}</SelectItem>
+                        {makes?.map((make) => (
+                          <SelectItem key={make.id} value={make.id}>
+                            {make.name}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -294,78 +349,646 @@ const CarSearchForm = () => {
               />
             )}
 
-            {/* Price range */}
-            <FormField
-              control={form.control}
-              name="minPrice"
-              render={({ field }) => (
-                <FormItem className="col-span-4 md:col-span-1">
-                  <FormLabel className="text-slate-500">
-                    {t("car.minPrice")}
-                  </FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger className="bg-slate-50 border-slate-200">
-                        <SelectValue placeholder={t("car.noMin")} />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="no-min">{t("car.noMin")}</SelectItem>
-                      <SelectItem value="5000">$5,000</SelectItem>
-                      <SelectItem value="10000">$10,000</SelectItem>
-                      <SelectItem value="20000">$20,000</SelectItem>
-                      <SelectItem value="30000">$30,000</SelectItem>
-                      <SelectItem value="50000">$50,000</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {/* Model */}
+            {showField("model") && (
+              <FormField
+                control={form.control}
+                name="model"
+                render={({ field }) => (
+                  <FormItem className="col-span-4 md:col-span-1">
+                    <FormLabel>{t("car.model")}</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder={t("car.selectModel")} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {models && models?.length > 0 ? (
+                          models.map((model) => (
+                            <SelectItem key={model.id} value={model.id}>
+                              {model.name}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="all" disabled>
+                            {t("car.noModelsAvailable")}
+                          </SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
-            <FormField
-              control={form.control}
-              name="maxPrice"
-              render={({ field }) => (
-                <FormItem className="col-span-4 md:col-span-1">
-                  <FormLabel className="text-slate-500">
-                    {t("car.maxPrice")}
-                  </FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger className="bg-slate-50 border-slate-200">
-                        <SelectValue placeholder={t("car.noMax")} />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="no-max">{t("car.noMax")}</SelectItem>
-                      <SelectItem value="10000">$10,000</SelectItem>
-                      <SelectItem value="20000">$20,000</SelectItem>
-                      <SelectItem value="30000">$30,000</SelectItem>
-                      <SelectItem value="50000">$50,000</SelectItem>
-                      <SelectItem value="100000">$100,000</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {/* Category */}
+            {showField("category") && (
+              <FormField
+                control={form.control}
+                name="category"
+                render={({ field }) => (
+                  <FormItem className="col-span-4 md:col-span-1">
+                    <FormLabel>{t("car.category")}</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder={t("car.selectCategory")} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="all">{t("common.all")}</SelectItem>
+                        {categories?.map((category) => (
+                          <SelectItem key={category.id} value={category.id}>
+                            {category.name} ({category.count})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
-            {/* Search button */}
-            <div className="col-span-4 flex justify-center mt-4">
+            {/* Min Price */}
+            {showField("minPrice") && (
+              <FormField
+                control={form.control}
+                name="minPrice"
+                render={({ field }) => (
+                  <FormItem className="col-span-2 md:col-span-1">
+                    <FormLabel>{t("car.minPrice")}</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        type="number"
+                        placeholder={t("car.minPricePlaceholder")}
+                        min={0}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
+            {/* Max Price */}
+            {showField("maxPrice") && (
+              <FormField
+                control={form.control}
+                name="maxPrice"
+                render={({ field }) => (
+                  <FormItem className="col-span-2 md:col-span-1">
+                    <FormLabel>{t("car.maxPrice")}</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        type="number"
+                        placeholder={t("car.maxPricePlaceholder")}
+                        min={0}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
+            {/* Year Range */}
+                {showField("minYear") && showField("maxYear") && (
+                  <>
+                    <FormField
+                      control={form.control}
+                      name="minYear"
+                      render={({ field }) => (
+                        <FormItem className="col-span-2 md:col-span-1">
+                          <FormLabel>{t("car.minYear")}</FormLabel>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              type="number"
+                              placeholder={t("car.minYearPlaceholder")}
+                              min={1900}
+                              max={new Date().getFullYear()}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="maxYear"
+                      render={({ field }) => (
+                        <FormItem className="col-span-2 md:col-span-1">
+                          <FormLabel>{t("car.maxYear")}</FormLabel>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              type="number"
+                              placeholder={t("car.maxYearPlaceholder")}
+                              min={1900}
+                              max={new Date().getFullYear()}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </>
+                )}
+
+            {/* Advanced Filters Section */}
+            {showAdvanced && (
+              <>
+                
+
+                {/* Miles Range */}
+                {showField("minMiles") && showField("maxMiles") && (
+                  <>
+                    <FormField
+                      control={form.control}
+                      name="minMiles"
+                      render={({ field }) => (
+                        <FormItem className="col-span-2 md:col-span-1">
+                          <FormLabel>{t("car.minMiles")}</FormLabel>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              type="number"
+                              placeholder={t("car.minMilesPlaceholder")}
+                              min={0}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="maxMiles"
+                      render={({ field }) => (
+                        <FormItem className="col-span-2 md:col-span-1">
+                          <FormLabel>{t("car.maxMiles")}</FormLabel>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              type="number"
+                              placeholder={t("car.maxMilesPlaceholder")}
+                              min={0}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </>
+                )}
+
+                {/* Fuel Type */}
+                {showField("fuel_type") && (
+                  <FormField
+                    control={form.control}
+                    name="fuel_type"
+                    render={({ field }) => (
+                      <FormItem className="col-span-4 md:col-span-1">
+                        <FormLabel>{t("car.fuelType")}</FormLabel>
+                        <FormControl>
+                          <MultiSelect
+                            options={fuelTypeOptions}
+                            selected={field.value || []}
+                            onChange={field.onChange}
+                            placeholder={t("car.selectFuelType")}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+
+                {/* Transmission */}
+                {showField("transmission") && (
+                  <FormField
+                    control={form.control}
+                    name="transmission"
+                    render={({ field }) => (
+                      <FormItem className="col-span-4 md:col-span-1">
+                        <FormLabel>{t("car.transmission")}</FormLabel>
+                        <FormControl>
+                          <MultiSelect
+                            options={transmissionOptions}
+                            selected={field.value || []}
+                            onChange={field.onChange}
+                            placeholder={t("car.selectTransmission")}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+
+                {/* Engine Capacity */}
+                {showField("engine_capacity") && (
+                  <FormField
+                    control={form.control}
+                    name="engine_capacity"
+                    render={({ field }) => (
+                      <FormItem className="col-span-4 md:col-span-1">
+                        <FormLabel>{t("car.engineCapacity")}</FormLabel>
+                        <FormControl>
+                          <MultiSelect
+                            options={engineCapacityOptions}
+                            selected={field.value || []}
+                            onChange={field.onChange}
+                            placeholder={t("car.selectEngineCapacity")}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+
+                {/* Cylinder Count */}
+                {showField("cylinder_count") && (
+                  <FormField
+                    control={form.control}
+                    name="cylinder_count"
+                    render={({ field }) => (
+                      <FormItem className="col-span-4 md:col-span-1">
+                        <FormLabel>{t("car.cylinderCount")}</FormLabel>
+                        <FormControl>
+                          <MultiSelect
+                            options={cylinderCountOptions}
+                            selected={field.value || []}
+                            onChange={field.onChange}
+                            placeholder={t("car.selectCylinderCount")}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+
+                {/* Color */}
+                {showField("color") && (
+                  <FormField
+                    control={form.control}
+                    name="color"
+                    render={({ field }) => (
+                      <FormItem className="col-span-4 md:col-span-1">
+                        <FormLabel>{t("car.color")}</FormLabel>
+                        <FormControl>
+                          <MultiSelect
+                            options={colorOptions}
+                            selected={field.value || []}
+                            onChange={field.onChange}
+                            placeholder={t("car.selectColor")}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+
+                {/* Interior Color */}
+                {showField("interior_color") && (
+                  <FormField
+                    control={form.control}
+                    name="interior_color"
+                    render={({ field }) => (
+                      <FormItem className="col-span-4 md:col-span-1">
+                        <FormLabel>{t("car.interiorColor")}</FormLabel>
+                        <FormControl>
+                          <MultiSelect
+                            options={interiorColorOptions}
+                            selected={field.value || []}
+                            onChange={field.onChange}
+                            placeholder={t("car.selectInteriorColor")}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+
+                {/* Tinted */}
+                {showField("tinted") && (
+                  <FormField
+                    control={form.control}
+                    name="tinted"
+                    render={({ field }) => (
+                      <FormItem className="col-span-4 md:col-span-1">
+                        <FormLabel>{t("car.tinted")}</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue
+                                placeholder={t("car.selectTinted")}
+                              />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="all">
+                              {t("common.all")}
+                            </SelectItem>
+                            {tintedOptions.map((option) => (
+                              <SelectItem
+                                key={option.value}
+                                value={option.value}
+                              >
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+
+                {/* Condition */}
+                {showField("condition") && (
+                  <FormField
+                    control={form.control}
+                    name="condition"
+                    render={({ field }) => (
+                      <FormItem className="col-span-4 md:col-span-1">
+                        <FormLabel>{t("car.condition")}</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue
+                                placeholder={t("car.selectCondition")}
+                              />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="all">
+                              {t("common.all")}
+                            </SelectItem>
+                            {conditionOptions.map((option) => (
+                              <SelectItem
+                                key={option.value}
+                                value={option.value}
+                              >
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+
+                {/* Location */}
+                {showField("location") && (
+                  <FormField
+                    control={form.control}
+                    name="location"
+                    render={({ field }) => (
+                      <FormItem className="col-span-4 md:col-span-1">
+                        <FormLabel>{t("common.location")}</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                              {...field}
+                              placeholder={t("common.locationPlaceholder")}
+                              className="pl-10"
+                            />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+
+                {/* Owner Type */}
+                {showField("owner_type") && (
+                  <FormField
+                    control={form.control}
+                    name="owner_type"
+                    render={({ field }) => (
+                      <FormItem className="col-span-4 md:col-span-1">
+                        <FormLabel>{t("car.ownerType")}</FormLabel>
+                        <FormControl>
+                          <MultiSelect
+                            options={ownerTypeOptions}
+                            selected={field.value || []}
+                            onChange={field.onChange}
+                            placeholder={t("car.selectOwnerType")}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+
+                {/* Featured */}
+                {showField("is_featured") && (
+                  <FormField
+                    control={form.control}
+                    name="is_featured"
+                    render={({ field }) => (
+                      <FormItem className="col-span-4 md:col-span-1">
+                        <FormLabel>{t("car.featured")}</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue
+                                placeholder={t("car.selectFeatured")}
+                              />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="all">
+                              {t("common.all")}
+                            </SelectItem>
+                            <SelectItem value="true">
+                              {t("common.yes")}
+                            </SelectItem>
+                            <SelectItem value="false">
+                              {t("common.no")}
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+
+                {/* Imported */}
+                {showField("is_imported") && (
+                  <FormField
+                    control={form.control}
+                    name="is_imported"
+                    render={({ field }) => (
+                      <FormItem className="col-span-4 md:col-span-1">
+                        <FormLabel>{t("car.imported")}</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue
+                                placeholder={t("car.selectImported")}
+                              />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="all">
+                              {t("common.all")}
+                            </SelectItem>
+                            <SelectItem value="true">
+                              {t("common.yes")}
+                            </SelectItem>
+                            <SelectItem value="false">
+                              {t("common.no")}
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+
+                {/* Warranty */}
+                {showField("has_warranty") && (
+                  <FormField
+                    control={form.control}
+                    name="has_warranty"
+                    render={({ field }) => (
+                      <FormItem className="col-span-4 md:col-span-1">
+                        <FormLabel>{t("car.warranty")}</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue
+                                placeholder={t("car.selectWarranty")}
+                              />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="all">
+                              {t("common.all")}
+                            </SelectItem>
+                            <SelectItem value="true">
+                              {t("common.yes")}
+                            </SelectItem>
+                            <SelectItem value="false">
+                              {t("common.no")}
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+
+                {/* Insurance */}
+                {showField("has_insurance") && (
+                  <FormField
+                    control={form.control}
+                    name="hasInsurance"
+                    render={({ field }) => (
+                      <FormItem className="col-span-4 md:col-span-1">
+                        <FormLabel>{t("car.insurance")}</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue
+                                placeholder={t("car.selectInsurance")}
+                              />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="all">
+                              {t("common.all")}
+                            </SelectItem>
+                            <SelectItem value="true">
+                              {t("common.yes")}
+                            </SelectItem>
+                            <SelectItem value="false">
+                              {t("common.no")}
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+              </>
+            )}
+
+            {/* Search and Clear Buttons in a New Row */}
+            <div className="col-span-4 flex flex-col md:flex-row justify-center items-center gap-4 mt-4">
+              <Button type="submit" className="bg-orange-500 rounded-full w-full md:w-auto">
+               {t("common.search")} {totalCount} Cars
+              </Button>
+              
+            </div>
+
+            {/* Advanced Search Toggle */}
+            <div className="col-span-4 flex justify-center mt-2">
               <Button
-                type="submit"
-                size="lg"
-                className="bg-orange-500 hover:bg-orange-600 font-semibold px-6 py-2 rounded-full"
+                variant="link"
+                type="button"
+                onClick={() => setShowAdvanced(!showAdvanced)}
+                className="text-blue-900 flex items-center gap-1"
               >
-                <Search className="mr-2 h-4 w-4" />
-                {t("common.search")} {totalCount || '0'} Cars
+                {showAdvanced ? (
+                  <>
+                    <ChevronUp className="h-4 w-4" />
+                    {t("common.hideAdvanced")}
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="h-4 w-4" />
+                    {t("common.showAdvanced")}
+                  </>
+                )}
+              </Button>
+
+              <Button
+                type="button"
+                variant="link"
+                className="text-blue-900 w-full md:w-auto"
+                onClick={handleClearForm} // Ensure you define this function
+              >
+                {t("common.clearForm")}
               </Button>
             </div>
           </form>

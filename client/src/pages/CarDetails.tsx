@@ -42,10 +42,16 @@ import {
   AlertTriangle,
   ArrowLeft,
   Check,
+  CircleDot,
   Wrench,
   Droplet,
   Phone,
   MessageCircle,
+  Droplets,
+  Sun,
+  User2,
+  Activity,
+  Gauge,
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -69,6 +75,7 @@ import {
   CarCategory,
   User,
   CarFeature,
+  CarEngineCapacity,
 } from "@shared/schema";
 import {
   Select,
@@ -106,10 +113,12 @@ const CarDetails = () => {
   const { isAuthenticated, user } = useAuth();
   const { toast } = useToast();
   const [isFavorited, setIsFavorited] = useState(false);
-   const [authModal, setAuthModal] = useState<"login" | "register" | "forget-password" | null>(null);
+  const [authModal, setAuthModal] = useState<
+    "login" | "register" | "forget-password" | null
+  >(null);
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
-    const [selectedTab, setSelectedTab] = useState("description");
+  const [selectedTab, setSelectedTab] = useState("description");
 
   // Message form
   const messageForm = useForm<MessageValues>({
@@ -229,6 +238,18 @@ const CarDetails = () => {
       }),
     enabled: !!car?.model_id,
   });
+
+  const { data: carEngineCapacities = [] } = useQuery<CarEngineCapacity[]>({
+    queryKey: ["/api/car-enginecapacities"], // Changed to a more standard key
+  });
+
+  const engineSizeLabel =
+  carEngineCapacities.find((e) => e.id === car?.engine_capacity_id)?.size_liters ?? "Unknown";
+
+
+
+  console.log("carEngineCapacities", carEngineCapacities);
+  console.log("car?.engine_capacity_id", car?.engine_capacity_id);
 
   console.log("listingFeatures", listingFeatures);
 
@@ -397,10 +418,8 @@ const CarDetails = () => {
 
   return (
     <div className="bg-white-100 pb-16">
-
       <div className="bg-white py-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          
           {/* Back button and actions */}
           <div className="flex justify-between items-center mb-6">
             <Link href="/browse">
@@ -461,7 +480,7 @@ const CarDetails = () => {
               <Button
                 variant="default"
                 size="sm"
-                className="rounded-full bg-red-500 hover:bg-black" 
+                className="rounded-full bg-red-500 hover:bg-black"
                 onClick={() => setReportDialogOpen(true)}
               >
                 <Flag size={16} className="mr-1" />
@@ -557,6 +576,7 @@ const CarDetails = () => {
               </Card>
 
               <div className="grid grid-cols-2 gap-4 mb-6">
+                {/* Mileage */}
                 <div className="flex flex-col items-center bg-white p-3 rounded-md">
                   <GaugeCircle className="text-neutral-700 mb-1" size={20} />
                   <span className="text-sm font-medium">
@@ -567,6 +587,7 @@ const CarDetails = () => {
                   </span>
                 </div>
 
+                {/* Year of Manufacture */}
                 <div className="flex flex-col items-center bg-white p-3 rounded-md">
                   <Calendar className="text-neutral-700 mb-1" size={20} />
                   <span className="text-sm font-medium">{car.year}</span>
@@ -590,7 +611,7 @@ const CarDetails = () => {
                   </span>
                 </div>
 
-                {/* Transmission */}
+                {/* Transmission Type */}
                 <div className="flex flex-col items-center bg-white p-3 rounded-md">
                   <Settings className="text-neutral-700 mb-1" size={20} />
                   <span className="text-sm font-medium">
@@ -606,7 +627,29 @@ const CarDetails = () => {
                   </span>
                 </div>
 
-                {/* Condition */}
+                {/* Engine Size */}
+                <div className="flex flex-col items-center bg-white p-3 rounded-md">
+                  <Gauge className="text-neutral-700 mb-1" size={20} />
+                  <span className="text-sm font-medium">
+                    {engineSizeLabel} L
+                  </span>
+                  <span className="text-xs text-neutral-500">
+                    {t("car.engineCapacity")}
+                  </span>
+                </div>
+
+                {/* Cylinder Count */}
+                <div className="flex flex-col items-center bg-white p-3 rounded-md">
+                  <CircleDot className="text-neutral-700 mb-1" size={20} />
+                  <span className="text-sm font-medium">
+                    {car.cylinder_count}
+                  </span>
+                  <span className="text-xs text-neutral-500">
+                    {t("car.cylinders")}
+                  </span>
+                </div>
+
+                {/* Car Condition */}
                 <div className="flex flex-col items-center bg-white p-3 rounded-md">
                   <Wrench className="text-neutral-700 mb-1" size={20} />
                   <span className="text-sm font-medium">
@@ -621,7 +664,7 @@ const CarDetails = () => {
                   </span>
                 </div>
 
-                {/* Color */}
+                {/* Exterior Color */}
                 <div className="flex flex-col items-center bg-white p-3 rounded-md">
                   <Droplet className="text-neutral-700 mb-1" size={20} />
                   <span className="text-sm font-medium capitalize">
@@ -631,71 +674,105 @@ const CarDetails = () => {
                     {t("car.color")}
                   </span>
                 </div>
+
+                {/* Interior Color */}
+                <div className="flex flex-col items-center bg-white p-3 rounded-md">
+                  <Droplets className="text-neutral-700 mb-1" size={20} />
+                  <span className="text-sm font-medium capitalize">
+                    {car.interior_color}
+                  </span>
+                  <span className="text-xs text-neutral-500">
+                    {t("car.interiorColor")}
+                  </span>
+                </div>
+
+                {/* Tinted Windows */}
+                <div className="flex flex-col items-center bg-white p-3 rounded-md">
+                  <Sun className="text-neutral-700 mb-1" size={20} />
+                  <span className="text-sm font-medium">
+                    {car.tinted ? t("common.yes") : t("common.no")}
+                  </span>
+                  <span className="text-xs text-neutral-500">
+                    {t("car.tinted")}
+                  </span>
+                </div>
+
+                {/* Owner Type (e.g., Individual or Company) */}
+                <div className="flex flex-col items-center bg-white p-3 rounded-md">
+                  <User2 className="text-neutral-700 mb-1" size={20} />
+                  <span className="text-sm font-medium capitalize">
+                    {car.owner_type}
+                  </span>
+                  <span className="text-xs text-neutral-500">
+                    {t("car.ownerType")}
+                  </span>
+                </div>
               </div>
 
               {sellerData && sellerData?.phone && (
-                    <a href={`tel:${sellerData?.phone}`} className="w-full">
-                      <Button className="mt-2 w-full rounded-full bg-blue-900 text-white">
-                        <Phone size={16} className="mr-1" />
-                        {t("seller.callSeller")}
-                      </Button>
-                    </a>
-                  )}
-                  <Button
-                    className="mt-2 w-full rounded-full bg-orange-500"
-                    onClick={() => setContactDialogOpen(true)}
-                  >
-                    <MessageSquare size={16} className="mr-1" />
-                    {t("seller.messageSeller")}
+                <a href={`tel:${sellerData?.phone}`} className="w-full">
+                  <Button className="mt-2 w-full rounded-full bg-blue-900 text-white">
+                    <Phone size={16} className="mr-1" />
+                    {t("seller.callSeller")}
                   </Button>
-                  {sellerData?.phone && (
-                    <a
-                      href={`https://wa.me/${sellerData?.phone.replace(/\D/g, "")}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full"
-                    >
-                      <Button className="mt-2 w-full rounded-full bg-green-600 text-white hover:bg-green-700">
-                        <MessageCircle size={16} className="mr-1" />
-                        {t("showroom.chatOnWhatsApp")}
-                      </Button>
-                    </a>
-                  )}
+                </a>
+              )}
+              <Button
+                className="mt-2 w-full rounded-full bg-orange-500"
+                onClick={() => setContactDialogOpen(true)}
+              >
+                <MessageSquare size={16} className="mr-1" />
+                {t("seller.messageSeller")}
+              </Button>
+              {sellerData?.phone && (
+                <a
+                  href={`https://wa.me/${sellerData?.phone.replace(/\D/g, "")}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full"
+                >
+                  <Button className="mt-2 w-full rounded-full bg-green-600 text-white hover:bg-green-700">
+                    <MessageCircle size={16} className="mr-1" />
+                    {t("showroom.chatOnWhatsApp")}
+                  </Button>
+                </a>
+              )}
             </div>
           </div>
-
         </div>
       </div>
 
       {/* Content section */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          
           <div className="md:col-span-2">
             {/* Car details tabs */}
             <Card className="border-transparent shadow-none">
               <CardContent className="p-0">
-                 <Tabs 
-                value={selectedTab}
-                onValueChange={setSelectedTab}
-                defaultValue="description" 
-                className="w-full">
+                <Tabs
+                  value={selectedTab}
+                  onValueChange={setSelectedTab}
+                  defaultValue="description"
+                  className="w-full"
+                >
                   <TabsList className="flex flex-wrap justify-center gap-3 bg-transparent p-0">
-                    <TabsTrigger 
-                    value="description"
-                    className={`px-5 py-2 text-sm font-medium transition-all ${
-                    selectedTab === "description"
-                      ? "text-orange-500 border-b-4 border-b-orange-500 hover:font-bold"
-                      : "text-blue-900"
-                  }`}>
+                    <TabsTrigger
+                      value="description"
+                      className={`px-5 py-2 text-sm font-medium transition-all ${
+                        selectedTab === "description"
+                          ? "text-orange-500 border-b-4 border-b-orange-500 hover:font-bold"
+                          : "text-blue-900"
+                      }`}
+                    >
                       {t("car.description")}
                     </TabsTrigger>
-                    <TabsTrigger value="features"
-                    className={`px-5 py-2 text-sm font-medium transition-all ${
-                    selectedTab === "features"
-                      ? "text-orange-500 border-b-4 border-b-orange-500 hover:font-bold"
-                      : "text-blue-900"
-                  }`}
+                    <TabsTrigger
+                      value="features"
+                      className={`px-5 py-2 text-sm font-medium transition-all ${
+                        selectedTab === "features"
+                          ? "text-orange-500 border-b-4 border-b-orange-500 hover:font-bold"
+                          : "text-blue-900"
+                      }`}
                     >
                       {t("car.features")}
                     </TabsTrigger>
@@ -814,7 +891,6 @@ const CarDetails = () => {
               </CardContent>
             </Card>
           </div>
-
         </div>
       </div>
 

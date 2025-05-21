@@ -8,6 +8,7 @@ import CarBudgetCard from "./CarBudgetCard";
 import { BudgetRange } from "@shared/schema";
 import { Link } from "wouter";
 import CarYearCard from "./CarYearCard";
+import CarCapacityCard from "./CarCapacityCard";
 
 type TabType = "category" | "brand" | "budget" | "year";
 
@@ -20,6 +21,7 @@ const CarTypeTabsSection = () => {
     { key: "brand", label: t("common.brands") },
     { key: "budget", label: t("common.budget") },
     { key: "year", label: t("common.year") },
+    { key: "capacity", label: t("common.engineCapacity") },
   ];
 
   const staticBudgets: BudgetRange[] = [
@@ -48,6 +50,17 @@ const staticYears: BudgetRange[] = [
   { id: "10", name: "2023 and newer", min: 2023, max: Infinity },
 ];
 
+const engineCapacityRanges: BudgetRange[] = [
+  { id: "1", name: "Under 1.0L", min: 0, max: 0.99 },
+  { id: "2", name: "1.0L - 1.4L", min: 1.0, max: 1.4 },
+  { id: "3", name: "1.5L - 1.9L", min: 1.5, max: 1.9 },
+  { id: "4", name: "2.0L - 2.4L", min: 2.0, max: 2.4 },
+  { id: "5", name: "2.5L - 2.9L", min: 2.5, max: 2.9 },
+  { id: "6", name: "3.0L - 3.9L", min: 3.0, max: 3.9 },
+  { id: "7", name: "4.0L - 4.9L", min: 4.0, max: 4.9 },
+  { id: "8", name: "5.0L - 5.9L", min: 5.0, max: 5.9 },
+  { id: "9", name: "6.0L and above", min: 6.0, max: Infinity },
+];
 
 
   const {
@@ -114,6 +127,11 @@ const staticYears: BudgetRange[] = [
             {currentTab === "year" &&
             staticYears.map((year) => (
               <CarYearCard key={year.id} yearRange={year} />
+            ))}
+
+             {currentTab === "capacity" &&
+            engineCapacityRanges.map((capacity) => (
+              <CarCapacityCard key={capacity.id} capacity={capacity} />
             ))}
         </div>
 

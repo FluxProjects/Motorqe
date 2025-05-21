@@ -503,7 +503,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get all Car Engine Capacities
-  app.get("/api/car-carenginecapacities", async (_req, res) => {
+  app.get("/api/car-enginecapacities", async (_req, res) => {
     try {
       const carenginecapacities = await storage.getAllEngineCapacities();
       console.log("Fetched car carenginecapacities from Routes:", carenginecapacities);
@@ -796,9 +796,9 @@ app.delete("/api/engine-capacities/:id", async (req, res) => {
       }
 
       // Car Engine Capacity
-      if (req.query.car_engine_capacities && req.query.car_engine_capacities !== "all") {
+      if (req.query.engine_capacity && req.query.engine_capacity !== "all") {
         console.log("Processing car_engine_capacities filter with value:", req.query.car_engine_capacities);
-        filters.car_engine_capacities = req.query.car_engine_capacities;
+        filters.car_engine_capacities = req.query.engine_capacity;
       } else {
         console.log("No car_engine_capacities filter or 'all' selected");
       }
