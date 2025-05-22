@@ -26,13 +26,15 @@ type FormValues = {
 export function ShowroomProfileEditor({ user }: { user: User }) {
   const { t } = useTranslation();
   const auth = useAuth();
-
+console.log("inside showroom profile");
+const roleId = user?.role_id;
   const { data: showrooms = [], isLoading, refetch } = useQuery<Showroom[]>({
-    queryKey: ["user-showrooms", auth.user?.id],
-    queryFn: () =>
-      fetch(`/api/showrooms/user/${auth.user?.id}`).then((res) => res.json()),
-    enabled: !!auth.user?.id,
-  });
+  queryKey: ["user-showrooms", user.id],
+  queryFn: () =>
+    fetch(`/api/showrooms/user/${user.id}`).then((res) => res.json()),
+  enabled: !!user?.id,
+});
+
 
   const addFormMethods = useForm<FormValues>();
   const { reset } = addFormMethods;
@@ -44,7 +46,7 @@ export function ShowroomProfileEditor({ user }: { user: User }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...newData,
-          user_id: auth.user?.id,
+          user_id: user.id,
           isMainBranch: newData.isMainBranch || false,
         }),
       }).then((res) => res.json()),
@@ -75,12 +77,22 @@ export function ShowroomProfileEditor({ user }: { user: User }) {
     <Tabs defaultValue="profile" className="w-full">
       <TabsList className="grid grid-cols-3 w-[600px] mb-6">
         <TabsTrigger value="profile">{t("profile.profileInfo")}</TabsTrigger>
-        <TabsTrigger value="showroom">{t("showroom.showroomInfo")}</TabsTrigger>
+        {(Number(roleId) === 3) && (
+          <TabsTrigger value="showroom">{t("profile.dealerInfo")}</TabsTrigger>
+        )}
+        {(Number(roleId) === 4) && (
+          <TabsTrigger value="showroom">{t("profile.garageInfo")}</TabsTrigger>
+        )}
+        
         <TabsTrigger value="password">{t("profile.password")}</TabsTrigger>
       </TabsList>
 
       <TabsContent value="profile">
         <BaseProfileEditor onSubmit={() => {}} user={user} />
+      </TabsContent>
+
+      <TabsContent value="password">
+        <PasswordChangeForm userId={user.id} />
       </TabsContent>
 
       <TabsContent value="showroom">
@@ -116,9 +128,7 @@ export function ShowroomProfileEditor({ user }: { user: User }) {
         </div>
       </TabsContent>
 
-      <TabsContent value="password">
-        <PasswordChangeForm userId={user.id} />
-      </TabsContent>
+      
     </Tabs>
   );
 }

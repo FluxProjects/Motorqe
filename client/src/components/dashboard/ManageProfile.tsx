@@ -31,21 +31,26 @@ if (status === "pending" || !user) {
   );
 }
 
-  const renderEditor = () => {
-    switch (user?.role) {
-      case 'BUYER':
-      case 'SELLER':
-        return <SellerProfileEditor user={user} />;
-      case 'ADMIN':
-      case 'SUPER_ADMIN':
-        return <BaseProfileEditor user={user} />;
-      case 'DEALER':
-      case 'GARAGE':
-        return <ShowroomProfileEditor user={user} />;
-      default:
-        return <BaseProfileEditor user={user} />;
-    }
-  };
+const renderEditor = () => {
+  const roleId = user?.role_id;
+  console.log("🔍 typeof roleId:", typeof roleId, "| value:", roleId);
+
+  switch (Number(roleId)) {
+    case 1:
+    case 2:
+      return <SellerProfileEditor user={user} />;
+    case 3:
+    case 4:
+      return <ShowroomProfileEditor user={user} />;
+    case 7:
+    case 8:
+      return <BaseProfileEditor user={user} />;
+    default:
+      return <BaseProfileEditor user={user} />;
+  }
+};
+
+
 
   return (
     <div className="bg-white min-h-screen py-8">

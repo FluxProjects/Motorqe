@@ -10,7 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 export function SellerProfileEditor({ user }: { user: User }) {
   const { t } = useTranslation();
   const auth = useAuth();
-
+console.log("inside seller profile");
   const mutation = useMutation({
     mutationFn: (values: any) => 
       fetch(`/api/users/${auth.user?.id}`, {
