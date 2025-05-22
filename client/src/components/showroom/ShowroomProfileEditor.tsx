@@ -12,6 +12,7 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
+import { useEffect } from "react";
 
 type FormValues = {
   new_name: string;
@@ -28,6 +29,7 @@ export function ShowroomProfileEditor({ user }: { user: User }) {
   const auth = useAuth();
 console.log("inside showroom profile");
 const roleId = user?.role_id;
+
   const { data: showrooms = [], isLoading, refetch } = useQuery<Showroom[]>({
   queryKey: ["user-showrooms", user.id],
   queryFn: () =>
@@ -46,7 +48,7 @@ const roleId = user?.role_id;
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...newData,
-          user_id: user.id,
+          userId: user.id,
           isMainBranch: newData.isMainBranch || false,
         }),
       }).then((res) => res.json()),
@@ -71,6 +73,28 @@ const roleId = user?.role_id;
     onSuccess: () => refetch(),
   });
 
+  const updateUserMutation = useMutation({
+  mutationFn: async (updatedUser: Partial<User>) => {
+    const res = await fetch(`/api/users/${auth.user?.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updatedUser),
+    });
+
+    if (!res.ok) {
+      throw new Error("Failed to update user");
+    }
+
+    return res.json();
+  },
+  onSuccess: () => {
+    refetch(); // refetch user data
+  },
+  });
+
+  
+
+
   if (isLoading) return <p>{t("common.loading")}...</p>;
 
   return (
@@ -88,7 +112,11 @@ const roleId = user?.role_id;
       </TabsList>
 
       <TabsContent value="profile">
-        <BaseProfileEditor onSubmit={() => {}} user={user} />
+        <BaseProfileEditor onSubmit={(data) => {
+            updateUserMutation.mutate(data);
+          }}
+          user={user} 
+        />
       </TabsContent>
 
       <TabsContent value="password">
@@ -146,12 +174,12 @@ function ShowroomEditCard({
   const methods = useForm({
     defaultValues: {
       name: showroom.name ?? "",
-      nameAr: showroom.nameAr ?? "",
+      nameAr: showroom.name_ar ?? "",
       address: showroom.address ?? "",
-      addressAr: showroom.addressAr ?? "",
+      addressAr: showroom.address_ar ?? "",
       location: showroom.location ?? "",
       phone: showroom.phone ?? "",
-      isMainBranch: showroom.isMainBranch ?? false,
+      isMainBranch: showroom.is_main_branch ?? false,
     },
   });
 

@@ -88,7 +88,7 @@ export function SpecsStep({ data, updateData, nextStep, prevStep }: StepProps) {
         <Select
           value={formData.makeId}
           onValueChange={(value) => {
-            setFormData((prev) => ({ ...prev, makeId: value, modelId: "" }));
+            setFormData((prev) => ({ ...prev, makeId: value }));
           }}
         >
           <SelectTrigger>

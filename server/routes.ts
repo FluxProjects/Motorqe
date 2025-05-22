@@ -5,7 +5,7 @@ import { notificationService } from "./services/notification";
 import { paymentService } from "./services/payment";
 import { generateOTP, generateToken, hashPassword, loginUser, registerUser, verifyPassword } from "./services/auth";
 import { verifyToken } from "./services/auth";
-import { ShowroomService } from "@shared/schema";
+import { InsertShowroom, ShowroomService } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize database with dummy data
@@ -482,6 +482,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Failed to fetch showroom car listings:", error);
       res.status(500).json({ message: "Failed to fetch showroom car listings", error });
+    }
+  });
+
+  // POST create showroom
+  app.post("/api/showrooms", async (req, res) => {
+  try {
+    // Ensure user is authenticated
+    const showroomData: InsertShowroom = {
+      ...req.body,
+      userId: req.body.userId // Get user ID from authenticated session
+    };
+
+    const newShowroom = await storage.createShowroom(showroomData);
+    res.status(201).json(newShowroom);
+  } catch (error) {
+    console.error("Showroom creation error:", error);
+    res.status(500).json({ message: "Failed to create showroom", error });
+  }
+});
+
+  // PUT update showroom
+  app.put("/api/showrooms/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updates: Partial<InsertShowroom> = req.body;
+      const updatedShowroom = await storage.updateShowroom(Number(id), updates);
+      
+      if (!updatedShowroom) {
+        return res.status(404).json({ message: "Showroom not found" });
+      }
+      
+      res.json(updatedShowroom);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update showroom", error });
+    }
+  });
+
+  // DELETE showroom
+  app.delete("/api/showrooms/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteShowroom(Number(id));
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete showroom", error });
     }
   });
 

@@ -476,6 +476,9 @@
     "saveAsDraft": "Save As Draft",
     "publishListing": "Publish Listing",
     "location": "Location",
+    "cylinderCount":"Cylinder Count",
+    "days": "Days",
+    "interiorColor":"Interior Color",
     "origin": "Origin",
     "local":"Local",
     "imported":"Imported",
@@ -845,6 +848,7 @@
   },
   "services": {
     "description": "Description",
+    "noFeatured" : "No Featured Services Available",
     "availableFor": "Available For",
     "specifications": "Specifications",
     "serviceName": "Service Name",
@@ -882,7 +886,11 @@
     "firstName": "First Name",
     "lastName": "Last Name",
     "email": "Email",
-    "phone": "Phone Number"
+    "phone": "Phone Number",
+    "emailNotifications": "Email Notifications",
+  "enterEmail": "Enter Email",
+  "smsNotifications": "SMS Notifications",
+  "enterPhone": "Enter Phone"
   },
   "bookings": {
     "manageServiceBookings": "Manage Service Bookings",
