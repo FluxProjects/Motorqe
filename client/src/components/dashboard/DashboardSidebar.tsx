@@ -16,135 +16,114 @@ const DashboardSidebar = ({ type }: SidebarProps) => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const [location] = useLocation();
-  
-   // Map Role (string) to Links
-   const linksMapping: Record<Role, { href: string; label: string; icon: string }[]> = {
-  BUYER: [
-    { href: '/buyer-dashboard', label: t('common.dashboard'), icon: 'ri-dashboard-line' },
-    { href: '/buyer-dashboard/favourites', label: t('common.myFavourites'), icon: 'ri-heart-line' },  // updated icon
-    { href: '/buyer-dashboard/messages', label: t('common.messages'), icon: 'ri-mail-line' },  // updated icon
-    { href: '/buyer-dashboard/settings', label: t('common.settings'), icon: 'ri-settings-2-line' },  // updated icon
-    { href: '/buyer-dashboard/profile', label: t('common.profile'), icon: 'ri-user-2-line' },  // updated icon
-  ],
-  SELLER: [
-    { href: '/seller-dashboard', label: t('common.dashboard'), icon: 'ri-dashboard-line' },
-    { href: '/seller-dashboard/listings', label: t('seller.myListings'), icon: 'ri-car-fill' },  // updated icon
-    { href: '/seller-dashboard/favourites', label: t('seller.myFavourites'), icon: 'ri-heart-line' },  // updated icon
-    { href: '/seller-dashboard/messages', label: t('common.messages'), icon: 'ri-mail-line' },  // updated icon
-    { href: '/seller-dashboard/settings', label: t('common.settings'), icon: 'ri-settings-2-line' },  // updated icon
-    { href: '/seller-dashboard/profile', label: t('common.profile'), icon: 'ri-user-2-line' },  // updated icon
-  ],
-  DEALER: [
-    { href: '/showroom-dashboard', label: t('common.dashboard'), icon: 'ri-dashboard-line' },
-    { href: '/showroom-dashboard/listings', label: t('showroom.manageListings'), icon: 'ri-car-fill' },  // updated icon
-    { href: '/showroom-dashboard/favourites', label: t('showroom.myFavourites'), icon: 'ri-heart-line' },  // updated icon
-    { href: '/showroom-dashboard/messages', label: t('showroom.messages'), icon: 'ri-mail-line' },  // updated icon
-    { href: '/showroom-dashboard/settings', label: t('showroom.settings'), icon: 'ri-settings-2-line' },  // updated icon
-    { href: '/showroom-dashboard/profile', label: t('showroom.profile'), icon: 'ri-user-2-line' },  // updated icon
-  ],
-  GARAGE: [
-    { href: '/showroom-dashboard', label: t('showroom.dashboard'), icon: 'ri-dashboard-line' },
-    { href: '/showroom-dashboard/servicelistings', label: t('admin.manageServiceListings'), icon: 'ri-service-line' },  // updated icon
-    { href: '/showroom-dashboard/servicebookings', label: t('admin.manageServiceBookings'), icon: 'ri-service-line' },  // updated icon
-    { href: '/showroom-dashboard/favourites', label: t('buyer.myFavourites'), icon: 'ri-heart-line' },  // updated icon
-    { href: '/showroom-dashboard/messages', label: t('showroom.messages'), icon: 'ri-mail-line' },  // updated icon
-    { href: '/showroom-dashboard/settings', label: t('showroom.settings'), icon: 'ri-settings-2-line' },  // updated icon
-    { href: '/showroom-dashboard/profile', label: t('showroom.profile'), icon: 'ri-user-2-line' },  // updated icon
-  ],
-  MODERATOR: [
-    { href: '/admin', label: t('common.dashboard'), icon: 'ri-dashboard-line' },
-    { href: '/admin/listings', label: t('admin.manageListings'), icon: 'ri-car-fill' },  // updated icon
-    { href: '/admin/servicelistings', label: t('admin.manageServiceListings'), icon: 'ri-service-line' },  // updated icon
-    { href: '/admin/servicebookings', label: t('admin.manageServiceBookings'), icon: 'ri-service-line' },  // updated icon
-    { href: '/admin/messages', label: t('admin.manageMessages'), icon: 'ri-mail-line' },  // updated icon
-    { href: '/admin/profile', label: t('common.profile'), icon: 'ri-user-2-line' },  // updated icon
-  ],
-  SENIOR_MODERATOR: [
-    { href: '/admin', label: t('common.dashboard'), icon: 'ri-dashboard-line' },
-    { href: '/admin/listings', label: t('admin.manageListings'), icon: 'ri-car-fill' },  // updated icon
-    { href: '/admin/servicelistings', label: t('admin.manageServiceListings'), icon: 'ri-service-line' },  // updated icon
-    { href: '/admin/servicebookings', label: t('admin.manageServiceBookings'), icon: 'ri-service-line' },  // updated icon
-    { href: '/admin/messages', label: t('admin.manageMessages'), icon: 'ri-mail-line' },  // updated icon
-    { href: '/admin/profile', label: t('common.profile'), icon: 'ri-user-2-line' },  // updated icon
-  ],
-  ADMIN: [
-    { href: '/admin', label: t('common.dashboard'), icon: 'ri-dashboard-line' },
-    { href: '/admin/listings', label: t('admin.manageListings'), icon: 'ri-car-fill' },  // updated icon
-    { href: '/admin/servicelistings', label: t('admin.manageServiceListings'), icon: 'ri-service-line' },  // updated icon
-    { href: '/admin/servicebookings', label: t('admin.manageServiceBookings'), icon: 'ri-service-line' },  // updated icon
-    { href: '/admin/messages', label: t('admin.manageMessages'), icon: 'ri-mail-line' },  // updated icon
-    { href: '/admin/users', label: t('admin.manageUsers'), icon: 'ri-user-2-line' },  // updated icon
-    { href: '/admin/settings', label: t('admin.siteSettings'), icon: 'ri-settings-2-line' },  // updated icon
-    { href: '/admin/content', label: t('admin.cms'), icon: 'ri-pages-line' },  // updated icon
-    { href: '/admin/profile', label: t('common.profile'), icon: 'ri-user-2-line' },  // updated icon
-  ],
-  SUPER_ADMIN: [
-    { href: '/admin', label: t('common.dashboard'), icon: 'ri-dashboard-line' },
-    { href: '/admin/listings', label: t('admin.manageListings'), icon: 'ri-car-fill' },  // updated icon
-    { href: '/admin/servicelistings', label: t('admin.manageServiceListings'), icon: 'ri-service-line' },  // updated icon
-    { href: '/admin/servicebookings', label: t('admin.manageServiceBookings'), icon: 'ri-service-line' },  // updated icon
-    { href: '/admin/messages', label: t('admin.manageMessages'), icon: 'ri-mail-line' },  // updated icon
-    { href: '/admin/users', label: t('admin.manageUsers'), icon: 'ri-user-2-line' },  // updated icon
-    { href: '/admin/settings', label: t('admin.siteSettings'), icon: 'ri-settings-2-line' },  // updated icon
-    { href: '/admin/content', label: t('admin.cms'), icon: 'ri-pages-line' },  // updated icon
-    { href: '/admin/profile', label: t('common.profile'), icon: 'ri-user-2-line' },  // updated icon
-  ],
-};
 
-
-  //const role = roleMapping[user.roleId] ?? 'BUYER'; // fallback if invalid
   const role = roleMapping?.[Number(user?.roleId)] ?? null;
 
+  const linksMapping: Record<Role, { href: string; label: string; icon: string }[]> = {
+    BUYER: [
+      { href: '/buyer-dashboard', label: t('common.dashboard'), icon: 'ri-dashboard-line' },
+      { href: '/buyer-dashboard/favourites', label: t('common.myFavourites'), icon: 'ri-heart-line' },
+      { href: '/buyer-dashboard/messages', label: t('common.messages'), icon: 'ri-mail-line' },
+      { href: '/buyer-dashboard/settings', label: t('common.settings'), icon: 'ri-settings-2-line' },
+      { href: '/buyer-dashboard/profile', label: t('common.profile'), icon: 'ri-user-2-line' },
+    ],
+    SELLER: [
+      { href: '/seller-dashboard', label: t('common.dashboard'), icon: 'ri-dashboard-line' },
+      { href: '/seller-dashboard/listings', label: t('seller.myListings'), icon: 'ri-car-fill' },
+      { href: '/seller-dashboard/favourites', label: t('seller.myFavourites'), icon: 'ri-heart-line' },
+      { href: '/seller-dashboard/messages', label: t('common.messages'), icon: 'ri-mail-line' },
+      { href: '/seller-dashboard/settings', label: t('common.settings'), icon: 'ri-settings-2-line' },
+      { href: '/seller-dashboard/profile', label: t('common.profile'), icon: 'ri-user-2-line' },
+    ],
+    DEALER: [
+      { href: '/showroom-dashboard', label: t('common.dashboard'), icon: 'ri-dashboard-line' },
+      { href: '/showroom-dashboard/listings', label: t('showroom.manageListings'), icon: 'ri-car-fill' },
+      { href: '/showroom-dashboard/favourites', label: t('showroom.myFavourites'), icon: 'ri-heart-line' },
+      { href: '/showroom-dashboard/messages', label: t('showroom.messages'), icon: 'ri-mail-line' },
+      { href: '/showroom-dashboard/settings', label: t('showroom.settings'), icon: 'ri-settings-2-line' },
+      { href: '/showroom-dashboard/profile', label: t('showroom.profile'), icon: 'ri-user-2-line' },
+    ],
+    GARAGE: [
+      { href: '/showroom-dashboard', label: t('showroom.dashboard'), icon: 'ri-dashboard-line' },
+      { href: '/showroom-dashboard/servicelistings', label: t('admin.manageServiceListings'), icon: 'ri-service-line' },
+      { href: '/showroom-dashboard/servicebookings', label: t('admin.manageServiceBookings'), icon: 'ri-service-line' },
+      { href: '/showroom-dashboard/favourites', label: t('buyer.myFavourites'), icon: 'ri-heart-line' },
+      { href: '/showroom-dashboard/messages', label: t('showroom.messages'), icon: 'ri-mail-line' },
+      { href: '/showroom-dashboard/settings', label: t('showroom.settings'), icon: 'ri-settings-2-line' },
+      { href: '/showroom-dashboard/profile', label: t('showroom.profile'), icon: 'ri-user-2-line' },
+    ],
+    MODERATOR: [
+      { href: '/admin', label: t('common.dashboard'), icon: 'ri-dashboard-line' },
+      { href: '/admin/listings', label: t('admin.manageListings'), icon: 'ri-car-fill' },
+      { href: '/admin/servicelistings', label: t('admin.manageServiceListings'), icon: 'ri-service-line' },
+      { href: '/admin/servicebookings', label: t('admin.manageServiceBookings'), icon: 'ri-service-line' },
+      { href: '/admin/messages', label: t('admin.manageMessages'), icon: 'ri-mail-line' },
+      { href: '/admin/profile', label: t('common.profile'), icon: 'ri-user-2-line' },
+    ],
+    SENIOR_MODERATOR: [
+      { href: '/admin', label: t('common.dashboard'), icon: 'ri-dashboard-line' },
+      { href: '/admin/listings', label: t('admin.manageListings'), icon: 'ri-car-fill' },
+      { href: '/admin/servicelistings', label: t('admin.manageServiceListings'), icon: 'ri-service-line' },
+      { href: '/admin/servicebookings', label: t('admin.manageServiceBookings'), icon: 'ri-service-line' },
+      { href: '/admin/messages', label: t('admin.manageMessages'), icon: 'ri-mail-line' },
+      { href: '/admin/profile', label: t('common.profile'), icon: 'ri-user-2-line' },
+    ],
+    ADMIN: [
+      { href: '/admin', label: t('common.dashboard'), icon: 'ri-dashboard-line' },
+      { href: '/admin/listings', label: t('admin.manageListings'), icon: 'ri-car-fill' },
+      { href: '/admin/servicelistings', label: t('admin.manageServiceListings'), icon: 'ri-service-line' },
+      { href: '/admin/servicebookings', label: t('admin.manageServiceBookings'), icon: 'ri-service-line' },
+      { href: '/admin/messages', label: t('admin.manageMessages'), icon: 'ri-mail-line' },
+      { href: '/admin/users', label: t('admin.manageUsers'), icon: 'ri-user-2-line' },
+      { href: '/admin/settings', label: t('admin.siteSettings'), icon: 'ri-settings-2-line' },
+      { href: '/admin/content', label: t('admin.cms'), icon: 'ri-pages-line' },
+      { href: '/admin/profile', label: t('common.profile'), icon: 'ri-user-2-line' },
+    ],
+    SUPER_ADMIN: [
+      { href: '/admin', label: t('common.dashboard'), icon: 'ri-dashboard-line' },
+      { href: '/admin/listings', label: t('admin.manageListings'), icon: 'ri-car-fill' },
+      { href: '/admin/servicelistings', label: t('admin.manageServiceListings'), icon: 'ri-service-line' },
+      { href: '/admin/servicebookings', label: t('admin.manageServiceBookings'), icon: 'ri-service-line' },
+      { href: '/admin/messages', label: t('admin.manageMessages'), icon: 'ri-mail-line' },
+      { href: '/admin/users', label: t('admin.manageUsers'), icon: 'ri-user-2-line' },
+      { href: '/admin/settings', label: t('admin.siteSettings'), icon: 'ri-settings-2-line' },
+      { href: '/admin/content', label: t('admin.cms'), icon: 'ri-pages-line' },
+      { href: '/admin/profile', label: t('common.profile'), icon: 'ri-user-2-line' },
+    ],
+  };
 
-  const links = linksMapping[role];
+  const links = linksMapping?.[role];
 
   const getBackgroundColor = () => {
     switch (type) {
-      case 'BUYER':
-        return 'bg-neutral-50';
-      case 'SELLER':
-        return 'bg-neutral-900 text-white';
-      case 'DEALER':
-        return 'bg-blue-900 text-white';
-      case 'GARAGE':
-        return 'bg-green-900 text-white';
+      case 'BUYER': return 'bg-neutral-50';
+      case 'SELLER': return 'bg-neutral-900 text-white';
+      case 'DEALER': return 'bg-blue-900 text-white';
+      case 'GARAGE': return 'bg-green-900 text-white';
       case 'MODERATOR':
       case 'SENIOR_MODERATOR':
       case 'ADMIN':
-      case 'SUPER_ADMIN':
-        return 'bg-orange-900 text-white';
-      default:
-        return 'bg-blue-900';
+      case 'SUPER_ADMIN': return 'bg-orange-900 text-white';
+      default: return 'bg-blue-900';
     }
   };
 
   const getLinkStyles = (isActive: boolean) => {
-    const baseStyles = "flex items-center px-3 py-2 rounded-md group";
-
-    if (isActive) {
-      return cn(baseStyles, "bg-primary text-white");
-    }
-
+    const base = "flex items-center px-3 py-2 rounded-md group";
+    if (isActive) return cn(base, "bg-primary text-white");
     switch (type) {
-      case 'BUYER':
-        return cn(baseStyles, "text-neutral-700 hover:bg-neutral-100");
-      case 'SELLER':
-        return cn(baseStyles, "text-white hover:bg-neutral-500");
-      case 'DEALER':
-        return cn(baseStyles, "text-white hover:bg-blue-500");
-      case 'GARAGE':
-        return cn(baseStyles, "text-white hover:bg-green-500");
+      case 'BUYER': return cn(base, "text-neutral-700 hover:bg-neutral-100");
+      case 'SELLER': return cn(base, "text-white hover:bg-neutral-500");
+      case 'DEALER': return cn(base, "text-white hover:bg-blue-500");
+      case 'GARAGE': return cn(base, "text-white hover:bg-green-500");
       case 'MODERATOR':
       case 'SENIOR_MODERATOR':
       case 'ADMIN':
-      case 'SUPER_ADMIN':
-        return cn(baseStyles, "text-white hover:bg-orange-500");
-      default:
-        return cn(baseStyles, "text-white hover:bg-blue-500");
+      case 'SUPER_ADMIN': return cn(base, "text-white hover:bg-orange-500");
+      default: return cn(base, "text-white hover:bg-blue-500");
     }
   };
 
-  
   return (
     <div className={`p-6 ${getBackgroundColor()} ${type === 'ADMIN' ? 'min-h-screen' : ''}`}>
       <div className="flex items-center space-x-3 mb-8">
@@ -157,29 +136,23 @@ const DashboardSidebar = ({ type }: SidebarProps) => {
             {user?.firstName || user?.username || 'User'}
           </h3>
           <p className={`text-sm ${type === 'BUYER' ? 'text-white' : 'text-neutral-50'}`}>
-            {type === 'BUYER' 
-              ? t('common.buyerDashboard')
-              : type === 'SELLER'
-                ? t('common.sellerDashboard')
-                : type === 'DEALER'
-                  ? t('common.showroomDashboard')
-                  : t('common.adminDashboard')
-            }
+            {role}
           </p>
         </div>
       </div>
-      
-      <nav className="space-y-1">
-      {(links || []).map((link) => (
-          <Link 
-            key={link.href} 
-            href={link.href}
-            className={getLinkStyles(location === link.href)}
-          >
-            <i className={`${link.icon} mr-3 text-lg`}></i>
-            <span>{link.label}</span>
-          </Link>
-        ))}
+
+      <nav className="space-y-2">
+        {links?.map(link => {
+          const isActive = location === link.href;
+          return (
+            <Link href={link.href} key={link.href}>
+              <a className={getLinkStyles(isActive)}>
+                <i className={`${link.icon} mr-2 text-lg`} />
+                {link.label}
+              </a>
+            </Link>
+          );
+        })}
       </nav>
     </div>
   );

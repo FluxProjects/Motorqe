@@ -52,13 +52,24 @@ import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { CarListing, Message } from '@shared/schema';
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { useAuth } from '@/contexts/AuthContext';
 
 const ShowroomDashboard = () => {
   const { t } = useTranslation();
   const { toast } = useToast();
+  const auth = useAuth();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [listingToDelete, setListingToDelete] = useState<number | null>(null);
   
+    const { data: user, status, refetch, error, isError } = useQuery({
+    queryKey: ['user', auth.user?.id],
+    queryFn: async () => {
+      const res = await fetch(`/api/users/${auth.user?.id}`);
+      if (!res.ok) throw new Error('Failed to fetch user');
+      return res.json();
+    },
+    enabled: !!auth.user?.id,
+  });
   // Fetch seller listings
   const { 
     data: listings = [],
@@ -312,12 +323,21 @@ const ShowroomDashboard = () => {
                             <p className="text-neutral-500 mb-4">
                               {t('seller.startSellingDesc')}
                             </p>
-                            <Link href="/sell-car">
-                              <Button>
-                                <PlusCircle className="mr-2 h-4 w-4" />
-                                {t('seller.addNewListing')}
-                              </Button>
-                            </Link>
+                           {user?.role_id === 3 ? (
+                              <Link href="/sell-car">
+                                <Button type="button">
+                                  <PlusCircle className="mr-2 h-4 w-4" />
+                                  {t('seller.addNewListing')}
+                                </Button>
+                              </Link>
+                            ) : user?.role_id === 4 ? (
+                              <Link href="/sell-service">
+                                <Button type="button">
+                                  <PlusCircle className="mr-2 h-4 w-4" />
+                                  {t('garage.addNewService')}
+                                </Button>
+                              </Link>
+                            ) : null}
                           </div>
                         )}
                       </CardContent>
