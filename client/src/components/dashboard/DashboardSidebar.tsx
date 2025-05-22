@@ -38,8 +38,7 @@ const DashboardSidebar = ({ type }: SidebarProps) => {
     DEALER: [
       { href: '/showroom-dashboard', label: t('common.dashboard'), icon: 'ri-dashboard-line' },
       { href: '/showroom-dashboard/listings', label: t('showroom.manageListings'), icon: 'ri-car-fill' },
-      { href: '/showroom-dashboard/favourites', label: t('showroom.myFavourites'), icon: 'ri-heart-line' },
-      { href: '/showroom-dashboard/messages', label: t('showroom.messages'), icon: 'ri-mail-line' },
+       { href: '/showroom-dashboard/messages', label: t('showroom.messages'), icon: 'ri-mail-line' },
       { href: '/showroom-dashboard/settings', label: t('showroom.settings'), icon: 'ri-settings-2-line' },
       { href: '/showroom-dashboard/profile', label: t('showroom.profile'), icon: 'ri-user-2-line' },
     ],
@@ -47,7 +46,6 @@ const DashboardSidebar = ({ type }: SidebarProps) => {
       { href: '/showroom-dashboard', label: t('showroom.dashboard'), icon: 'ri-dashboard-line' },
       { href: '/showroom-dashboard/servicelistings', label: t('admin.manageServiceListings'), icon: 'ri-service-line' },
       { href: '/showroom-dashboard/servicebookings', label: t('admin.manageServiceBookings'), icon: 'ri-service-line' },
-      { href: '/showroom-dashboard/favourites', label: t('buyer.myFavourites'), icon: 'ri-heart-line' },
       { href: '/showroom-dashboard/messages', label: t('showroom.messages'), icon: 'ri-mail-line' },
       { href: '/showroom-dashboard/settings', label: t('showroom.settings'), icon: 'ri-settings-2-line' },
       { href: '/showroom-dashboard/profile', label: t('showroom.profile'), icon: 'ri-user-2-line' },
