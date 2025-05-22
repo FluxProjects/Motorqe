@@ -8,7 +8,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Eye, MoreHorizontal, Star, Check, X, Wrench } from "lucide-react";
+import { Eye, MoreHorizontal, Star, Check, X, Wrench, Pencil } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { ShowroomService } from "@shared/schema";
 import { TableCell, TableRow } from "@/components/ui/table";
@@ -103,13 +103,16 @@ export const ServiceListingRows = ({
                 {t("common.edit")}
               </DropdownMenuItem>
 
-              <DropdownMenuItem
-                className="hover:bg-slate-700 focus:bg-slate-700"
-                onClick={() => handleAction(service, service.isFeatured ? 'unfeature' : 'feature')}
-              >
-                <Star className="mr-2 h-4 w-4 text-yellow-500" />
-                {service.isFeatured ? t("services.unfeature") : t("services.feature")}
-              </DropdownMenuItem>
+              {!service.isFeatured && (
+                <DropdownMenuItem
+                  className="hover:bg-slate-700 focus:bg-slate-700"
+                  onClick={() => handleAction(service, 'feature')}
+                >
+                  <Star className="mr-2 h-4 w-4 text-yellow-500" />
+                  {t("services.feature")}
+                </DropdownMenuItem>
+              )}
+
 
               <DropdownMenuItem
                 className="hover:bg-slate-700 focus:bg-slate-700"

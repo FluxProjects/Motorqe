@@ -63,10 +63,10 @@ export const useServiceListingManage = () => {
       const res = await fetch(`/api/showroom/services?${searchParams.toString()}`);
       if (!res.ok) throw new Error("Failed to fetch services");
       
-      const services = await res;
-      
-      console.log("service in use hooks", services);
-      return services;
+      const services = await res.json(); // ✅ Parse JSON here
+    console.log("services in useQuery:", services);
+
+    return services; 
       
       // Fetch related service and showroom data
       // const enrichedServices = await Promise.all(
