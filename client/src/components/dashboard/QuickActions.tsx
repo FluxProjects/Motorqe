@@ -11,7 +11,7 @@ export function QuickActions() {
 
   const actions = {
     seller: [
-      { icon: <Plus size={16} />, label: t('actions.newListing'), href: "/sell" },
+      { icon: <Plus size={16} />, label: t('actions.newListing'), href: "/sell-car" },
       { icon: <MessageSquare size={16} />, label: t('actions.messages'), href: "/messages" },
     ],
     buyer: [

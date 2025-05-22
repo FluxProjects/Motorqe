@@ -197,7 +197,7 @@ const SellerDashboard = () => {
                   <h2 className="text-2xl font-bold">
                     {t("common.sellerDashboard")}
                   </h2>
-                  <Link href="/sell">
+                  <Link href="/sell-car">
                     <Button>
                       <PlusCircle className="mr-2 h-4 w-4" />
                       {t("seller.addNewListing")}
@@ -350,7 +350,7 @@ const SellerDashboard = () => {
                             <p className="text-neutral-500 mb-4">
                               {t("seller.startSellingDesc")}
                             </p>
-                            <Link href="/sell">
+                            <Link href="/sell-car">
                               <Button>
                                 <PlusCircle className="mr-2 h-4 w-4" />
                                 {t("seller.addNewListing")}

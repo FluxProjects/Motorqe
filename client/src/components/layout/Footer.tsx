@@ -106,7 +106,7 @@ const Footer = () => {
       <Link href="/browse">{t("common.browseCars")}</Link>
     </li>
     <li>
-      <Link href="/sell">{t("common.sellCar")}</Link>
+      <Link href="/sell-car">{t("common.sellCar")}</Link>
     </li>
 
     {/* First 2 dynamic pages */}

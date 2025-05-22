@@ -184,7 +184,7 @@ const ShowroomDashboard = () => {
               <div className="flex-1 p-6">
                 <div className="flex justify-between items-center mb-6">
                   <h2 className="text-2xl font-bold">{t('common.showroomDashboard')}</h2>
-                  <Link href="/sell">
+                  <Link href="/sell-car">
                     <Button>
                       <PlusCircle className="mr-2 h-4 w-4" />
                       {t('seller.addNewListing')}
@@ -312,7 +312,7 @@ const ShowroomDashboard = () => {
                             <p className="text-neutral-500 mb-4">
                               {t('seller.startSellingDesc')}
                             </p>
-                            <Link href="/sell">
+                            <Link href="/sell-car">
                               <Button>
                                 <PlusCircle className="mr-2 h-4 w-4" />
                                 {t('seller.addNewListing')}
