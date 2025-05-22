@@ -4,6 +4,7 @@ import { useLocation } from "wouter";
 import { ListingFormData, AdminCarListing } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { roleMapping } from "@shared/permissions";
+import { Cylinder } from "lucide-react";
 
 interface MutationVariables {
   formData: ListingFormData;
@@ -43,20 +44,33 @@ export const useListingFormHandler = (onSuccess?: () => void) => {
         title: formData.basicInfo?.title,
         title_ar: formData.basicInfo?.title,
         description: formData.basicInfo?.description,
+        description_ar: formData.basicInfo?.descriptionAr,
         price: formData.basicInfo?.price,
-        location: formData.basicInfo?.location,
-        is_imported: formData.basicInfo?.isImported,
-        category_id: formData.specifications?.categoryId,
+        year: formData.specifications?.year,
+
         make_id: formData.specifications?.makeId,
         model_id: formData.specifications?.modelId,
-        year: formData.specifications?.year,
+        category_id: formData.specifications?.categoryId,
+
         mileage: formData.specifications?.mileage,
         fuel_type: formData.specifications?.fuelType,
         transmission: formData.specifications?.transmission,
+        engine_capacity_id: formData.specifications?.engineCapacityId,
+        Cylinder_count: formData.specifications?.cylinderCount,
+        
         color: formData.specifications?.color,
+        interior_color: formData.specifications?.interiorColor,
+        tinted: formData.specifications?.tinted,
+
+        location: formData.basicInfo?.location,
         condition: formData.specifications?.condition,
+
         images: formData.media ?? [],
+
+        owner_type:  formData.specifications?.ownerType,
         featureIds: formData.features?.map((id: string) => Number(id)) ?? [],
+        is_imported: formData.specifications?.isImported,        
+        
         user_id: user?.id,
         package_id: formData.package?.packageId
           ? Number(formData.package.packageId)
@@ -102,7 +116,7 @@ export const useListingFormHandler = (onSuccess?: () => void) => {
         navigate("/seller-dashboard/listings");
       } else if (role === "ADMIN" || role === "SUPER_ADMIN") {
         navigate("/admin/listings");
-      } else if (role === "SHOWROOM_BASIC" || role === "SHOWROOM_PREMIUM") {
+      } else if (role === "DEALER" || role === "GARAGE") {
         navigate("/showroom-dashboard/listings");
       }
 

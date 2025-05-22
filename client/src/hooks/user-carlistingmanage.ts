@@ -116,7 +116,7 @@ export const useCarListingManage = () => {
             }
 
             // For sellers and showrooms, only fetch their own listings
-            if (roleName === "SELLER" || roleName === "SHOWROOM_BASIC" || roleName === "SHOWROOM_PREMIUM") {
+            if (roleName === "SELLER" || roleName === "DEALER" || roleName === "GARAGE") {
                 console.log("User Id is this:", user?.id);
                 searchParams.append("user_id", user?.id);
             }
@@ -430,7 +430,7 @@ export const useCarListingManage = () => {
                     roleName === "SUPER_ADMIN" ||
                     roleName === "ADMIN" ||
                     (roleName === "SELLER" && hasPermission(roleName, Permission.MANAGE_OWN_LISTINGS)) ||
-                    (roleName.startsWith("SHOWROOM") && hasPermission(roleName, Permission.MANAGE_SHOWROOM_LISTINGS))
+                    (roleName.startsWith("DEALER") && hasPermission(roleName, Permission.MANAGE_SHOWROOM_LISTINGS))
                 ) {
                     await apiRequest("PUT", `/api/car-listings/${id}/actions`, {
                         action,
@@ -448,7 +448,7 @@ export const useCarListingManage = () => {
                     roleName === "SUPER_ADMIN" ||
                     roleName === "ADMIN" ||
                     (roleName === "SELLER" && hasPermission(roleName, Permission.MANAGE_OWN_LISTINGS)) ||
-                    (roleName.startsWith("SHOWROOM") && hasPermission(roleName, Permission.MANAGE_SHOWROOM_LISTINGS))
+                    (roleName.startsWith("DEALER") && hasPermission(roleName, Permission.MANAGE_SHOWROOM_LISTINGS))
                 ) {
                     await apiRequest("DELETE", `/api/car-listings/${id}`, {});
                     return action;

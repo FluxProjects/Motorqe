@@ -60,28 +60,31 @@ export const useServiceListingManage = () => {
         searchParams.append("showroom_id", filters.showroomId);
       }
 
-      const res = await fetch(`/api/showroom-services?${searchParams.toString()}`);
+      const res = await fetch(`/api/showroom/services?${searchParams.toString()}`);
       if (!res.ok) throw new Error("Failed to fetch services");
       
-      const services = await res.json();
+      const services = await res;
+      
+      console.log("service in use hooks", services);
+      return services;
       
       // Fetch related service and showroom data
-      const enrichedServices = await Promise.all(
-        services.map(async (service: any) => {
-          const [carService, showroom] = await Promise.all([
-            fetch(`/api/car-services/${service.service_id}`).then(res => res.ok ? res.json() : null),
-            fetch(`/api/showrooms/${service.showroom_id}`).then(res => res.ok ? res.json() : null),
-          ]);
+      // const enrichedServices = await Promise.all(
+      //   services.map(async (service: any) => {
+      //     const [carService, showroom] = await Promise.all([
+      //       fetch(`/api/car-services/${service.service_id}`).then(res => res.ok ? res.json() : null),
+      //       fetch(`/api/showrooms/${service.showroom_id}`).then(res => res.ok ? res.json() : null),
+      //     ]);
           
-          return {
-            ...service,
-            service: carService,
-            showroom,
-          };
-        })
-      );
+      //     return {
+      //       ...service,
+      //       service: carService,
+      //       showroom,
+      //     };
+      //   })
+      // );
 
-      return enrichedServices;
+      // return enrichedServices;
     },
   });
 
@@ -121,8 +124,8 @@ export const useServiceListingManage = () => {
 
       const method = action === "delete" ? "DELETE" : "PUT";
       const endpoint = action === "delete" 
-        ? `/api/showroom-services/${id}`
-        : `/api/showroom-services/${id}/${endpointMap[action]}`;
+        ? `/api/showroom/services/${id}`
+        : `/api/showroom/services/${id}/${endpointMap[action]}`;
 
       const response = await apiRequest(method, endpoint);
 

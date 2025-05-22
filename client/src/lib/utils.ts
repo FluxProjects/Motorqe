@@ -12,8 +12,8 @@ export const getDashboardPathForRole = (role: Role): string => {
       return "/buyer-dashboard";
     case "SELLER":
       return "/seller-dashboard";
-    case "SHOWROOM_BASIC":
-    case "SHOWROOM_PREMIUM":
+    case "DEALER":
+    case "GARAGE":
       return "/showroom-dashboard";
     case "MODERATOR":
     case "SENIOR_MODERATOR":

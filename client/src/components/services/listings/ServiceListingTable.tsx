@@ -40,7 +40,7 @@ export const ServiceListingTable = ({
     <Table>
       <TableHeader>
         <TableRow className="bg-neutral-500 hover:bg-neutral-700 border-neutral-50">
-          <TableHead className="text-white">{t("services.service")}</TableHead>
+          <TableHead className="text-white">{t("services.serviceName")}</TableHead>
           <TableHead className="text-white">{t("services.description")}</TableHead>
           <TableHead className="text-white">{t("services.price")}</TableHead>
           <TableHead className="text-white">{t("services.showroom")}</TableHead>
@@ -50,7 +50,8 @@ export const ServiceListingTable = ({
         </TableRow>
       </TableHeader>
       <TableBody>
-        {services.map((service) => (
+        {Array.isArray(services) &&
+  services.map((service) => (
           <TableRow key={service.id} className="hover:bg-neutral-50">
             <TableCell>
               <div className="flex items-center gap-2 font-medium">
@@ -107,7 +108,7 @@ export const ServiceListingTable = ({
                   {t("common.edit")}
                 </button>
                 <button 
-                  onClick={() => handleAction(service, service.isFeatured ? 'unfeature' : 'feature')}
+                  onClick={() => handleAction(service, service.isFeatured ? "deactivate": "activate")}
                   className="text-yellow-600 hover:text-yellow-800"
                 >
                   {service.isFeatured ? t("services.unfeature") : t("services.feature")}

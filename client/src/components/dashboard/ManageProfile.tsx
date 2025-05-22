@@ -39,8 +39,8 @@ if (status === "pending" || !user) {
       case 'ADMIN':
       case 'SUPER_ADMIN':
         return <BaseProfileEditor user={user} />;
-      case 'SHOWROOM_BASIC':
-      case 'SHOWROOM_PREMIUM':
+      case 'DEALER':
+      case 'GARAGE':
         return <ShowroomProfileEditor user={user} />;
       default:
         return <BaseProfileEditor user={user} />;

@@ -6,17 +6,17 @@ interface StatCardProps {
   title: string;
   value: string | number;
   icon: string;
-  type: 'buyer' | 'seller' | 'showroom' | 'admin';
+  type: 'garage' | 'seller' | 'dealer' | 'admin';
 }
 
 const StatCard = ({ title, value, icon, type }: StatCardProps) => {
   const getBgColor = () => {
     switch (type) {
-      case 'buyer':
+      case 'garage':
         return 'bg-neutral-50';
       case 'seller':
         return 'bg-neutral-50';
-      case 'showroom':
+      case 'dealer':
         return 'bg-teal-50';
       case 'admin':
         return 'bg-slate-800';
@@ -27,11 +27,11 @@ const StatCard = ({ title, value, icon, type }: StatCardProps) => {
 
   const getIconBgColor = () => {
     switch (type) {
-      case 'buyer':
+      case 'garage':
         return 'bg-primary-light text-primary';
       case 'seller':
         return 'bg-primary-light text-primary';
-      case 'showroom':
+      case 'dealer':
         return 'bg-teal-500 text-white';
       case 'admin':
         return 'bg-slate-700 text-blue-400';
@@ -42,11 +42,11 @@ const StatCard = ({ title, value, icon, type }: StatCardProps) => {
 
   const getBorderColor = () => {
     switch (type) {
-      case 'buyer':
+      case 'garage':
         return 'border-neutral-200';
       case 'seller':
         return 'border-neutral-200';
-      case 'showroom':
+      case 'dealer':
         return 'border-teal-500';
       case 'admin':
         return 'border-slate-700';
@@ -57,11 +57,11 @@ const StatCard = ({ title, value, icon, type }: StatCardProps) => {
 
   const getTextColor = () => {
     switch (type) {
-      case 'buyer':
+      case 'garage':
         return 'text-neutral-600';
       case 'seller':
         return 'text-neutral-600';
-      case 'showroom':
+      case 'dealer':
         return 'text-teal-700';
       case 'admin':
         return 'text-slate-400';
@@ -72,11 +72,11 @@ const StatCard = ({ title, value, icon, type }: StatCardProps) => {
 
   const getValueColor = () => {
     switch (type) {
-      case 'buyer':
+      case 'garage':
         return 'text-neutral-900';
       case 'seller':
         return 'text-neutral-900';
-      case 'showroom':
+      case 'dealer':
         return 'text-teal-900';
       case 'admin':
         return 'text-white';
@@ -101,7 +101,7 @@ const StatCard = ({ title, value, icon, type }: StatCardProps) => {
 };
 
 interface DashboardStatsProps {
-  type: 'buyer' | 'seller' | 'admin' | 'showroom';
+  type: 'garage' | 'seller' | 'admin' | 'dealer';
   stats: Array<{
     title: string;
     value: string | number;
@@ -115,7 +115,7 @@ const DashboardStats = ({ type, stats }: DashboardStatsProps) => {
   const direction = language === 'ar' ? 'rtl' : 'ltr';
 
   return (
-    <div className={`grid grid-cols-1 ${type === 'admin' ? 'md:grid-cols-4' : type === 'showroom' ? 'md:grid-cols-3' : 'md:grid-cols-3'} gap-6 mb-8`}>
+    <div className={`grid grid-cols-1 ${type === 'admin' ? 'md:grid-cols-4' : type === 'dealer' ? 'md:grid-cols-3' : 'md:grid-cols-3'} gap-6 mb-8`}>
       {stats.map((stat, index) => (
         <StatCard
           key={index}

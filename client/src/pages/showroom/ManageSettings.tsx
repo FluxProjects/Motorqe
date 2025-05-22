@@ -120,7 +120,7 @@ const ManageSettings = () => {
             {/* Admin Sidebar */}
             <div className="hidden md:block">
               {user?.roleId && (
-                <DashboardSidebar type={roleMapping[user.roleId] || "SHOWROOM"} />
+                <DashboardSidebar type={roleMapping[user.roleId] || "DEALER"} />
               )}
             </div>
 

@@ -443,6 +443,7 @@ export const showroomServices = pgTable("showroom_services", {
   descriptionAr: text("description_ar"),              // Service description in Arabic
   isFeatured: boolean("is_featured").default(false),  // Featured listing flag
   isActive: boolean("is_active").default(true),
+  status: text("status").default("draft").notNull().$type<"draft" | "pending" | "active" | "sold" | "expired" | "rejected">(),
 });
 
 export const insertShowroomServiceSchema = createInsertSchema(showroomServices).pick({
@@ -454,6 +455,7 @@ export const insertShowroomServiceSchema = createInsertSchema(showroomServices).
   descriptionAr: true,
   isFeatured: true,
   isActive: true,
+  status: true,
 });
 
 export type InsertShowroomService = z.infer<typeof insertShowroomServiceSchema>;
@@ -1030,21 +1032,32 @@ export type ListingFormData = {
   basicInfo?: {
     title: string;
     description?: string;
+    descriptionAr?: string;
     location?: string;
     price?: string;
-    isImported?: boolean;
     currency?: string;
   };
   specifications?: {
-    categoryId?: string;
+    year?: string;
+
     makeId?: string;
     modelId?: string;
-    year?: string;
+    categoryId?: string;
+    
     mileage?: string;
     fuelType?: string;
     transmission?: string;
+    engineCapacityId?: string;
+    cylinderCount?: string;
+
     color?: string;
+    interiorColor?: string;
+    tinted?: string;
+
     condition?: string;
+
+    ownerType?: string;
+    isImported?: string;
   };
   features?: string[];
   media?: File[] | string[]; // Files before upload or URLs after upload
@@ -1362,6 +1375,7 @@ export interface AdminServiceListing {
   descriptionAr?: string;
   isFeatured: boolean;
   isActive: boolean;
+  status: string;
   createdAt: string;
   updatedAt?: string;
   
@@ -1384,6 +1398,12 @@ export interface AdminServiceListing {
     contactNumber?: string;
     logo?: string;
   };
+  package_id?: number;
+  package_name?: string;
+  package_price?: string;
+  duration_days?: number;
+  start_date?: Date;
+  end_date?: Date;
 }
 
 export type ServiceListingAction = 'feature' | 'activate' | 'deactivate' | 'delete';

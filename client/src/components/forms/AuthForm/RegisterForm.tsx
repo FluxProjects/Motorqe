@@ -65,19 +65,10 @@ export const RegisterForm = ({ form, onSubmit, isSubmitting }: RegisterFormProps
         <Controller
           name="role"
           control={form?.control}
-          defaultValue="BUYER"
+          defaultValue="SELLER"
           render={({ field }) => (
             <div role="radiogroup" className="gap-2 flex space-x-4">
-              <div className="flex items-center space-x-2">
-                <input
-                  type="radio"
-                  id="buyer"
-                  {...field}
-                  checked={field.value === "BUYER"}
-                  onChange={() => field.onChange("BUYER")}
-                />
-                <Label htmlFor="buyer">Buyer</Label>
-              </div>
+              
               <div className="flex items-center space-x-2">
                 <input
                   type="radio"
@@ -86,17 +77,29 @@ export const RegisterForm = ({ form, onSubmit, isSubmitting }: RegisterFormProps
                   checked={field.value === "SELLER"}
                   onChange={() => field.onChange("SELLER")}
                 />
-                <Label htmlFor="seller">Seller</Label>
+                <Label htmlFor="seller">Private Seller</Label>
               </div>
+
               <div className="flex items-center space-x-2">
                 <input
                   type="radio"
-                  id="showroom"
+                  id="dealer"
                   {...field}
-                  checked={field.value === "SHOWROOM_BASIC"}
-                  onChange={() => field.onChange("SHOWROOM_BASIC")}
+                  checked={field.value === "DEALER"}
+                  onChange={() => field.onChange("DEALER")}
                 />
-                <Label htmlFor="showroom">Showroom</Label>
+                <Label htmlFor="dealer">DEALER</Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <input
+                  type="radio"
+                  id="GARAGE"
+                  {...field}
+                  checked={field.value === "GARAGE"}
+                  onChange={() => field.onChange("GARAGE")}
+                />
+                <Label htmlFor="garage">GARAGE</Label>
               </div>
             </div>
           )}

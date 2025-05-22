@@ -74,7 +74,7 @@ export const useServiceBookingManage = () => {
       const enrichedBookings = await Promise.all(
         bookings.map(async (booking: any) => {
           const [service, customer] = await Promise.all([
-            fetch(`/api/showroom-services/${booking.service_id}`).then(res => res.ok ? res.json() : null),
+            fetch(`/api/showroom/services/${booking.service_id}`).then(res => res.ok ? res.json() : null),
             fetch(`/api/users/${booking.user_id}`).then(res => res.ok ? res.json() : null),
           ]);
           

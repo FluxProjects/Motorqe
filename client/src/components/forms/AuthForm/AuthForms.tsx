@@ -269,8 +269,8 @@ export const AuthForms = ({
       const dashboardByRole = {
         BUYER: "/buyer-dashboard",
         SELLER: "/seller-dashboard",
-        SHOWROOM_BASIC: "/showroom-dashboard",
-        SHOWROOM_PREMIUM: "/showroom-dashboard",
+        DEALER: "/showroom-dashboard",
+        GARAGE: "/showroom-dashboard",
         MODERATOR: "/admin",
         ADMIN: "/admin",
         SUPER_ADMIN: "/admin",

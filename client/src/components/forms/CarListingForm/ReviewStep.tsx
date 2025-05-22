@@ -34,6 +34,11 @@ export function ReviewStep({
     enabled: !!formData.specifications?.makeId,
   });
 
+  const { data: engineCapacities = [] } = useQuery({
+    queryKey: ["/api/car-enginecapacities"],
+    queryFn: () => fetch("/api/car-enginecapacities").then((res) => res.json()),
+  });
+
   const { data: features = [] } = useQuery({
     queryKey: ["car-features"],
     queryFn: () => fetch("/api/car-features").then((res) => res.json()),
@@ -64,6 +69,10 @@ export function ReviewStep({
     (m: any) => String(m.id) === formData.specifications?.modelId
   );
 
+  const selectedEngineCapacity = engineCapacities.find(
+    (c: any) => String(c.id) === formData.specifications?.engineCapacityId
+  );
+
   const selectedFeatures = features.filter((f) =>
     (formData.features as string[]).includes(String(f.id))
   );
@@ -72,7 +81,10 @@ export function ReviewStep({
     <div className="space-y-6">
       {/* Basic Info */}
       <div className="space-y-4">
-        <h3 className="font-medium">{t("listing.basicInfo")}</h3>
+        <h3 className="text-lg font-semibold text-blue-900 border-b pb-1">
+  {t("listing.basicInfo")}
+</h3>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <Label>{t("listing.title")}</Label>
@@ -100,9 +112,9 @@ export function ReviewStep({
           <div>
             <Label>{t("listing.origin")}</Label>
             <p className="font-medium">
-              {formData.basicInfo?.isImported === true
+              {formData.specifications?.isImported === "true"
                 ? t("listing.imported")
-                : formData.basicInfo?.isImported === false
+                : formData.specifications?.isImported === "false"
                 ? t("listing.local")
                 : t("listing.notSpecified")}
             </p>
@@ -119,7 +131,10 @@ export function ReviewStep({
 
       {/* Specifications */}
       <div className="space-y-4">
-        <h3 className="font-medium">{t("listing.specifications")}</h3>
+        <h3 className="text-lg font-semibold text-blue-900 border-b pb-1">
+  {t("listing.specifications")}
+</h3>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <Label>{t("listing.category")}</Label>
@@ -159,15 +174,39 @@ export function ReviewStep({
             </p>
           </div>
           <div>
+          <Label>{t("listing.engineCapacity")}</Label>
+          <p>
+            {selectedEngineCapacity?.size_liters
+              ? `${selectedEngineCapacity.size_liters} L`
+              : t("listing.notSpecified")}
+          </p>
+        </div>
+        <div>
+          <Label>{t("listing.cylinderCount")}</Label>
+          <p>{formData.specifications?.cylinderCount}</p>
+        </div>
+          <div>
             <Label>{t("listing.color")}</Label>
             <p>{formData.specifications?.color || t("listing.notSpecified")}</p>
           </div>
+          <div>
+          <Label>{t("listing.interiorColor")}</Label>
+          <p>{formData.specifications?.interiorColor}</p>
         </div>
+        <div>
+          <Label>{t("listing.tinted")}</Label>
+          <p>{formData.specifications?.tinted}</p>
+        </div>
+        </div>
+        
       </div>
 
       {/* Features */}
       <div className="space-y-4">
-        <h3 className="font-medium">{t("listing.features")}</h3>
+        <h3 className="text-lg font-semibold text-blue-900 border-b pb-1">
+  {t("listing.features")}
+</h3>
+
         {selectedFeatures && selectedFeatures.length > 0 ? (
           <div className="flex flex-wrap gap-2">
             {selectedFeatures.map((feature: any) => (
@@ -187,7 +226,10 @@ export function ReviewStep({
       {/* Promotion Package */}
       {promotionPackage && (
         <div className="space-y-4">
-          <h3 className="font-medium">{t("listing.promotionPackage")}</h3>
+          <h3 className="text-lg font-semibold text-blue-900 border-b pb-1">
+  {t("listing.promotionPackage")}
+</h3>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label>{t("listing.packageName")}</Label>

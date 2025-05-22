@@ -34,19 +34,16 @@ const DashboardSidebar = ({ type }: SidebarProps) => {
     { href: '/seller-dashboard/settings', label: t('common.settings'), icon: 'ri-settings-2-line' },  // updated icon
     { href: '/seller-dashboard/profile', label: t('common.profile'), icon: 'ri-user-2-line' },  // updated icon
   ],
-  SHOWROOM_BASIC: [
+  DEALER: [
     { href: '/showroom-dashboard', label: t('common.dashboard'), icon: 'ri-dashboard-line' },
     { href: '/showroom-dashboard/listings', label: t('showroom.manageListings'), icon: 'ri-car-fill' },  // updated icon
-    { href: '/showroom-dashboard/servicelistings', label: t('showroom.manageServiceListings'), icon: 'ri-service-line' },  // updated icon
-    { href: '/showroom-dashboard/servicebookings', label: t('showroom.manageServiceBookings'), icon: 'ri-service-line' },  // updated icon
     { href: '/showroom-dashboard/favourites', label: t('showroom.myFavourites'), icon: 'ri-heart-line' },  // updated icon
     { href: '/showroom-dashboard/messages', label: t('showroom.messages'), icon: 'ri-mail-line' },  // updated icon
     { href: '/showroom-dashboard/settings', label: t('showroom.settings'), icon: 'ri-settings-2-line' },  // updated icon
     { href: '/showroom-dashboard/profile', label: t('showroom.profile'), icon: 'ri-user-2-line' },  // updated icon
   ],
-  SHOWROOM_PREMIUM: [
+  GARAGE: [
     { href: '/showroom-dashboard', label: t('showroom.dashboard'), icon: 'ri-dashboard-line' },
-    { href: '/showroom-dashboard/listings', label: t('admin.manageListings'), icon: 'ri-car-fill' },  // updated icon
     { href: '/showroom-dashboard/servicelistings', label: t('admin.manageServiceListings'), icon: 'ri-service-line' },  // updated icon
     { href: '/showroom-dashboard/servicebookings', label: t('admin.manageServiceBookings'), icon: 'ri-service-line' },  // updated icon
     { href: '/showroom-dashboard/favourites', label: t('buyer.myFavourites'), icon: 'ri-heart-line' },  // updated icon
@@ -85,6 +82,7 @@ const DashboardSidebar = ({ type }: SidebarProps) => {
     { href: '/admin', label: t('common.dashboard'), icon: 'ri-dashboard-line' },
     { href: '/admin/listings', label: t('admin.manageListings'), icon: 'ri-car-fill' },  // updated icon
     { href: '/admin/servicelistings', label: t('admin.manageServiceListings'), icon: 'ri-service-line' },  // updated icon
+    { href: '/admin/servicebookings', label: t('admin.manageServiceBookings'), icon: 'ri-service-line' },  // updated icon
     { href: '/admin/messages', label: t('admin.manageMessages'), icon: 'ri-mail-line' },  // updated icon
     { href: '/admin/users', label: t('admin.manageUsers'), icon: 'ri-user-2-line' },  // updated icon
     { href: '/admin/settings', label: t('admin.siteSettings'), icon: 'ri-settings-2-line' },  // updated icon
@@ -105,17 +103,18 @@ const DashboardSidebar = ({ type }: SidebarProps) => {
       case 'BUYER':
         return 'bg-neutral-50';
       case 'SELLER':
-        return 'bg-neutral-800 text-white';
-      case 'SHOWROOM_BASIC':
-      case 'SHOWROOM_PREMIUM':
-        return 'bg-green-800 text-white';
+        return 'bg-neutral-900 text-white';
+      case 'DEALER':
+        return 'bg-blue-900 text-white';
+      case 'GARAGE':
+        return 'bg-green-900 text-white';
       case 'MODERATOR':
       case 'SENIOR_MODERATOR':
       case 'ADMIN':
       case 'SUPER_ADMIN':
-        return 'bg-slate-900 text-white';
+        return 'bg-orange-900 text-white';
       default:
-        return 'bg-neutral-50';
+        return 'bg-blue-900';
     }
   };
 
@@ -130,17 +129,18 @@ const DashboardSidebar = ({ type }: SidebarProps) => {
       case 'BUYER':
         return cn(baseStyles, "text-neutral-700 hover:bg-neutral-100");
       case 'SELLER':
-        return cn(baseStyles, "text-neutral-300 hover:bg-neutral-700");
-      case 'SHOWROOM_BASIC':
-      case 'SHOWROOM_PREMIUM':
-        return cn(baseStyles, "text-neutral-300 hover:bg-green-700");
+        return cn(baseStyles, "text-white hover:bg-neutral-500");
+      case 'DEALER':
+        return cn(baseStyles, "text-white hover:bg-blue-500");
+      case 'GARAGE':
+        return cn(baseStyles, "text-white hover:bg-green-500");
       case 'MODERATOR':
       case 'SENIOR_MODERATOR':
       case 'ADMIN':
       case 'SUPER_ADMIN':
-        return cn(baseStyles, "text-neutral-300 hover:bg-slate-800");
+        return cn(baseStyles, "text-white hover:bg-orange-500");
       default:
-        return cn(baseStyles, "text-neutral-700 hover:bg-neutral-100");
+        return cn(baseStyles, "text-white hover:bg-blue-500");
     }
   };
 
@@ -156,12 +156,12 @@ const DashboardSidebar = ({ type }: SidebarProps) => {
           <h3 className={`font-medium ${type !== 'BUYER' ? 'text-white' : ''}`}>
             {user?.firstName || user?.username || 'User'}
           </h3>
-          <p className={`text-sm ${type === 'BUYER' ? 'text-neutral-500' : 'text-neutral-400'}`}>
+          <p className={`text-sm ${type === 'BUYER' ? 'text-white' : 'text-neutral-50'}`}>
             {type === 'BUYER' 
               ? t('common.buyerDashboard')
               : type === 'SELLER'
                 ? t('common.sellerDashboard')
-                : type === 'SHOWROOM_BASIC'
+                : type === 'DEALER'
                   ? t('common.showroomDashboard')
                   : t('common.adminDashboard')
             }

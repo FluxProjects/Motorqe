@@ -129,11 +129,11 @@ const ManageMessages = () => {
     const fields: Record<UserRole, JSX.Element[]> = {
       BUYER: [],
       SELLER: [],
-      SHOWROOM_BASIC: [
+      DEALER: [
         renderInput("showroomName", t("profile.showroomName")),
         renderInput("showroomLocation", t("profile.showroomLocation")),
       ],
-      SHOWROOM_PREMIUM: [
+      GARAGE: [
         renderInput("showroomName", t("profile.showroomName")),
         renderInput("showroomLocation", t("profile.showroomLocation")),
       ],

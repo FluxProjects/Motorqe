@@ -70,25 +70,6 @@ export const Permission = {
 // -------------------------------
 
 
-const SHOWROOM_BASIC = [
-  Permission.CREATE_SHOWROOM_PROFILE,
-  Permission.MANAGE_SHOWROOM_LISTINGS,
-  Permission.ACCESS_SHOWROOM_ANALYTICS,
-  Permission.MANAGE_SHOWROOM_PROFILE,
-  Permission.RESPOND_TO_INQUIRIES,
-  Permission.BROWSE_LISTINGS,
-  Permission.CREATE_LISTINGS,
-  Permission.MANAGE_OWN_LISTINGS,
-  Permission.MANAGE_SELLER_PROFILE,
-  Permission.SAVE_FAVORITES,
-  Permission.MANAGE_SHOWROOM_SERVICES,
-  Permission.CREATE_SERVICES,
-  Permission.MANAGE_OWN_SERVICES,
-  Permission.CREATE_BOOKINGS,
-  Permission.MANAGE_SERVICE_BOOKINGS,
-  Permission.MANAGE_OWN_BOOKINGS,
-];
-
 const MODERATOR_BASIC = [
   Permission.APPROVE_LISTINGS,
   Permission.FLAG_INAPPROPRIATE,
@@ -127,16 +108,37 @@ export const Roles: Record<Role, readonly PermissionType[]> = {
   ],
 
   // Showroom Roles
-  SHOWROOM_BASIC,
-
-  SHOWROOM_PREMIUM: [
-    ...SHOWROOM_BASIC,
+  DEALER: [
+    Permission.CREATE_SHOWROOM_PROFILE,
+    Permission.MANAGE_SHOWROOM_LISTINGS,
+    Permission.ACCESS_SHOWROOM_ANALYTICS,
+    Permission.MANAGE_SHOWROOM_PROFILE,
+    Permission.RESPOND_TO_INQUIRIES,
+    Permission.BROWSE_LISTINGS,
+    Permission.CREATE_LISTINGS,
     Permission.MANAGE_OWN_LISTINGS,
     Permission.VIEW_LISTING_ANALYTICS,
+    Permission.MANAGE_SELLER_PROFILE,
+    Permission.SAVE_FAVORITES,
+    
+  ],
+
+  GARAGE: [
+    Permission.CREATE_SHOWROOM_PROFILE,
+    Permission.ACCESS_SHOWROOM_ANALYTICS,
+    Permission.MANAGE_SHOWROOM_PROFILE,
+    Permission.RESPOND_TO_INQUIRIES,
     Permission.USE_BULK_UPLOAD,
     Permission.CREATE_PROMOTIONS,
     Permission.VERIFIED_SELLER_BADGE,
     Permission.MANAGE_SHOWROOM_STAFF,
+    Permission.MANAGE_SHOWROOM_SERVICES,
+    Permission.CREATE_SERVICES,
+    Permission.MANAGE_OWN_SERVICES,
+    Permission.CREATE_BOOKINGS,
+    Permission.MANAGE_SERVICE_BOOKINGS,
+    Permission.MANAGE_OWN_BOOKINGS,
+    Permission.SAVE_FAVORITES,
   ],
 
   // Moderator Roles
@@ -177,8 +179,8 @@ export const Roles: Record<Role, readonly PermissionType[]> = {
 export const roleSchema = z.enum([
   "BUYER",
   "SELLER",
-  "SHOWROOM_BASIC",
-  "SHOWROOM_PREMIUM",
+  "DEALER",
+  "GARAGE",
   "MODERATOR",
   "SENIOR_MODERATOR",
   "ADMIN",
@@ -192,8 +194,8 @@ export type PermissionType = typeof Permission[keyof typeof Permission];
 export const roleMapping: Record<number, Role> = {
   1: "BUYER", // roleId 1 maps to 'BUYER'
   2: "SELLER", // roleId 2 maps to 'SELLER'
-  3: "SHOWROOM_BASIC", // roleId 3 maps to 'SHOWROOM_BASIC'
-  4: "SHOWROOM_PREMIUM", // roleId 4 maps to 'SHOWROOM_PREMIUM'
+  3: "DEALER", // roleId 3 maps to 'DEALER'
+  4: "GARAGE", // roleId 4 maps to 'GARAGE'
   5: "MODERATOR", // roleId 5 maps to 'MODERATOR'
   6: "SENIOR_MODERATOR", // roleId 6 maps to 'SENIOR_MODERATOR'
   7: "ADMIN", // roleId 7 maps to 'ADMIN'

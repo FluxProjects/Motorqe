@@ -96,8 +96,8 @@ const Header = ({ openAuthModal }: HeaderProps) => {
         return "/buyer-dashboard";
       case 2: // SELLER
         return "/seller-dashboard";
-      case 3: // SHOWROOM_BASIC
-      case 4: // SHOWROOM_PREMIUM
+      case 3: // DEALER
+      case 4: // GARAGE
         return "/showroom-dashboard";
       case 5: // MODERATOR
       case 6: // SENIOR_MODERATOR
@@ -121,8 +121,8 @@ const Header = ({ openAuthModal }: HeaderProps) => {
         return "/seller-dashboard/profile";
       case 1: // BUYER
         return "/buyer-dashboard/profile";
-      case 3: // SHOWROOM_BASIC
-      case 4: // SHOWROOM_PREMIUM
+      case 3: // DEALER
+      case 4: // GARAGE
         return "/showroom-dashboard/profile";
       default:
         return "/profile";
@@ -141,8 +141,8 @@ const Header = ({ openAuthModal }: HeaderProps) => {
         return "/seller-dashboard/messages";
       case 1: // BUYER
         return "/buyer-dashboard/messages";
-      case 3: // SHOWROOM_BASIC
-      case 4: // SHOWROOM_PREMIUM
+      case 3: // DEALER
+      case 4: // GARAGE
         return "/showroom-dashboard/messages";
       default:
         return "/messages";

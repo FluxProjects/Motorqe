@@ -10,21 +10,38 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
-import { CarCategory, CarMake, CarModel } from "@shared/schema";
+import {
+  CarCategory,
+  CarEngineCapacity,
+  CarMake,
+  CarModel,
+} from "@shared/schema";
 import { StepProps } from "@shared/schema";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 
 export function SpecsStep({ data, updateData, nextStep, prevStep }: StepProps) {
   const [formData, setFormData] = useState({
-    categoryId: data?.specifications?.categoryId || "",
+    year: data?.specifications?.year || "",
+
     makeId: data?.specifications?.makeId || "",
     modelId: data?.specifications?.modelId || "",
-    year: data?.specifications?.year || "",
+    categoryId: data?.specifications?.categoryId || "",
+
     mileage: data?.specifications?.mileage || "",
     fuelType: data?.specifications?.fuelType || "",
     transmission: data?.specifications?.transmission || "",
+    engineCapacityId: data.specifications?.engineCapacityId || "",
+    cylinderCount: data.specifications?.cylinderCount || "",
+
     color: data?.specifications?.color || "",
+    interiorColor: data?.specifications?.interiorColor || "",
+    tinted: data.specifications?.tinted || "",
+
     condition: data?.specifications?.condition || "used",
+
+    isImported: data?.specifications?.isImported || "",
+
+    ownerType: data?.specifications?.ownerType || "",
   });
 
   const { data: categories = [] } = useQuery<CarCategory[]>({
@@ -46,57 +63,48 @@ export function SpecsStep({ data, updateData, nextStep, prevStep }: StepProps) {
     enabled: !!formData.makeId,
   });
 
+  const { data: carEngineCapacities = [] } = useQuery<CarEngineCapacity[]>({
+    queryKey: ["/api/car-enginecapacities"], // Changed to a more standard key
+  });
+
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
+    console.log("specs data", formData);
     e.preventDefault();
     updateData({ specifications: formData });
     nextStep();
   };
 
   useEffect(() => {
-  if (
-    formData.makeId &&
-    models?.length &&
-    !formData.modelId
-  ) {
-    setFormData((prev) => ({
-      ...prev,
-      modelId: models[0].id.toString(),
-    }));
-  }
-}, [formData.makeId, models]);
+    if (formData.makeId && models?.length && !formData.modelId) {
+      setFormData((prev) => ({
+        ...prev,
+        modelId: models[0].id.toString(),
+      }));
+    }
+  }, [formData.makeId, models]);
 
+  const colorOptions = [
+    "Black",
+    "White",
+    "Silver",
+    "Gray",
+    "Red",
+    "Blue",
+    "Green",
+    "Yellow",
+    "Gold",
+    "Brown",
+  ];
 
   return (
     <form
       onSubmit={handleSubmit}
       className="grid grid-cols-1 md:grid-cols-2 gap-4"
     >
-      {/* Category */}
-      <div>
-        <Label>Category*</Label>
-        <Select
-          value={formData.categoryId}
-          onValueChange={(value) => {
-            setFormData((prev) => ({ ...prev, categoryId: value }));
-          }}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select Category" />
-          </SelectTrigger>
-          <SelectContent>
-            {categories?.map((cat) => (
-              <SelectItem key={cat.id} value={cat.id.toString()}>
-                {cat.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
       {/* Make */}
       <div>
         <Label>Make*</Label>
@@ -140,14 +148,53 @@ export function SpecsStep({ data, updateData, nextStep, prevStep }: StepProps) {
         </Select>
       </div>
 
+      {/* Category */}
+      <div>
+        <Label>Category*</Label>
+        <Select
+          value={formData.categoryId}
+          onValueChange={(value) => {
+            setFormData((prev) => ({ ...prev, categoryId: value }));
+          }}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select Category" />
+          </SelectTrigger>
+          <SelectContent>
+            {categories?.map((cat) => (
+              <SelectItem key={cat.id} value={cat.id.toString()}>
+                {cat.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
       {/* Year */}
       <div>
-        <Label>Year</Label>
+        <Label htmlFor="year">Year*</Label>
         <Input
+          id="year"
           type="number"
           placeholder="e.g., 2021"
           value={formData.year}
-          onChange={(e) => handleChange("year", e.target.value)}
+          onChange={(e) => {
+            const value = e.target.value;
+            // Allow empty string or max 4 digits
+            if (/^\d{0,4}$/.test(value)) {
+              handleChange("year", value);
+            }
+          }}
+          onBlur={(e) => {
+            const year = parseInt(e.target.value);
+            if (year < 1900 || year > new Date().getFullYear()) {
+              // Optionally reset or clamp
+              handleChange("year", "");
+            }
+          }}
+          className="rounded-lg border px-3 py-2 shadow-sm"
+          min={1900}
+          max={new Date().getFullYear()}
         />
       </div>
 
@@ -199,15 +246,102 @@ export function SpecsStep({ data, updateData, nextStep, prevStep }: StepProps) {
         </Select>
       </div>
 
+      {/* Engine Capacity ID */}
+      <div>
+        <Label>Engine Capacity</Label>
+        <Select
+          value={formData.engineCapacityId}
+          onValueChange={(value) => handleChange("engineCapacityId", value)}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select engine size" />
+          </SelectTrigger>
+          <SelectContent>
+            {carEngineCapacities?.map((cap) => (
+              <SelectItem key={cap.id} value={cap.id.toString()}>
+                {cap.size_liters}L
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Cylinder Count */}
+      <div>
+        <Label>Cylinder Count</Label>
+        <Input
+          type="number"
+          placeholder="e.g., 4"
+          value={formData.cylinderCount}
+          onChange={(e) => handleChange("cylinderCount", e.target.value)}
+        />
+      </div>
+
       {/* Color */}
       <div>
         <Label>Color</Label>
-        <Input
-          type="text"
-          placeholder="e.g., Red"
+        <Select
           value={formData.color}
-          onChange={(e) => handleChange("color", e.target.value)}
-        />
+          onValueChange={(value) => handleChange("color", value)}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select exterior color" />
+          </SelectTrigger>
+          <SelectContent>
+            {colorOptions.map((color) => (
+              <SelectItem key={color} value={color}>
+                {color}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Interior Color */}
+      <div>
+        <Label>Interior Color</Label>
+        <Select
+          value={formData.interiorColor}
+          onValueChange={(value) => handleChange("interiorColor", value)}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select interior color" />
+          </SelectTrigger>
+          <SelectContent>
+            {colorOptions.map((color) => (
+              <SelectItem key={color} value={color}>
+                {color}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Tinted */}
+      <div>
+        <Label>Tinted</Label>
+        <div className="flex items-center gap-4 mt-2">
+          <label className="flex items-center gap-1">
+            <input
+              type="radio"
+              name="tinted"
+              value="true"
+              checked={formData.tinted === "true"}
+              onChange={(e) => handleChange("tinted", e.target.value)}
+            />
+            Yes
+          </label>
+          <label className="flex items-center gap-1">
+            <input
+              type="radio"
+              name="tinted"
+              value="false"
+              checked={formData.tinted === "false"}
+              onChange={(e) => handleChange("tinted", e.target.value)}
+            />
+            No
+          </label>
+        </div>
       </div>
 
       {/* Condition */}
@@ -223,24 +357,69 @@ export function SpecsStep({ data, updateData, nextStep, prevStep }: StepProps) {
           <SelectContent>
             <SelectItem value="used">Used</SelectItem>
             <SelectItem value="new">New</SelectItem>
-            <SelectItem value="certified">Certified Pre-Owned</SelectItem>
+            <SelectItem value="scrap">Scrap</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Is Imported */}
+      <div>
+        <Label>Is Imported</Label>
+        <div className="flex items-center gap-4 mt-2">
+          <label className="flex items-center gap-1">
+            <input
+              type="radio"
+              name="isImported"
+              value="true"
+              checked={formData.isImported === "true"}
+              onChange={(e) => handleChange("isImported", e.target.value)}
+            />
+            Yes
+          </label>
+          <label className="flex items-center gap-1">
+            <input
+              type="radio"
+              name="isImported"
+              value="false"
+              checked={formData.isImported === "false"}
+              onChange={(e) => handleChange("isImported", e.target.value)}
+            />
+            No
+          </label>
+        </div>
+      </div>
+
+      {/* Owner Type */}
+      <div>
+        <Label>Owner Type</Label>
+        <Select
+          value={formData.ownerType}
+          onValueChange={(value) => handleChange("ownerType", value)}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select owner type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="first">First</SelectItem>
+            <SelectItem value="second">Second</SelectItem>
+            <SelectItem value="third">Third</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       {/* Navigation buttons */}
       <div className="md:col-span-2 flex justify-between pt-4">
-        <Button 
-        className="bg-blue-900 flex items-center gap-2"
-        type="button" 
-        onClick={prevStep}>
+        <Button
+          className="bg-blue-900 flex items-center gap-2"
+          type="button"
+          onClick={prevStep}
+        >
           <ArrowLeft className="w-4 h-4" />
           Back
         </Button>
-        <Button 
-        className="bg-orange-500 flex items-center gap-2"
-        type="submit">Next: Features
-        <ArrowRight className="w-4 h-4" />
+        <Button className="bg-orange-500 flex items-center gap-2" type="submit">
+          Next: Features
+          <ArrowRight className="w-4 h-4" />
         </Button>
       </div>
     </form>

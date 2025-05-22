@@ -426,8 +426,8 @@ CREATE TABLE car_engine_capacities (
 INSERT INTO roles (id, name, name_ar, description, created_at, updated_at) VALUES
 (1, 'BUYER', 'مشتري', 'Can browse and purchase cars.', NOW(), NOW()),
 (2, 'SELLER', 'بائع', 'Can list and sell cars.', NOW(), NOW()),
-(3, 'SHOWROOM_BASIC', 'معرض - أساسي', 'Basic showroom features.', NOW(), NOW()),
-(4, 'SHOWROOM_PREMIUM', 'معرض - مميز', 'Premium showroom features.', NOW(), NOW()),
+(3, 'DEALER', 'معرض - أساسي', 'Basic showroom features.', NOW(), NOW()),
+(4, 'GARAGE', 'معرض - مميز', 'Premium showroom features.', NOW(), NOW()),
 (5, 'MODERATOR', 'مشرف', 'Moderates content.', NOW(), NOW()),
 (6, 'SENIOR_MODERATOR', 'مشرف أول', 'Senior moderator with more permissions.', NOW(), NOW()),
 (7, 'ADMIN', 'مشرف عام', 'Admin role.', NOW(), NOW()),
@@ -441,14 +441,14 @@ INSERT INTO users (
 ) VALUES
 (1, 'buyer_user', 'buyer@example.com', 'hashed_password', 'Buyer', 'User', 'BUYER', true, '2025-04-27 09:37:07.228727', 1, '1234567890', true, true, NULL, NULL, 'active'),
 (2, 'seller_user', 'seller@example.com', 'hashed_password', 'Seller', 'User', 'SELLER', true, '2025-04-27 09:37:07.228727', 2, '1234567891', true, true, NULL, NULL, 'active'),
-(3, 'showroom_basic_user', 'showroom_basic@example.com', 'hashed_password', 'Showroom', 'Basic', 'SHOWROOM_BASIC', true, '2025-04-27 09:37:07.228727', 3, '1234567892', true, true, NULL, NULL, 'active'),
-(4, 'showroom_premium_user', 'showroom_premium@example.com', 'hashed_password', 'Showroom', 'Premium', 'SHOWROOM_PREMIUM', true, '2025-04-27 09:37:07.228727', 4, '1234567893', true, true, NULL, NULL, 'active'),
+(3, 'DEALER_user', 'DEALER@example.com', 'hashed_password', 'Showroom', 'Basic', 'DEALER', true, '2025-04-27 09:37:07.228727', 3, '1234567892', true, true, NULL, NULL, 'active'),
+(4, 'GARAGE_user', 'GARAGE@example.com', 'hashed_password', 'Showroom', 'Premium', 'GARAGE', true, '2025-04-27 09:37:07.228727', 4, '1234567893', true, true, NULL, NULL, 'active'),
 (5, 'moderator_user', 'moderator@example.com', 'hashed_password', 'Moderator', 'User', 'MODERATOR', true, '2025-04-27 09:37:07.228727', 5, '1234567894', true, true, NULL, NULL, 'active'),
 (6, 'senior_moderator_user', 'senior_moderator@example.com', 'hashed_password', 'Senior', 'Moderator', 'SENIOR_MODERATOR', true, '2025-04-27 09:37:07.228727', 6, '1234567895', true, true, NULL, NULL, 'active'),
 (7, 'admin_user', 'admin@example.com', 'hashed_password', 'Admin', 'User', 'ADMIN', true, '2025-04-27 09:37:07.228727', 7, '1234567896', true, true, NULL, NULL, 'active'),
 (8, 'adminTest', 'admin@test.com', '$2b$10$6/qlvlHrhRBf0uhwbN5MZuvshAoB8b5ZrJvyTW1V5j8DmJwzwiltC', 'Super', 'Admin', 'SUPER_ADMIN', true, '2025-04-27 09:37:07.228727', 8, '1234567897', true, true, NULL, NULL, 'active'),
 (9, 'buyerTest', 'buyer@test.com', '$2b$10$6/qlvlHrhRBf0uhwbN5MZuvshAoB8b5ZrJvyTW1V5j8DmJwzwiltC', 'Muhammad Ahsan', 'Shakeel', 'BUYER', true, '2025-04-27 10:12:38.722141', 1, '123456789', true, true, 'buyer@test.com', NULL, 'active'),
-(10, 'showroomTest', 'showroom@test.com', '$2b$10$EbNCHa8VAIed7cb7A16GuegspisfkrtVBAJQ8mANxJZl51yFarFpy', 'John', 'Doe', 'SHOWROOM_BASIC', true, '2025-04-29 21:46:20.564284', 3, '123456789', true, true, 'showroom@test.com', NULL, 'active'),
+(10, 'showroomTest', 'showroom@test.com', '$2b$10$EbNCHa8VAIed7cb7A16GuegspisfkrtVBAJQ8mANxJZl51yFarFpy', 'John', 'Doe', 'DEALER', true, '2025-04-29 21:46:20.564284', 3, '123456789', true, true, 'showroom@test.com', NULL, 'active'),
 (11, 'sellerTest', 'seller@test.com', '$2b$10$f.PsOauHoglHgNU8Eo6nQuAtNDW7jxfjdAxZflBz07dgqu1a1GHRe', 'Jim', 'Khan', 'SELLER', true, '2025-04-29 22:59:53.951891', 2, '123456789', true, true, 'seller@test.com', NULL, 'active');
 
 -- User Roles Switch

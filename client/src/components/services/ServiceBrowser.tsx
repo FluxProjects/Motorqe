@@ -17,7 +17,7 @@ export function ServiceBrowser() {
 
   const { data: services = [] } = useQuery<ShowroomService[]>({
     queryKey: ['available-services', searchTerm],
-    queryFn: () => fetch(`/api/showroom-services?search=${searchTerm}`).then(res => res.json())
+    queryFn: () => fetch(`/api/showroom/services?search=${searchTerm}`).then(res => res.json())
   });
 
   return (

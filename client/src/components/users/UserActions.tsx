@@ -42,7 +42,7 @@ export function UserActions({ user, onEdit, onDelete }: UserActionsProps) {
           </DropdownMenuItem>
         )}
 
-        {auth.user?.role === 'admin' && (
+        {auth.user?.roleId === 1 && (
           <>
             <DropdownMenuItem onClick={onEdit}>
               <Edit className="mr-2" size={14} />

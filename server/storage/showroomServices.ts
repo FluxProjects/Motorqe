@@ -22,38 +22,101 @@ export interface IShowroomServiceStorage {
 export const ShowroomServiceStorage = {
 
     async getAllShowroomServices(
-        filter?: Partial<ShowroomService>,
-        sortBy?: keyof ShowroomService,
-        sortOrder: 'asc' | 'desc' = 'asc'
-    ): Promise<ShowroomService[]> {
-        let baseQuery = 'SELECT * FROM showroom_services';
-        const whereClauses: string[] = [];
-        const values: any[] = [];
-        let paramIndex = 1;
+    filter?: Partial<ShowroomService>,
+    sortBy?: keyof ShowroomService,
+    sortOrder: 'asc' | 'desc' = 'asc'
+  ): Promise<(ShowroomService & {
+          package_id?: number;
+          start_date?: Date;
+          end_date?: Date;
+          package_name?: string;
+          package_description?: string;
+          package_price?: number;
+      })[]> {
+    let baseQuery = `
+    SELECT 
+      cl.*, 
+      lp.id AS promotion_id,
+      lp.package_id, 
+      lp.start_date, 
+      lp.end_date, 
+      lp.is_active,
+      lp.transaction_id,
+      p.name AS package_name,
+      p.description AS package_description,
+      p.price AS package_price,
+      p.currency AS package_currency,
+      p.duration_days AS package_duration_days,
+      p.is_featured AS package_is_featured
+    FROM showroom_services cl
+    INNER JOIN service_promotions lp ON cl.id = lp.service_id
+      AND lp.end_date > NOW()
+    LEFT JOIN service_promotion_packages p ON lp.package_id = p.id
+    `;
 
-        for (const key in filter) {
-            if (Object.prototype.hasOwnProperty.call(filter, key)) {
-                const typedKey = key as keyof typeof filter;
-                const value = filter[typedKey];
+    const whereClauses: string[] = [];
+    const values: any[] = [];
+    let paramIndex = 1;
 
-                if (value !== undefined) {
-                    whereClauses.push(`${key} = $${paramIndex}`);
-                    values.push(value);
-                    paramIndex++;
-                }
-            }
+    // Handle filters
+    for (const key in filter) {
+      if (Object.prototype.hasOwnProperty.call(filter, key)) {
+        const value = filter[key as keyof typeof filter];
+
+        if (value !== undefined) {
+          // Special handling for search (LIKE query)
+          if (key === 'search') {
+            whereClauses.push(`(description ILIKE $${paramIndex} OR notes ILIKE $${paramIndex})`);
+            values.push(`%${value}%`);
+          } 
+          // Handle range filters
+          else if (key.endsWith('_from')) {
+            const baseKey = key.replace('_from', '');
+            whereClauses.push(`${baseKey} >= $${paramIndex}`);
+            values.push(value);
+          } 
+          else if (key.endsWith('_to')) {
+            const baseKey = key.replace('_to', '');
+            whereClauses.push(`${baseKey} <= $${paramIndex}`);
+            values.push(value);
+          } 
+          // Standard equality filter
+          else {
+            whereClauses.push(`${key} = $${paramIndex}`);
+            values.push(value);
+          }
+          paramIndex++;
         }
+      }
+    }
 
-        if (whereClauses.length) {
-            baseQuery += ' WHERE ' + whereClauses.join(' AND ');
+    // Build WHERE clause
+    if (whereClauses.length) {
+      baseQuery += ' WHERE ' + whereClauses.join(' AND ');
+    }
+
+    // Handle sorting
+    if (sortBy) {
+      baseQuery += ` ORDER BY ${sortBy} ${sortOrder.toUpperCase()}`;
+    }
+
+    console.log('Final SQL query:', baseQuery);
+
+    try {
+            const result = await db.query(baseQuery, values);
+            console.log('Query successful. Retrieved rows:', result.length);
+            console.log('First row (sample):', result.slice(0, 1));
+
+            console.log('--- END: getAllShowroomServices ---');
+            return result;
+        } catch (error) {
+            console.error('Database query failed:', error);
+            console.log('--- END: getAllShowroomServices (with error) ---');
+            throw error;
         }
+  },
 
-        if (sortBy) {
-            baseQuery += ` ORDER BY ${sortBy} ${sortOrder.toUpperCase()}`;
-        }
 
-        return await db.query(baseQuery, values);
-    },
 
     async getShowroomServices(showroomId: number): Promise<ShowroomService[]> {
         return await db.query(
@@ -126,55 +189,41 @@ export const ShowroomServiceStorage = {
     },
 
 
+    // Update your storage methods to include isFeatured and isActive
     async createShowroomService(service: InsertShowroomService): Promise<ShowroomService> {
         const result = await db.query(
-            'INSERT INTO showroom_services (showroom_id, service_id, price, currency, description, description_ar) ' +
-            'VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+            'INSERT INTO showroom_services (showroom_id, service_id, price, currency, description, description_ar, is_featured, is_active, status) ' +
+            'VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *',
             [
                 service.showroomId,
                 service.serviceId,
                 service.price,
                 service.currency,
                 service.description,
-                service.descriptionAr
+                service.descriptionAr,
+                service.isFeatured || false,
+                service.isActive !== false, // Default to true
+                service.status || 'draft',
             ]
         );
         return result[0];
     },
 
+    // Add these fields to your update method
     async updateShowroomService(id: number, updates: Partial<InsertShowroomService>): Promise<ShowroomService | undefined> {
         const fields = [];
         const values = [];
         let paramIndex = 1;
 
-        if (updates.showroomId !== undefined) {
-            fields.push(`showroom_id = $${paramIndex}`);
-            values.push(updates.showroomId);
+        // Existing fields...
+        if (updates.isFeatured !== undefined) {
+            fields.push(`is_featured = $${paramIndex}`);
+            values.push(updates.isFeatured);
             paramIndex++;
         }
-        if (updates.serviceId !== undefined) {
-            fields.push(`service_id = $${paramIndex}`);
-            values.push(updates.serviceId);
-            paramIndex++;
-        }
-        if (updates.price !== undefined) {
-            fields.push(`price = $${paramIndex}`);
-            values.push(updates.price);
-            paramIndex++;
-        }
-        if (updates.currency !== undefined) {
-            fields.push(`currency = $${paramIndex}`);
-            values.push(updates.currency);
-            paramIndex++;
-        }
-        if (updates.description !== undefined) {
-            fields.push(`description = $${paramIndex}`);
-            values.push(updates.description);
-            paramIndex++;
-        }
-        if (updates.descriptionAr !== undefined) {
-            fields.push(`description_ar = $${paramIndex}`);
-            values.push(updates.descriptionAr);
+        if (updates.isActive !== undefined) {
+            fields.push(`is_active = $${paramIndex}`);
+            values.push(updates.isActive);
             paramIndex++;
         }
 

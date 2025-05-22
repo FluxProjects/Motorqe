@@ -170,14 +170,14 @@ const ShowroomDashboard = () => {
   
 
   return (
-    <ProtectedRoute allowedRoles={["SHOWROOM"]}>
+    <ProtectedRoute allowedRoles={["DEALER"]}>
       <div className="min-h-screen bg-neutral-100 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="bg-white rounded-xl shadow-sm overflow-hidden">
             <div className="md:flex">
               {/* Sidebar */}
               <div className="md:w-64">
-                <DashboardSidebar type="SHOWROOM_BASIC" />
+                <DashboardSidebar type="DEALER" />
               </div>
               
               {/* Main Content */}

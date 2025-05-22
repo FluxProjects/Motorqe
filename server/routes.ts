@@ -5,6 +5,7 @@ import { notificationService } from "./services/notification";
 import { paymentService } from "./services/payment";
 import { generateOTP, generateToken, hashPassword, loginUser, registerUser, verifyPassword } from "./services/auth";
 import { verifyToken } from "./services/auth";
+import { ShowroomService } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize database with dummy data
@@ -1243,6 +1244,8 @@ app.put("/api/car-listings/:id/actions", async (req, res) => {
   /**
  * SERVICE DATA
  */
+  
+  // get all services
   app.get("/api/services", async (_req, res) => {
     try {
       const services = await storage.getAllServices();
@@ -1253,31 +1256,7 @@ app.put("/api/car-listings/:id/actions", async (req, res) => {
     }
   });
 
-  app.get("/api/services/featured", async (_req, res) => {
-    try {
-      const services = await storage.getAllFeaturedServices();
-      res.json(services);
-    } catch (error) {
-      console.error("❌ Error fetching services:", error);
-      res.status(500).json({ message: "Failed to fetch services" });
-    }
-  });
-
-  app.get("/api/showroom/services/:id", async (req, res) => {
-    try {
-      const id = Number(req.params.id);
-      if (isNaN(id)) return res.status(400).json({ message: "Invalid service ID" });
-
-      const service = await storage.getShowroomServiceByServiceId(id);
-      if (!service) return res.status(404).json({ message: "Service not found" });
-
-      res.json(service);
-    } catch (error) {
-      console.error("❌ Error fetching service:", error);
-      res.status(500).json({ message: "Failed to fetch service" });
-    }
-  });
-
+  // get single service
   app.get("/api/services/:id", async (req, res) => {
     try {
       const id = Number(req.params.id);
@@ -1293,41 +1272,13 @@ app.put("/api/car-listings/:id/actions", async (req, res) => {
     }
   });
 
-  app.post("/api/services", async (req, res) => {
+  app.get("/api/services/featured", async (_req, res) => {
     try {
-      const newService = await storage.createService(req.body);
-      res.status(201).json(newService);
+      const services = await storage.getAllFeaturedServices();
+      res.json(services);
     } catch (error) {
-      console.error("❌ Error creating service:", error);
-      res.status(500).json({ message: "Failed to create service" });
-    }
-  });
-
-  app.put("/api/services/:id", async (req, res) => {
-    try {
-      const id = Number(req.params.id);
-      if (isNaN(id)) return res.status(400).json({ message: "Invalid service ID" });
-
-      const updated = await storage.updateService(id, req.body);
-      if (!updated) return res.status(404).json({ message: "Service not found" });
-
-      res.json(updated);
-    } catch (error) {
-      console.error("❌ Error updating service:", error);
-      res.status(500).json({ message: "Failed to update service" });
-    }
-  });
-
-  app.delete("/api/services/:id", async (req, res) => {
-    try {
-      const id = Number(req.params.id);
-      if (isNaN(id)) return res.status(400).json({ message: "Invalid service ID" });
-
-      await storage.deleteService(id);
-      res.status(204).send();
-    } catch (error) {
-      console.error("❌ Error deleting service:", error);
-      res.status(500).json({ message: "Failed to delete service" });
+      console.error("❌ Error fetching services:", error);
+      res.status(500).json({ message: "Failed to fetch services" });
     }
   });
 
@@ -1348,6 +1299,386 @@ app.put("/api/car-listings/:id/actions", async (req, res) => {
       });
     }
   });
+
+  app.post("/api/services", async (req, res) => {
+    try {
+      const newService = await storage.createService(req.body);
+      res.status(201).json(newService);
+    } catch (error) {
+      console.error("❌ Error creating service:", error);
+      res.status(500).json({ message: "Failed to create service" });
+    }
+  });
+
+  app.put("/api/service/:id", async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid service ID" });
+
+      const updated = await storage.updateService(id, req.body);
+      if (!updated) return res.status(404).json({ message: "Service not found" });
+
+      res.json(updated);
+    } catch (error) {
+      console.error("❌ Error updating service:", error);
+      res.status(500).json({ message: "Failed to update service" });
+    }
+  });
+
+  app.delete("/api/service/:id", async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid service ID" });
+
+      await storage.deleteService(id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("❌ Error deleting service:", error);
+      res.status(500).json({ message: "Failed to delete service" });
+    }
+  });
+
+
+   /**
+ * SHOWROOM SERVICE DATA
+ */
+
+  app.get("/api/showroom/services/:id", async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid service ID" });
+
+      const service = await storage.getShowroomServiceByServiceId(id);
+      if (!service) return res.status(404).json({ message: "Service not found" });
+
+      res.json(service);
+    } catch (error) {
+      console.error("❌ Error fetching service:", error);
+      res.status(500).json({ message: "Failed to fetch service" });
+    }
+  });
+
+  // Showroom Services Listings
+  app.get("/api/showroom/services", async (req, res) => {
+    console.log("Received request to /api/showroom/services with query:", req.query);
+    try {
+      const filters: any = {};
+      console.log("Initial filters object:", filters);
+
+      // Showroom ID
+      if (req.query.showroom_id) {
+        console.log("Processing showroom_id filter with value:", req.query.showroom_id);
+        const showroomId = parseInt(req.query.showroom_id as string, 10);
+        if (!isNaN(showroomId)) {
+          filters.showroom_id = showroomId;
+          console.log("Added showroom_id filter:", showroomId);
+        } else {
+          console.log("Invalid showroom_id - not a number");
+        }
+      } else {
+        console.log("No showroom_id filter");
+      }
+
+      // Service ID
+      if (req.query.service_id) {
+        console.log("Processing service_id filter with value:", req.query.service_id);
+        const serviceId = parseInt(req.query.service_id as string, 10);
+        if (!isNaN(serviceId)) {
+          filters.service_id = serviceId;
+          console.log("Added service_id filter:", serviceId);
+        } else {
+          console.log("Invalid service_id - not a number");
+        }
+      } else {
+        console.log("No service_id filter");
+      }
+
+      // Price Range
+      if (req.query.price_from && req.query.price_to) {
+        console.log("Processing price range filter with values:", req.query.price_from, "to", req.query.price_to);
+        const priceFrom = parseFloat(req.query.price_from as string);
+        const priceTo = parseFloat(req.query.price_to as string);
+
+        if (isNaN(priceFrom) || isNaN(priceTo)) {
+          console.log("Invalid price filter - not a number");
+          return res.status(400).json({ message: 'Invalid price filter' });
+        }
+
+        filters.price_from = priceFrom;
+        filters.price_to = priceTo;
+        console.log("Added price range filter:", filters.price_from, "to", filters.price_to);
+      } else {
+        console.log("No price range filter or incomplete range");
+      }
+
+      // Duration Range
+      if (req.query.duration_from && req.query.duration_to) {
+        console.log("Processing duration range filter with values:", req.query.duration_from, "to", req.query.duration_to);
+        const durationFrom = parseInt(req.query.duration_from as string, 10);
+        const durationTo = parseInt(req.query.duration_to as string, 10);
+
+        if (isNaN(durationFrom) || isNaN(durationTo)) {
+          console.log("Invalid duration filter - not a number");
+          return res.status(400).json({ message: 'Invalid duration filter' });
+        }
+
+        filters.duration_from = durationFrom;
+        filters.duration_to = durationTo;
+        console.log("Added duration range filter:", filters.duration_from, "to", filters.duration_to);
+      } else {
+        console.log("No duration range filter or incomplete range");
+      }
+
+      // Status
+      if (req.query.status && req.query.status !== "all") {
+        console.log("Processing status filter with value:", req.query.status);
+        filters.status = req.query.status;
+        console.log("Added status filter:", req.query.status);
+      } else {
+        console.log("No status filter or 'all' selected");
+      }
+
+      // isActive
+      if (req.query.is_active) {
+        console.log("Processing is_active filter with value:", req.query.is_active);
+        filters.is_active = req.query.is_active === "true";
+        console.log("Added is_active filter:", filters.is_active);
+      } else {
+        console.log("No is_active filter");
+      }
+
+      // isFeatured
+      if (req.query.is_featured) {
+        console.log("Processing is_featured filter with value:", req.query.is_featured);
+        filters.is_featured = req.query.is_featured === "true";
+        console.log("Added is_featured filter:", filters.is_featured);
+      } else {
+        console.log("No is_featured filter");
+      }
+
+      // Service Type
+      if (req.query.service_type && req.query.service_type !== "all") {
+        console.log("Processing service_type filter with value:", req.query.service_type);
+        filters.service_type = req.query.service_type;
+        console.log("Added service_type filter:", req.query.service_type);
+      } else {
+        console.log("No service_type filter or 'all' selected");
+      }
+
+      // Search Query
+      if (req.query.search) {
+        console.log("Processing search filter with value:", req.query.search);
+        filters.search = req.query.search;
+        console.log("Added search filter:", req.query.search);
+      } else {
+        console.log("No search filter");
+      }
+
+      // Date Range
+      if (req.query.updated_from && req.query.updated_to) {
+        console.log("Processing date range filter with values:", req.query.updated_from, "to", req.query.updated_to);
+        filters.updated_from = req.query.updated_from;
+        filters.updated_to = req.query.updated_to;
+        console.log("Added date range filter:", filters.updated_from, "to", filters.updated_to);
+      } else {
+        console.log("No date range filter or incomplete range");
+      }
+
+      // Sort parameters
+      const sortBy = req.query.sort_by as keyof ShowroomService | undefined;
+      const sortOrder = req.query.sort_order === 'desc' ? 'desc' : 'asc';
+
+      console.log("Final filters object before querying storage:", filters);
+      const services = await storage.getAllShowroomServices(filters, sortBy, sortOrder);   
+      
+      if (Array.isArray(services)){
+      console.log("service is an array");
+        // Enrich services with additional data if needed
+      const enrichedServices = await Promise.all(
+        services.map(async (service: any) => {
+          try {
+            const serviceDetails= await storage.getService(service.service_id);
+            const showroomDetails = await storage.getShowroom(service.showroom_id);
+            console.log("service", service);
+            const finalresult= { ...service,
+              service: serviceDetails.service,
+              showroom: showroomDetails,}
+            console.log("Final result", finalresult);
+            return finalresult;
+          } catch (error) {
+            console.error("Error enriching service data:", error);
+            return service;
+          }
+        })
+      );
+
+      res.json(enrichedServices);
+      }
+      
+      
+    } catch (error) {
+      console.error("Failed to fetch showroom services:", error);
+      res.status(500).json({ message: "Failed to fetch showroom services", error });
+    }
+  });
+
+  // Create Showroom Service
+app.post("/api/showroom/services", async (req, res) => {
+  console.log("Received request to create showroom service:", req.body);
+  try {
+    const {
+      showroomId,
+      serviceId,
+      price,
+      currency = 'USD', // default currency
+      description,
+      descriptionAr,
+      isFeatured = false,
+      isActive = true
+    } = req.body;
+
+    // Validate required fields
+    if (!showroomId || !serviceId || price === undefined) {
+      console.log("Missing required fields");
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+
+    // Validate price is a number
+    if (isNaN(parseFloat(price))) {
+      console.log("Invalid price value");
+      return res.status(400).json({ message: "Price must be a number" });
+    }
+
+    const newService = await storage.createShowroomService({
+      showroomId,
+      serviceId,
+      price: parseFloat(price),
+      currency,
+      description,
+      descriptionAr,
+      isFeatured,
+      isActive
+    });
+
+    console.log("Successfully created service:", newService);
+    res.status(201).json(newService);
+  } catch (error) {
+    console.error("Failed to create showroom service:", error);
+    res.status(500).json({ message: "Failed to create showroom service", error });
+  }
+});
+
+// Update Showroom Service
+app.put("/api/showroom/services/:id", async (req, res) => {
+  const serviceId = parseInt(req.params.id, 10);
+  console.log(`Received request to update showroom service ${serviceId}:`, req.body);
+  
+  if (isNaN(serviceId)) {
+    return res.status(400).json({ message: "Invalid service ID" });
+  }
+
+  try {
+    const updates = req.body;
+    
+    // Remove fields that shouldn't be updated directly
+    delete updates.id;
+    delete updates.created_at;
+
+    // Convert price to number if provided
+    if (updates.price !== undefined) {
+      updates.price = parseFloat(updates.price);
+      if (isNaN(updates.price)) {
+        return res.status(400).json({ message: "Price must be a number" });
+      }
+    }
+
+    const updatedService = await storage.updateShowroomService(serviceId, updates);
+    
+    if (!updatedService) {
+      console.log("Service not found");
+      return res.status(404).json({ message: "Service not found" });
+    }
+
+    console.log("Successfully updated service:", updatedService);
+    res.json(updatedService);
+  } catch (error) {
+    console.error("Failed to update showroom service:", error);
+    res.status(500).json({ message: "Failed to update showroom service", error });
+  }
+});
+
+// Delete Showroom Service
+app.delete("/api/showroom/services/:id", async (req, res) => {
+  const serviceId = parseInt(req.params.id, 10);
+  console.log(`Received request to delete showroom service ${serviceId}`);
+  
+  if (isNaN(serviceId)) {
+    return res.status(400).json({ message: "Invalid service ID" });
+  }
+
+  try {
+    await storage.deleteShowroomService(serviceId);
+    console.log("Successfully deleted service");
+    res.status(204).end();
+  } catch (error) {
+    console.error("Failed to delete showroom service:", error);
+    res.status(500).json({ message: "Failed to delete showroom service", error });
+  }
+});
+
+// Feature/Activate/Deactivate Service (Special Actions)
+app.put("/api/showroom/services/:id/:action", async (req, res) => {
+  const serviceId = parseInt(req.params.id, 10);
+  const action = req.params.action;
+  console.log(`Received ${action} request for service ${serviceId}`);
+
+  const validActions = ['feature', 'activate', 'deactivate'];
+  if (!validActions.includes(action)) {
+    return res.status(400).json({ message: "Invalid action" });
+  }
+
+  if (isNaN(serviceId)) {
+    return res.status(400).json({ message: "Invalid service ID" });
+  }
+
+  try {
+    let updateField: string;
+    let updateValue: boolean;
+
+    switch (action) {
+      case 'feature':
+        updateField = 'is_featured';
+        updateValue = true;
+        break;
+      case 'activate':
+        updateField = 'is_active';
+        updateValue = true;
+        break;
+      case 'deactivate':
+        updateField = 'is_active';
+        updateValue = false;
+        break;
+      default:
+        return res.status(400).json({ message: "Invalid action" });
+    }
+
+    const updatedService = await storage.updateShowroomService(serviceId, {
+      [updateField]: updateValue
+    });
+
+    if (!updatedService) {
+      return res.status(404).json({ message: "Service not found" });
+    }
+
+    console.log(`Successfully ${action}d service:`, updatedService);
+    res.json(updatedService);
+  } catch (error) {
+    console.error(`Failed to ${action} service:`, error);
+    res.status(500).json({ message: `Failed to ${action} service`, error });
+  }
+});
+
+  
 
   app.post("/api/service-bookings", async (req, res) => {
     try {

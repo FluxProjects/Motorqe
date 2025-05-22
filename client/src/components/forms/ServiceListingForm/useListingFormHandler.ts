@@ -41,30 +41,27 @@ export const useServiceListingFormHandler = (onSuccess?: () => void) => {
       console.log("Constructed payload:", payload);
 
       const method = service ? "PUT" : "POST";
-      const url = service
-        ? `/api/showroom-services/${service.id}`
-        : "/api/showroom-services";
+        const url = service 
+            ? `/api/showroom/services/${service.id}`
+            : "/api/showroom/services";
 
-      console.log(`Sending ${method} request to ${url}`);
+        const res = await fetch(url, {
+            method,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+        });
 
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+        if (!res.ok) {
+            const errorData = await res.json().catch(() => ({}));
+            throw new Error(errorData.message || "Failed to save service");
+        }
 
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        console.error("API Error:", errorData);
-        throw new Error(errorData.message || "Failed to save service");
-      }
-
-      return res;
+      return res.json();
     },
 
     onSuccess: (data, variables) => {
       console.log("Service saved successfully");
-      const role = user?.roleId ? roleMapping[user.roleId] : "SHOWROOM_BASIC";
+      const role = user?.roleId ? roleMapping[user.roleId] : "DEALER";
       
       if (role === "ADMIN" || role === "SUPER_ADMIN") {
         navigate("/admin/services");
