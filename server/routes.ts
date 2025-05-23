@@ -1916,15 +1916,99 @@ app.get('/api/published/static-content/placement/:placement', async (req, res) =
   });
 
   app.put("/api/settings", async (req, res) => {
-    try {
-      const { key, value } = req.body;
-      if (!key || value === undefined) return res.status(400).json({ message: "key and value required" });
-      const updated = await storage.updateSettings({ [key]: value });
-      res.json(updated);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to update setting", error });
-    }
-  });
+  try {
+    const updates = req.body;
+    const updatedSettings = await storage.updateSettings(updates);
+    res.json(updatedSettings);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to update settings" });
+  }
+});
+
+// --- Email Config routes ---
+
+app.get("/api/settings/email", async (req, res) => {
+  try {
+    const emailConfig = await storage.getEmailConfig();
+    res.json(emailConfig);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to get email config" });
+  }
+});
+
+app.put("/api/settings/email", async (req, res) => {
+  try {
+    const configUpdates = req.body;
+    await storage.updateEmailConfig(configUpdates);
+    res.json({ message: "Email config updated" });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to update email config" });
+  }
+});
+
+// --- SMS Config routes ---
+
+app.get("/api/settings/sms-config", async (req, res) => {
+  try {
+    const smsConfig = await storage.getSmsConfig();
+    res.json(smsConfig);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to get SMS config" });
+  }
+});
+
+app.put("/api/settings/sms-config", async (req, res) => {
+  try {
+    const configUpdates = req.body;
+    await storage.updateSmsConfig(configUpdates);
+    res.json({ message: "SMS config updated" });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to update SMS config" });
+  }
+});
+
+// --- Google Maps Config routes ---
+
+app.get("/settings/google-maps-config", async (req, res) => {
+  try {
+    const googleMapsConfig = await storage.getGoogleMapsConfig();
+    res.json(googleMapsConfig);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to get Google Maps config" });
+  }
+});
+
+app.put("/settings/google-maps-config", async (req, res) => {
+  try {
+    const configUpdates = req.body;
+    await storage.updateGoogleMapsConfig(configUpdates);
+    res.json({ message: "Google Maps config updated" });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to update Google Maps config" });
+  }
+});
+
+// --- Integration Config routes ---
+
+app.get("/settings/integrations", async (req, res) => {
+  try {
+    const integrations = await storage.getIntegrationConfig();
+    res.json(integrations);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to get integrations config" });
+  }
+});
+
+app.put("/settings/integrations", async (req, res) => {
+  try {
+    const integrationUpdates = req.body;
+    await storage.updateIntegrationConfig(integrationUpdates);
+    res.json({ message: "Integrations config updated" });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to update integrations config" });
+  }
+});
+
 
   /**
    * CONFIGURATION ROUTES
@@ -2341,6 +2425,16 @@ app.get('/api/published/static-content/placement/:placement', async (req, res) =
       res.status(500).json({ message: "Failed to fetch featured listings", error });
     }
   });
+
+  app.get('/api/stats/overview', async (req, res) => {
+try {
+const stats = await storage.getAllStats();
+res.json(stats);
+} catch (error) {
+console.error('Failed to fetch dashboard stats:', error);
+res.status(500).json({ message: 'Failed to fetch dashboard stats', error });
+}
+});
 
   const httpServer = createServer(app);
   return httpServer;

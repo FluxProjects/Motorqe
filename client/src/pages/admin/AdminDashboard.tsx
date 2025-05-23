@@ -40,35 +40,16 @@ const AdminDashboard = () => {
   const { t } = useTranslation();
   const { user, isAuthenticated } = useAuth();
 
-  // Fetch admin dashboard stats
-  const {
-    data: stats = [],
-    isLoading,
-    refetch,
-    error,
-  } = useQuery<any>({
-    queryKey: ["/api/admin/stats"],
-  });
 
   // Fetch recent user activity
-  const { data: recentUsers = [], isLoading: isLoadingUsers } = useQuery<
-    User[]
-  >({
-    queryKey: ["/api/admin/recent-users"],
-  });
-
-  // Fetch recent listings
-  const { data: recentListings = [], isLoading: isLoadingListings } = useQuery<
-    CarListing[]
-  >({
-    queryKey: ["/api/admin/recent-listings"],
-  });
-
-  // Fetch recent reports
-  const { data: recentReports = [], isLoading: isLoadingReports } =
-    useQuery<any>({
-      queryKey: ["/api/admin/recent-reports"],
+ const { data: statsData = [], isLoading, refetch } = useQuery({
+      queryKey: ["admin-stats"],
+      queryFn: () => fetch("/api/stats/overview").then((res) => res.json()),
     });
+
+    console.log("statsData", statsData);
+
+ 
 
   return (
     <ProtectedRoute allowedRoles={["MODERATOR", "ADMIN", "SUPER_ADMIN"]}>
@@ -136,13 +117,13 @@ const AdminDashboard = () => {
                               {isLoading ? (
                                 <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
                               ) : (
-                                stats?.totalUsers || 0
+                                statsData?.totalUsers || 0
                               )}
                             </h3>
-                            {!isLoading && stats?.userGrowth && (
+                            {!isLoading && statsData?.userGrowth && (
                               <p className="text-xs text-green-400 mt-1 flex items-center">
                                 <ArrowUpRight className="h-3 w-3 mr-1" />
-                                {stats.userGrowth}% {t("admin.fromLastMonth")}
+                                {statsData.userGrowth}% {t("admin.fromLastMonth")}
                               </p>
                             )}
                           </div>
@@ -164,13 +145,13 @@ const AdminDashboard = () => {
                               {isLoading ? (
                                 <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
                               ) : (
-                                stats?.totalListings || 0
+                                statsData?.totalListings || 0
                               )}
                             </h3>
-                            {!isLoading && stats?.listingGrowth && (
+                            {!isLoading && statsData?.listingGrowth && (
                               <p className="text-xs text-green-400 mt-1 flex items-center">
                                 <ArrowUpRight className="h-3 w-3 mr-1" />
-                                {stats.listingGrowth}%{" "}
+                                {statsData.listingGrowth}%{" "}
                                 {t("admin.fromLastMonth")}
                               </p>
                             )}
@@ -193,10 +174,10 @@ const AdminDashboard = () => {
                               {isLoading ? (
                                 <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
                               ) : (
-                                stats?.pendingReports || 0
+                                statsData?.pendingReports || 0
                               )}
                             </h3>
-                            {!isLoading && stats?.pendingReports > 0 && (
+                            {!isLoading && statsData?.pendingReports > 0 && (
                               <p className="text-xs text-yellow-400 mt-1">
                                 {t("admin.needsAttention")}
                               </p>
@@ -220,10 +201,10 @@ const AdminDashboard = () => {
                               {isLoading ? (
                                 <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
                               ) : (
-                                stats?.pendingListings || 0
+                                statsData?.pendingListings || 0
                               )}
                             </h3>
-                            {!isLoading && stats?.pendingListings > 0 && (
+                            {!isLoading && statsData?.pendingListings > 0 && (
                               <p className="text-xs text-yellow-400 mt-1">
                                 {t("admin.requiresReview")}
                               </p>
@@ -258,13 +239,13 @@ const AdminDashboard = () => {
                         </CardDescription>
                       </CardHeader>
                       <CardContent>
-                        {isLoadingUsers ? (
+                        {isLoading ? (
                           <div className="flex justify-center py-8">
                             <Loader2 className="h-8 w-8 text-slate-400 animate-spin" />
                           </div>
-                        ) : recentUsers && recentUsers.length > 0 ? (
+                        ) : statsData.recentUsers && statsData.recentUsers.length > 0 ? (
                           <div className="space-y-4">
-                            {recentUsers.map((user: any) => (
+                            {statsData.recentUsers.map((user: any) => (
                               <div
                                 key={user.id}
                                 className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg"
@@ -314,11 +295,11 @@ const AdminDashboard = () => {
                         </CardDescription>
                       </CardHeader>
                       <CardContent>
-                        {isLoadingListings ? (
+                        {isLoading ? (
                           <div className="flex justify-center py-8">
                             <Loader2 className="h-8 w-8 text-slate-400 animate-spin" />
                           </div>
-                        ) : recentListings && recentListings.length > 0 ? (
+                        ) : statsData.recentListings && statsData.recentListings.length > 0 ? (
                           <div className="rounded-md overflow-hidden">
                             <Table>
                               <TableHeader className="bg-slate-700">
@@ -338,7 +319,7 @@ const AdminDashboard = () => {
                                 </TableRow>
                               </TableHeader>
                               <TableBody>
-                                {recentListings.map((listing: any) => (
+                                {statsData.recentListings.map((listing: any) => (
                                   <TableRow
                                     key={listing.id}
                                     className="hover:bg-slate-700/50 border-slate-700"
@@ -417,13 +398,13 @@ const AdminDashboard = () => {
                         </CardDescription>
                       </CardHeader>
                       <CardContent>
-                        {isLoadingReports ? (
+                        {isLoading ? (
                           <div className="flex justify-center py-8">
                             <Loader2 className="h-8 w-8 text-slate-400 animate-spin" />
                           </div>
-                        ) : recentReports && recentReports.length > 0 ? (
+                        ) : statsData.recentReports && statsData.recentReports.length > 0 ? (
                           <div className="space-y-4">
-                            {recentReports.map((report: any) => (
+                            {statsData.recentReports.map((report: any) => (
                               <div
                                 key={report.id}
                                 className="p-4 bg-slate-700/50 rounded-lg"
@@ -506,7 +487,7 @@ const AdminDashboard = () => {
                           <div className="flex justify-center py-8">
                             <Loader2 className="h-8 w-8 text-slate-400 animate-spin" />
                           </div>
-                        ) : stats?.contentStats ? (
+                        ) : statsData?.contentStats ? (
                           <div className="space-y-3">
                             <div className="flex justify-between items-center p-3 bg-slate-700/50 rounded-lg">
                               <div className="flex items-center">
@@ -516,7 +497,7 @@ const AdminDashboard = () => {
                                 </span>
                               </div>
                               <span className="font-medium">
-                                {stats.contentStats.pages || 0}
+                                {statsData.contentStats.pages || 0}
                               </span>
                             </div>
                             <div className="flex justify-between items-center p-3 bg-slate-700/50 rounded-lg">
@@ -527,7 +508,7 @@ const AdminDashboard = () => {
                                 </span>
                               </div>
                               <span className="font-medium">
-                                {stats.contentStats.translatedPercent || 0}%
+                                {statsData.contentStats.translatedPercent || 0}%
                               </span>
                             </div>
                             <div className="flex justify-between items-center p-3 bg-slate-700/50 rounded-lg">
@@ -538,7 +519,7 @@ const AdminDashboard = () => {
                                 </span>
                               </div>
                               <span className="font-medium">
-                                {stats.contentStats.settingsConfigured
+                                {statsData.contentStats.settingsConfigured
                                   ? "✓"
                                   : "✗"}
                               </span>

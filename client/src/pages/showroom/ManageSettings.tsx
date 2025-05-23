@@ -73,20 +73,20 @@ const ManageSettings = () => {
       refetch,
       error,
     } = useQuery<Settings[]>({
-      queryKey: ['/api/admin/settings'],
+      queryKey: ['/api/settings'],
     });
 
   // Update settings mutation
   const updateSettings = useMutation({
     mutationFn: async (data: any) => {
-      return await apiRequest("PATCH", "/api/admin/settings", data);
+      return await apiRequest("PATCH", "/api/settings", data);
     },
     onSuccess: () => {
       toast({
         title: t("common.success"),
         description: t("admin.settingsUpdated"),
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/settings"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
     },
     onError: (error) => {
       toast({

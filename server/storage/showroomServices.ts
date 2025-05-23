@@ -43,7 +43,10 @@ export const ShowroomServiceStorage = {
       lp.is_active,
       lp.transaction_id,
       p.name AS package_name,
+      p.name_ar AS package_name_ar,
       p.description AS package_description,
+      p.description_ar AS package_description_ar,
+      p.plan AS package_plan
       p.price AS package_price,
       p.currency AS package_currency,
       p.duration_days AS package_duration_days,

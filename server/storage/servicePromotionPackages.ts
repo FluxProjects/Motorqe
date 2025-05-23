@@ -30,13 +30,14 @@ export const ServicePromotionPackageStorage = {
     
         async createServicePromotionPackage(pkg: InsertServicePromotionPackage): Promise<ServicePromotionPackage> {
             const result = await db.query(
-                'INSERT INTO service_promotion_packages (name, name_ar, description, description_ar, price, currency, duration_days, is_featured, priority, is_active) ' +
-                'VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *',
+                'INSERT INTO service_promotion_packages (name, name_ar, description, description_ar, plan, price, currency, duration_days, is_featured, priority, is_active) ' +
+                'VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *',
                 [
                     pkg.name,
                     pkg.nameAr,
                     pkg.description,
                     pkg.descriptionAr,
+                    pkg.plan,
                     pkg.price,
                     pkg.currency,
                     pkg.durationDays,

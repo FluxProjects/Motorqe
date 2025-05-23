@@ -27,6 +27,7 @@ import { ISubscriptionPlanStorage, SubscriptionPlanStorage } from "./storage/sub
 import { ITransactionStorage, TransactionStorage } from "./storage/transactions";
 import { IUserRoleSwitchStorage, UserRoleSwitchStorage } from "./storage/userRolesSwitch";
 import { CarEngineCapacityStorage, ICarEngineCapacityStorage } from "./storage/carEngineCapacity";
+import { IStatStorage, StatStorage } from "./storage/stats";
 
 export interface IStorage 
 extends
@@ -58,7 +59,9 @@ ISubscriptionPlanStorage,
 ITransactionStorage,
 IUserRoleSwitchStorage,
 IUserStorage,
-IUserSubscriptionStorage{}
+IUserSubscriptionStorage,
+IStatStorage
+{ }
 
 
 // export const storage = new DatabaseStorage();
@@ -91,5 +94,6 @@ export const storage: IStorage = {
 ...TransactionStorage,
 ...UserRoleSwitchStorage,
 ...UserStorage,
-...UserSubscriptionStorage
+...UserSubscriptionStorage,
+...StatStorage
 };

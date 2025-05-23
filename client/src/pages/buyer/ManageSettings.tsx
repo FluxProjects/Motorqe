@@ -25,92 +25,142 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { roleMapping } from "@shared/permissions";
 import { useTranslation } from "react-i18next";
 import { Settings } from "@shared/schema";
 
-const ManageSettings = () => {
+export const ManageSettings = () => {
   const { t } = useTranslation();
-  const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+   const { user } = useAuth();
 
- const [, setGeneralSettings] = useState<Settings>();
+  // State groups
+  const [generalSettings, setGeneralSettings] = useState({
+    siteName: "",
+    contactEmail: "",
+    supportPhone: "",
+  });
+
   const [emailSettings, setEmailSettings] = useState({
-    smtpServer: "smtp.example.com",
+    smtpServer: "",
     smtpPort: 587,
-    smtpUsername: "notifications@carmarket.com",
-    smtpPassword: "••••••••••••",
-    fromEmail: "no-reply@carmarket.com",
-    fromName: "CarMarket Team",
+    smtpUsername: "",
+    smtpPassword: "",
+    fromEmail: "",
+    fromName: "",
     enableEmailNotifications: true,
-    newListingTemplate:
-      'Your listing "{{title}}" has been published successfully.',
-    newMessageTemplate:
-      'You have received a new message from {{sender}} regarding "{{listing}}"',
+    newListingTemplate: "",
+    newMessageTemplate: "",
   });
 
   const [integrationSettings, setIntegrationSettings] = useState({
-    googleAnalyticsId: "UA-XXXXXXXXX-X",
+    googleAnalyticsId: "",
     enableGoogleAnalytics: false,
     facebookPixelId: "",
     enableFacebookPixel: false,
     googleMapsApiKey: "",
     enableLocationMap: true,
     paymentGateway: "stripe",
-    stripePublicKey: "pk_test_••••••••••••",
-    stripeSecretKey: "••••••••••••",
+    stripePublicKey: "",
+    stripeSecretKey: "",
     paypalClientId: "",
     enablePayments: false,
   });
 
-  // Settings query
-   const { 
-      data: generalSettings = [],
-      isLoading,
-      refetch,
-      error,
-    } = useQuery<Settings[]>({
-      queryKey: ['/api/admin/settings'],
-    });
+  // === Queries ===
 
-  // Update settings mutation
-  const updateSettings = useMutation({
-    mutationFn: async (data: any) => {
-      return await apiRequest("PATCH", "/api/admin/settings", data);
+  useQuery({
+    queryKey: ["settings/general"],
+    queryFn: async () => {
+      const res = await apiRequest("GET", "/api/settings");
+      const data = await res.json(); // ⬅️ extract JSON
+      setGeneralSettings(data);
+      return data;
+    },
+  });
+
+  useQuery({
+    queryKey: ["settings/email"],
+    queryFn: async () => {
+      const res = await apiRequest("GET", "/api/settings/email");
+      const data = await res.json();
+      setEmailSettings(data);
+      return data;
+    },
+  });
+
+  useQuery({
+    queryKey: ["settings/integrations"],
+    queryFn: async () => {
+      const res = await apiRequest("GET", "/api/settings/integrations");
+      const data = await res.json();
+      setIntegrationSettings(data);
+      return data;
+    },
+  });
+
+  // === Mutations ===
+
+  const updateGeneralSettings = useMutation({
+    mutationFn: async (data: typeof generalSettings) => {
+      return await apiRequest("PUT", "/api/settings", data);
     },
     onSuccess: () => {
-      toast({
-        title: t("common.success"),
-        description: t("admin.settingsUpdated"),
-      });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/settings"] });
+      toast({ title: t("common.success"), description: t("admin.settingsUpdated") });
+      queryClient.invalidateQueries({ queryKey: ["settings/general"]});
     },
     onError: (error) => {
       toast({
         title: t("common.error"),
-        description:
-          error instanceof Error
-            ? error.message
-            : t("admin.settingsUpdateFailed"),
+        description: error instanceof Error ? error.message : t("admin.settingsUpdateFailed"),
         variant: "destructive",
       });
     },
   });
 
-  const handleSaveGeneralSettings = () => {
-    updateSettings.mutate({ general: generalSettings });
-  };
+  const updateEmailSettings = useMutation({
+    mutationFn: async (data: typeof emailSettings) => {
+      return await apiRequest("PUT", "/api/settings/email", data);
+    },
+    onSuccess: () => {
+      toast({ title: t("common.success"), description: t("admin.settingsUpdated") });
+      queryClient.invalidateQueries({ queryKey: ["settings/email"]});
+    },
+    onError: (error) => {
+      toast({
+        title: t("common.error"),
+        description: error instanceof Error ? error.message : t("admin.settingsUpdateFailed"),
+        variant: "destructive",
+      });
+    },
+  });
 
-  const handleSaveEmailSettings = () => {
-    updateSettings.mutate({ email: emailSettings });
-  };
+  const updateIntegrationSettings = useMutation({
+    mutationFn: async (data: typeof integrationSettings) => {
+      return await apiRequest("PUT", "/api/settings/integrations", data);
+    },
+    onSuccess: () => {
+      toast({ title: t("common.success"), description: t("admin.settingsUpdated") });
+     queryClient.invalidateQueries({ queryKey: ['settings/integrations'] });
+    },
+    onError: (error) => {
+      toast({
+        title: t("common.error"),
+        description: error instanceof Error ? error.message : t("admin.settingsUpdateFailed"),
+        variant: "destructive",
+      });
+    },
+  });
 
-  const handleSaveIntegrationSettings = () => {
-    updateSettings.mutate({ integrations: integrationSettings });
-  };
+  // === Handlers ===
+  const handleSaveGeneralSettings = () => updateGeneralSettings.mutate(generalSettings);
+  const handleSaveEmailSettings = () => updateEmailSettings.mutate(emailSettings);
+  const handleSaveIntegrationSettings = () => updateIntegrationSettings.mutate(integrationSettings);
+
 
   return (
     <div className="min-h-screen bg-neutral-100 py-8">

@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import logoFooter from "@/assets/logo-white.png";
 import { usePagesByPlacement } from "@/hooks/use-pagesbyplacement";
+import { useQuery } from "@tanstack/react-query";
 
 const Footer = () => {
   const { t } = useTranslation();
@@ -22,9 +23,22 @@ const Footer = () => {
   const direction = language === "ar" ? "rtl" : "ltr";
   const { pages } = usePagesByPlacement("footer");
 
+    const { data: settingsData = [], isLoading } = useQuery({
+      queryKey: ["general-settings"],
+      queryFn: () => fetch("/api/settings").then((res) => res.json()),
+    });
+
+    console.log("settingsData", settingsData);
+
   return (
+  
+      
+    
     <footer className="bg-blue-900 text-white pt-16 pb-8">
+       {settingsData && 
+    (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
         <div
           className={`grid grid-cols-1 md:grid-cols-4 gap-8 ${
             direction === "rtl" ? "text-right" : ""
@@ -37,9 +51,9 @@ const Footer = () => {
                 direction === "rtl" ? "flex-row-reverse" : ""
               }`}
             >
-              <img src={logoFooter} alt="Logo" className="h-20" />
+              <img src={settingsData?.logo} alt="Logo" className="h-20" />
             </div>
-            <p className="text-white mb-6">{t("footer.subscribeText")}</p>
+            <p className="text-white mb-6">{settingsData?.site_description}</p>
             <div className="flex gap-4 mb-6">
               <a
                 href="https://play.google.com"
@@ -167,15 +181,15 @@ const Footer = () => {
             </h4>
             <p className="flex items-center mb-2">
               <MapPin className="h-4 w-4 mr-2 rtl:ml-2 rtl:mr-0" />
-              1234 Market St, San Francisco, CA
+              {settingsData.address}
             </p>
             <p className="flex items-center mb-2">
               <Phone className="h-4 w-4 mr-2 rtl:ml-2 rtl:mr-0" />
-              (123) 456-7890
+              {settingsData.phone_number}
             </p>
             <p className="flex items-center">
               <Mail className="h-4 w-4 mr-2 rtl:ml-2 rtl:mr-0" />
-              info@motorqe.com
+             {settingsData.contact_email}
             </p>
           </div>
         </div>
@@ -192,6 +206,9 @@ const Footer = () => {
           </div>
         </div>
       </div>
+      )
+
+   }
     </footer>
   );
 };

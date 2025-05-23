@@ -13,13 +13,16 @@ export interface IPromotionPackageStorage {
 
 export const PromotionPackageStorage = {
 
-    async getAllPromotionPackages(activeOnly: boolean = true): Promise<PromotionPackage[]> {
+    async getAllPromotionPackages(activeOnly: boolean): Promise<PromotionPackage[]> {
         let query = 'SELECT * FROM promotion_packages';
         if (activeOnly) {
             query += ' WHERE is_active = true';
         }
         query += ' ORDER BY price ASC';
-        return await db.query(query);
+        const result = await db.query(query);
+
+        console.log("Raw DB result:", result);
+        return result;
     },
 
     async getPromotionPackage(id: number): Promise<PromotionPackage | undefined> {
@@ -29,13 +32,14 @@ export const PromotionPackageStorage = {
 
     async createPromotionPackage(pkg: InsertPromotionPackage): Promise<PromotionPackage> {
         const result = await db.query(
-            'INSERT INTO promotion_packages (name, name_ar, description, description_ar, price, currency, duration_days, is_featured, priority, is_active) ' +
-            'VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *',
+            'INSERT INTO promotion_packages (name, name_ar, description, description_ar, plan, price, currency, duration_days, is_featured, priority, is_active) ' +
+            'VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *',
             [
                 pkg.name,
                 pkg.nameAr,
                 pkg.description,
                 pkg.descriptionAr,
+                pkg.plan,
                 pkg.price,
                 pkg.currency,
                 pkg.durationDays,
@@ -70,6 +74,11 @@ export const PromotionPackageStorage = {
         if (updates.descriptionAr !== undefined) {
             fields.push(`description_ar = $${paramIndex}`);
             values.push(updates.descriptionAr);
+            paramIndex++;
+        }
+        if (updates.plan !== undefined) {
+            fields.push(`plan = $${paramIndex}`);
+            values.push(updates.plan);
             paramIndex++;
         }
         if (updates.price !== undefined) {
