@@ -326,7 +326,7 @@ const CarSearchForm = () => {
                 control={form.control}
                 name="make"
                 render={({ field }) => (
-                  <FormItem className="col-span-4 md:col-span-1">
+                  <FormItem className="text-black col-span-4 md:col-span-1">
                     <FormLabel>{t("car.make")}</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
@@ -335,7 +335,7 @@ const CarSearchForm = () => {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="all">{t("common.all")}</SelectItem>
+                        <SelectItem  className="text-black" value="all">{t("common.all")}</SelectItem>
                         {makes?.map((make) => (
                           <SelectItem key={make.id} value={make.id}>
                             {make.name}
@@ -355,7 +355,7 @@ const CarSearchForm = () => {
                 control={form.control}
                 name="model"
                 render={({ field }) => (
-                  <FormItem className="col-span-4 md:col-span-1">
+                  <FormItem className="text-black col-span-4 md:col-span-1">
                     <FormLabel>{t("car.model")}</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
@@ -366,12 +366,12 @@ const CarSearchForm = () => {
                       <SelectContent>
                         {models && models?.length > 0 ? (
                           models.map((model) => (
-                            <SelectItem key={model.id} value={model.id}>
+                            <SelectItem  className="text-black" key={model.id} value={model.id}>
                               {model.name}
                             </SelectItem>
                           ))
                         ) : (
-                          <SelectItem value="all" disabled>
+                          <SelectItem className="text-black" value="all" disabled>
                             {t("car.noModelsAvailable")}
                           </SelectItem>
                         )}
@@ -398,9 +398,9 @@ const CarSearchForm = () => {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="all">{t("common.all")}</SelectItem>
+                        <SelectItem  className="text-black" value="all">{t("common.all")}</SelectItem>
                         {categories?.map((category) => (
-                          <SelectItem key={category.id} value={category.id}>
+                          <SelectItem  className="text-black" key={category.id} value={category.id}>
                             {category.name} ({category.count})
                           </SelectItem>
                         ))}

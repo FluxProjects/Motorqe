@@ -22,8 +22,14 @@ const registerFormSchema = z
     firstName: z.string().optional(),
     lastName: z.string().optional(),
     username: z.string().min(3),
-    email: z.string().email().transform((val) => val.toLowerCase()),
-    password: z.string().min(6).regex(/[a-zA-Z]/, "Must contain letters"),
+    email: z
+      .string()
+      .email()
+      .transform((val) => val.toLowerCase()),
+    password: z
+      .string()
+      .min(6)
+      .regex(/[a-zA-Z]/, "Must contain letters"),
     confirmPassword: z.string().min(6),
     role: roleSchema,
     roleId: z.number().int(),
@@ -37,14 +43,16 @@ const registerFormSchema = z
 type RegisterFormValues = z.infer<typeof registerFormSchema>;
 
 interface RegisterFormProps {
-  form: UseFormReturn<RegisterFormValues>;  // ← receive the parent’s form
+  form: UseFormReturn<RegisterFormValues>; // ← receive the parent’s form
   onSubmit: (values: RegisterFormValues) => Promise<void>;
   isSubmitting: boolean;
 }
 
-
-
-export const RegisterForm = ({ form, onSubmit, isSubmitting }: RegisterFormProps) => {
+export const RegisterForm = ({
+  form,
+  onSubmit,
+  isSubmitting,
+}: RegisterFormProps) => {
   const { t } = useTranslation();
 
   const handleFormSubmit = async (values: RegisterFormValues) => {
@@ -61,14 +69,16 @@ export const RegisterForm = ({ form, onSubmit, isSubmitting }: RegisterFormProps
 
   return (
     <Form {...form}>
-      <form onSubmit={form?.handleSubmit(handleFormSubmit)} className="space-y-4">
+      <form
+        onSubmit={form?.handleSubmit(handleFormSubmit)}
+        className="space-y-2 bg-white"
+      >
         <Controller
           name="role"
           control={form?.control}
           defaultValue="SELLER"
           render={({ field }) => (
-            <div role="radiogroup" className="gap-2 flex space-x-4">
-              
+            <div role="radiogroup" className="mb-10 gap-2 flex space-x-4">
               <div className="flex items-center space-x-2">
                 <input
                   type="radio"
@@ -77,7 +87,7 @@ export const RegisterForm = ({ form, onSubmit, isSubmitting }: RegisterFormProps
                   checked={field.value === "SELLER"}
                   onChange={() => field.onChange("SELLER")}
                 />
-                <Label htmlFor="seller">Private Seller</Label>
+                <Label htmlFor="seller">PRIVATE SELLER</Label>
               </div>
 
               <div className="flex items-center space-x-2">
@@ -249,13 +259,15 @@ export const RegisterForm = ({ form, onSubmit, isSubmitting }: RegisterFormProps
           </p>
         )}
 
-        <Button
-          type="submit"
-        className="w-full py-3 bg-orange-500 text-white font-medium rounded-md hover:bg-blue-900 transition-colors"
-           disabled={isSubmitting || !form?.formState?.isValid}
-        >
-          {isSubmitting ? t("common.loading") : t("auth.createAccount")}
-        </Button>
+        <div className="pt-10 flex justify-left">
+          <Button
+            type="submit"
+            className="w-60 py-3 bg-orange-500 text-white font-medium rounded-md hover:bg-blue-900 transition-colors"
+            disabled={isSubmitting || !form?.formState?.isValid}
+          >
+            {isSubmitting ? t("common.loading") : t("auth.createAccount")}
+          </Button>
+        </div>
       </form>
     </Form>
   );

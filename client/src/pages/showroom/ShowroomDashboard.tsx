@@ -194,7 +194,7 @@ const ShowroomDashboard = () => {
               {/* Main Content */}
               <div className="flex-1 p-6">
                 <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-2xl font-bold">{t('common.showroomDashboard')}</h2>
+                  <h2 className="text-2xl font-bold">{t('common.dashboard', "Dashboard")}</h2>
                   <Link href="/sell-car">
                     <Button>
                       <PlusCircle className="mr-2 h-4 w-4" />

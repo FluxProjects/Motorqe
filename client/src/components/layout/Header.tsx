@@ -86,7 +86,7 @@ const Header = ({ openAuthModal }: HeaderProps) => {
 
   const handleLogout = () => {
     logout();
-    navigate("/");
+    navigate("/login");
   };
 
   const getDashboardLink = () => {

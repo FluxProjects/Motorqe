@@ -1,21 +1,23 @@
-import { AuthForms } from "@/components/forms/AuthForm/AuthForms";
-import { useAuth } from "@/contexts/AuthContext";
 import { ListingForm } from "@/components/forms/CarListingForm/ListingForm";
+import { useAuth } from "@/contexts/AuthContext";
 import { useTranslation } from "react-i18next";
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
+import { useLocation } from "wouter";
 
 export default function SellCar() {
   const { t } = useTranslation();
   const { isAuthenticated } = useAuth();
-  const [authModal, setAuthModal] = useState<
-    "login" | "register" | "forget-password" | null
-  >(null);
+  const [, navigate] = useLocation();
 
   useEffect(() => {
     if (!isAuthenticated) {
-      setAuthModal("login");
+      navigate("/login");
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, navigate]);
+
+  if (!isAuthenticated) {
+    return null; // Prevent rendering while redirecting
+  }
 
   return (
     <div className="bg-white min-h-screen py-8">
@@ -29,35 +31,10 @@ export default function SellCar() {
 
         <div className="md:flex md:gap-6">
           <div className="w-full">
-            {isAuthenticated ? (
-              <ListingForm />
-            ) : (
-              <div className="text-neutral-600">
-                {t("common.pleaseLoginToContinue")}{" "}
-                <button
-                  onClick={() => setAuthModal("login")}
-                  className="text-primary font-medium underline hover:no-underline"
-                >
-                  {t("common.login")}
-                </button>
-              </div>
-            )}
+            <ListingForm />
           </div>
         </div>
       </div>
-
-      {/* Auth Modal */}
-      {authModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 animate-in fade-in duration-300">
-            <AuthForms
-              initialView={authModal}
-              onClose={() => setAuthModal(null)}
-              onSwitchView={(view) => setAuthModal(view)}
-            />
-          </div>
-        </div>
-      )}
     </div>
   );
 }

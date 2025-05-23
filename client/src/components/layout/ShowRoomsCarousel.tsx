@@ -86,7 +86,7 @@ const ShowRoomsCarousel = () => {
 
         {/* View More Button */}
         <div className="flex flex-col items-end mt-10">
-          <Link href="/showrooms">
+          <Link href="/browse-showrooms">
             <a className="inline-block bg-orange-500 hover:bg-orange-600 text-white font-semibold px-6 py-2 rounded-full transition">
               View More
             </a>

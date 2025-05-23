@@ -172,7 +172,7 @@ const BrowseShowrooms = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-neutral-900 mb-2">
-            {t("common.browseShowrooms")}
+            {t("common.browseGarages")}
           </h1>
           <div className="w-40 h-1 bg-orange-500 mx-auto rounded-full" />
         </div>
@@ -196,7 +196,7 @@ const BrowseShowrooms = () => {
                         : "text-blue-900"
                     }`}
                   >
-                    {t("showroom.allShowrooms")}
+                    {t("showroom.allGarages")}
                   </TabsTrigger>
                   <TabsTrigger
                     value="makes"

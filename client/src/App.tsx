@@ -23,10 +23,12 @@ import AdminManageSettings from "./pages/admin/ManageSettings";
 import AdminManageContent from "./pages/admin/ManageContent";
 import ManageMessages from "./components/dashboard/ManageMessages";
 import ManageProfile from "./components/dashboard/ManageProfile";
+import Login from "./pages/Login";
 import { useAuth } from "@/contexts/AuthContext";
 import { AuthForms } from "./components/forms/AuthForm/AuthForms";
 import { Permission, roleMapping } from "@shared/permissions";
 import { RoleSpecificRoute } from "@/components/RoleSpecificRoute";
+
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { useEffect, useState } from "react";
 import { ProtectedRoute } from "@/components/ProtectedRoute"
@@ -110,6 +112,7 @@ function functionStaticPage({ keyParam }: { keyParam: string }) {
           <Route path="/showrooms/:id" component={ShowroomDetails} />
           <Route path="/services/:id" component={ServiceDetails} />
           <Route path="/showroom-services/:id" component={ShowroomServiceDetails} />
+          <Route path="/login" component={Login} />
           
 
 

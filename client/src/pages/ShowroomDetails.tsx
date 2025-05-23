@@ -705,7 +705,7 @@ const ShowroomDetails = () => {
                   {t("showroom.about")} {showroom.name || showroom.nameAr}
                 </CardTitle>
                 <div className="max-w-none">
-                  <p>{description || t("showroom.Description")}</p>
+                  <p>{showroom.description}</p>
                 </div>
               </CardHeader>
 
