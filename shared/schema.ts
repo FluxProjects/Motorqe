@@ -1420,3 +1420,14 @@ export interface ServiceCategory {
   description?: string;
   image?: string;
 }
+
+export type StatDashboard = {
+totalUsers: number;
+totalListings: number;
+pendingReports: number;
+pendingListings: number;
+recentUsers: any[];
+recentListings: any[];
+recentReports: any[];
+cmsOverview: any[];
+};

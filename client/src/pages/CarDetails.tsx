@@ -180,15 +180,44 @@ const CarDetails = () => {
 
   // Fetch favorite status if logged in
   const { data: favoriteData } = useQuery<any>({
-    queryKey: ["/api/favorites/check", id],
-    enabled: isAuthenticated && !!id,
-  });
+    console.log("user data in car detail", user);
+if(user){
+    const res = await fetch("/api/favorites/check", {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ listingId: id, userId: user?.id }),
+    });
+    return res.json();
+  },
+  enabled: !!user?.id,
+});
+
+
+useEffect(() => {
+  if (favoriteData !== undefined) {
+    setIsFavorited(favoriteData);
+  }
+}, [favoriteData]);
+
+}
+   
+
+
+ 
 
   // Fetch similar cars
-  const { data: similarCars = [] } = useQuery<CarListing[]>({
-    queryKey: ["/api/cars/similar", id],
-    enabled: !!car,
-  });
+ const { data: similarCars = [] } = useQuery<CarListing[]>({
+  queryKey: ["similar-car-listings", id],
+  enabled: !!id,
+  queryFn: async () => {
+    const res = await fetch(`/api/listings/${id}/similar`);
+    if (!res.ok) throw new Error("Failed to fetch similar car listings");
+    return res.json();
+  },
+});
+
+console.log("similar cars", similarCars);
+
 
   const {
     data: sellerData,
@@ -270,12 +299,7 @@ const CarDetails = () => {
     }).format(price);
   };
 
-  // Set favorite status when data is loaded
-  useEffect(() => {
-    if (favoriteData) {
-      setIsFavorited(favoriteData.isFavorited);
-    }
-  }, [favoriteData]);
+
 
   const handleFavoriteToggle = async () => {
     if (!isAuthenticated) {
@@ -285,14 +309,14 @@ const CarDetails = () => {
 
     try {
       if (isFavorited) {
-        await apiRequest("DELETE", `/api/favorites/${id}`, {});
+        await apiRequest("DELETE", "/api/favorites", { listingId: parseInt(id), userId: user?.id });
         setIsFavorited(false);
         toast({
           title: "Removed from favorites",
           description: "Car has been removed from your favorites",
         });
       } else {
-        await apiRequest("POST", "/api/favorites", { carId: parseInt(id) });
+        await apiRequest("POST", "/api/favorites", { listingId: parseInt(id), userId: user?.id });
         setIsFavorited(true);
         toast({
           title: "Added to favorites",
@@ -528,216 +552,162 @@ const CarDetails = () => {
             </div>
 
             {/* Car summary */}
-            <div className="bg-neutral-50 p-4 rounded-2xl border-2 py-6 border-orange-500">
-              <h1 className="text-2xl font-bold text-neutral-900 mb-2 flex items-center gap-2">
-                {title}
-                {car?.is_imported && (
-                  <Badge variant="outline" className="text-sm px-2 py-0.5">
-                    <Globe size={12} className="mr-1" />
-                    {t("common.isImported")}
-                  </Badge>
-                )}
-              </h1>
+<div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
+  {/* Title and basic info */}
+  <div className="mb-4">
+    <h1 className="text-2xl font-bold text-gray-900 mb-1">{title}</h1>
+    <p className="text-gray-600 mb-4">
+      {car.year} • {t(`car.${car.car_type?.toLowerCase() || 'coupe'}`)} • {t(`car.${car.fuel_type?.toLowerCase() || 'petrol'}`)}
+    </p>
+    <div className="flex items-center mb-4">
+      <span className="text-3xl font-bold text-gray-900">
+        {formatPrice(car.price, car.currency ?? "QAR")}
+      </span>
+      {car?.is_imported && (
+        <Badge variant="outline" className="ml-2 text-xs px-2 py-0.5 border-gray-300">
+          <Globe size={12} className="mr-1" />
+          {t("common.isImported")}
+        </Badge>
+      )}
+    </div>
+  </div>
 
-              <div className="flex items-center text-neutral-600 mb-4">
-                <MapPin size={16} className="mr-1" />
-                <span>{car.location}</span>
-                <span className="mx-2">•</span>
-                <Calendar size={16} className="mr-1" />
-                <span>
-                  {car.created_at
-                    ? formatDate(car.created_at.toString())
-                    : "N/A"}
-                </span>
-              </div>
+  {/* Specifications table */}
+  <div className="mb-6">
+    <div className="grid grid-cols-2 gap-4">
+      <div className="col-span-2">
+        <p className="text-gray-500">Type of Ad:</p>
+        <p className="font-medium">For Sale</p>
+      </div>
+      <div>
+        <p className="text-gray-500">Make:</p>
+        <p className="font-medium">{makeName}</p>
+      </div>
+      <div>
+        <p className="text-gray-500">Model:</p>
+        <p className="font-medium">{modelName}</p>
+      </div>
+      <div>
+        <p className="text-gray-500">Year:</p>
+        <p className="font-medium">{car.year}</p>
+      </div>
+      <div>
+        <p className="text-gray-500">Car Type:</p>
+        <p className="font-medium">{categoryName}</p>
+      </div>
+      <div>
+        <p className="text-gray-500">Mileage:</p>
+        <p className="font-medium">{car.mileage.toLocaleString()} Kms</p>
+      </div>
+      <div>
+        <p className="text-gray-500">Condition:</p>
+        <p className="font-medium">
+          {t(`car.${car.condition?.toLowerCase?.() || "unknownCondition"}`)}
+        </p>
+      </div>
+      <div>
+        <p className="text-gray-500">Engine Size:</p>
+        <p className="font-medium">{engineSizeLabel} L</p>
+      </div>
+      <div>
+        <p className="text-gray-500">Cylinders:</p>
+        <p className="font-medium">{car.cylinder_count}</p>
+      </div>
+      <div>
+        <p className="text-gray-500">Transmission:</p>
+        <p className="font-medium">
+          {t(`car.${car.transmission?.toLowerCase?.() || "unknownTransmission"}`)}
+        </p>
+      </div>
+      <div>
+        <p className="text-gray-500">Exterior Colour:</p>
+        <p className="font-medium capitalize">{car.color}</p>
+      </div>
+      <div>
+        <p className="text-gray-500">Interior Colour:</p>
+        <p className="font-medium capitalize">{car.interior_color}</p>
+      </div>
+      <div>
+        <p className="text-gray-500">Fuel Type:</p>
+        <p className="font-medium">
+          {t(`car.${car.fuel_type?.toLowerCase?.() || "unknownFuelType"}`)}
+        </p>
+      </div>
+      <div>
+        <p className="text-gray-500">Warranty Date:</p>
+        <p className="font-medium">
+          {car.warranty_date ? formatDate(car.warranty_date.toString()) : "25-06-2026"}
+        </p>
+      </div>
+      <div>
+        <p className="text-gray-500">Insurance Type:</p>
+        <p className="font-medium">
+          {car.insurance_type || "Fully Insured"}
+        </p>
+      </div>
+      <div>
+        <p className="text-gray-500">Specifications:</p>
+        <p className="font-medium">
+          {car.specifications || "GCC"}
+        </p>
+      </div>
+      <div>
+        <p className="text-gray-500">Tinted:</p>
+        <p className="font-medium">
+          {car.tinted ? t("common.yes") : t("common.no")}
+        </p>
+      </div>
+      <div>
+        <p className="text-gray-500">Owner:</p>
+        <p className="font-medium capitalize">
+          {car.owner_type === "first" ? "1st Owner" : car.owner_type}
+        </p>
+      </div>
+      <div className="col-span-2">
+        <p className="text-gray-500">Date Posted:</p>
+        <p className="font-medium">
+          {car.created_at ? formatDate(car.created_at.toString()) : "19-07-2023"}
+        </p>
+      </div>
+    </div>
+  </div>
 
-              <div className="flex items-center mb-6">
-                <DollarSign size={20} className="text-primary mr-1" />
-                <span className="text-3xl font-bold text-primary">
-                  {formatPrice(car.price, car.currency ?? "QAR")}
-                </span>
-              </div>
+  {/* Action buttons */}
+  <div className="space-y-3 mb-6">
+    {sellerData && sellerData?.phone && (
+      <a href={`tel:${sellerData?.phone}`} className="w-full block">
+        <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-md py-2">
+          <Phone size={16} className="mr-2" />
+          Call {sellerData?.phone}
+        </Button>
+      </a>
+    )}
+    
+    <Button
+      className="w-full bg-orange-500 hover:bg-orange-600 text-white rounded-md py-2"
+      onClick={() => setContactDialogOpen(true)}
+    >
+      <MessageSquare size={16} className="mr-2" />
+      Send Message
+    </Button>
+    
+    {sellerData?.phone && (
+      <a
+        href={`https://wa.me/${sellerData?.phone.replace(/\D/g, "")}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="w-full block"
+      >
+        <Button className="w-full bg-gray-50 hover:bg-gray-100 text-green-600 border border-green-600 rounded-md py-2">
+          <MessageCircle size={16} className="mr-2" />
+          Chat via WhatsApp
+        </Button>
+      </a>
+    )}
+  </div>
 
-              <Card className="mb-6">
-                <CardContent className="p-4 flex flex-col gap-2">
-                  <div>
-                    <h2 className="text-2xl font-bold text-foreground">
-                      {makeName}{" "}
-                      <span className="text-muted-foreground font-medium">
-                        {modelName}
-                      </span>
-                    </h2>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Category:{" "}
-                      <span className="font-medium">{categoryName}</span>
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
+</div>
 
-              <div className="grid grid-cols-2 gap-4 mb-6">
-                {/* Mileage */}
-                <div className="flex flex-col items-center bg-white p-3 rounded-md">
-                  <GaugeCircle className="text-neutral-700 mb-1" size={20} />
-                  <span className="text-sm font-medium">
-                    {car.mileage.toLocaleString()} mi
-                  </span>
-                  <span className="text-xs text-neutral-500">
-                    {t("car.mileage")}
-                  </span>
-                </div>
-
-                {/* Year of Manufacture */}
-                <div className="flex flex-col items-center bg-white p-3 rounded-md">
-                  <Calendar className="text-neutral-700 mb-1" size={20} />
-                  <span className="text-sm font-medium">{car.year}</span>
-                  <span className="text-xs text-neutral-500">
-                    {t("car.year")}
-                  </span>
-                </div>
-
-                {/* Fuel Type */}
-                <div className="flex flex-col items-center bg-white p-3 rounded-md">
-                  <Fuel className="text-neutral-700 mb-1" size={20} />
-                  <span className="text-sm font-medium">
-                    {t(
-                      `car.${
-                        car.fuel_type?.toLowerCase?.() || "unknownFuelType"
-                      }`
-                    )}
-                  </span>
-                  <span className="text-xs text-neutral-500">
-                    {t("car.fuelType")}
-                  </span>
-                </div>
-
-                {/* Transmission Type */}
-                <div className="flex flex-col items-center bg-white p-3 rounded-md">
-                  <Settings className="text-neutral-700 mb-1" size={20} />
-                  <span className="text-sm font-medium">
-                    {t(
-                      `car.${
-                        car.transmission?.toLowerCase?.() ||
-                        "unknownTransmission"
-                      }`
-                    )}
-                  </span>
-                  <span className="text-xs text-neutral-500">
-                    {t("car.transmission")}
-                  </span>
-                </div>
-
-                {/* Engine Size */}
-                <div className="flex flex-col items-center bg-white p-3 rounded-md">
-                  <Gauge className="text-neutral-700 mb-1" size={20} />
-                  <span className="text-sm font-medium">
-                    {engineSizeLabel} L
-                  </span>
-                  <span className="text-xs text-neutral-500">
-                    {t("car.engineCapacity")}
-                  </span>
-                </div>
-
-                {/* Cylinder Count */}
-                <div className="flex flex-col items-center bg-white p-3 rounded-md">
-                  <CircleDot className="text-neutral-700 mb-1" size={20} />
-                  <span className="text-sm font-medium">
-                    {car.cylinder_count}
-                  </span>
-                  <span className="text-xs text-neutral-500">
-                    {t("car.cylinders")}
-                  </span>
-                </div>
-
-                {/* Car Condition */}
-                <div className="flex flex-col items-center bg-white p-3 rounded-md">
-                  <Wrench className="text-neutral-700 mb-1" size={20} />
-                  <span className="text-sm font-medium">
-                    {t(
-                      `car.${
-                        car.condition?.toLowerCase?.() || "unknownCondition"
-                      }`
-                    )}
-                  </span>
-                  <span className="text-xs text-neutral-500">
-                    {t("car.condition")}
-                  </span>
-                </div>
-
-                {/* Exterior Color */}
-                <div className="flex flex-col items-center bg-white p-3 rounded-md">
-                  <Droplet className="text-neutral-700 mb-1" size={20} />
-                  <span className="text-sm font-medium capitalize">
-                    {car.color}
-                  </span>
-                  <span className="text-xs text-neutral-500">
-                    {t("car.color")}
-                  </span>
-                </div>
-
-                {/* Interior Color */}
-                <div className="flex flex-col items-center bg-white p-3 rounded-md">
-                  <Droplets className="text-neutral-700 mb-1" size={20} />
-                  <span className="text-sm font-medium capitalize">
-                    {car.interior_color}
-                  </span>
-                  <span className="text-xs text-neutral-500">
-                    {t("car.interiorColor")}
-                  </span>
-                </div>
-
-                {/* Tinted Windows */}
-                <div className="flex flex-col items-center bg-white p-3 rounded-md">
-                  <Sun className="text-neutral-700 mb-1" size={20} />
-                  <span className="text-sm font-medium">
-                    {car.tinted ? t("common.yes") : t("common.no")}
-                  </span>
-                  <span className="text-xs text-neutral-500">
-                    {t("car.tinted")}
-                  </span>
-                </div>
-
-                {/* Owner Type (e.g., Individual or Company) */}
-                <div className="flex flex-col items-center bg-white p-3 rounded-md">
-                  <User2 className="text-neutral-700 mb-1" size={20} />
-                  <span className="text-sm font-medium capitalize">
-                    {car.owner_type}
-                  </span>
-                  <span className="text-xs text-neutral-500">
-                    {t("car.ownerType")}
-                  </span>
-                </div>
-              </div>
-
-              {sellerData && sellerData?.phone && (
-                <a href={`tel:${sellerData?.phone}`} className="w-full">
-                  <Button className="mt-2 w-full rounded-full bg-blue-900 text-white">
-                    <Phone size={16} className="mr-1" />
-                    {t("seller.callSeller")}
-                  </Button>
-                </a>
-              )}
-              <Button
-                className="mt-2 w-full rounded-full bg-orange-500"
-                onClick={() => setContactDialogOpen(true)}
-              >
-                <MessageSquare size={16} className="mr-1" />
-                {t("seller.messageSeller")}
-              </Button>
-              {sellerData?.phone && (
-                <a
-                  href={`https://wa.me/${sellerData?.phone.replace(/\D/g, "")}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full"
-                >
-                  <Button className="mt-2 w-full rounded-full bg-green-600 text-white hover:bg-green-700">
-                    <MessageCircle size={16} className="mr-1" />
-                    {t("showroom.chatOnWhatsApp")}
-                  </Button>
-                </a>
-              )}
-            </div>
           </div>
         </div>
       </div>
@@ -826,10 +796,10 @@ const CarDetails = () => {
 
           <div>
             {/* Seller info card */}
-            <Card className="bg-white p-4 rounded-2xl border-2 py-6 border-orange-500">
+            <Card className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
               <CardContent className="p-6">
                 <h2 className="text-lg font-semibold mb-4">
-                  {t("common.sellerInfo")}
+                  {t("common.postedBy", "Posted By:")}
                 </h2>
                 <div className="flex items-center mb-4">
                   <Avatar className="h-16 w-16 mr-4">
@@ -843,7 +813,7 @@ const CarDetails = () => {
                   </Avatar>
                   <div>
                     <p className="font-medium text-lg">
-                      {sellerData?.username}
+                      {sellerData?.first_name} {sellerData?.last_name}
                     </p>
                     <p className="text-sm text-neutral-500">
                       {t("common.memberSince")}{" "}

@@ -42,12 +42,69 @@ export const StatStorage = {
     const results = await Promise.all([
       db.query('SELECT COUNT(*)::int as count FROM users'),
       db.query('SELECT COUNT(*)::int as count FROM car_listings'),
-      db.query("SELECT COUNT(*)::int as count FROM reports WHERE status = 'PENDING'"),
-      db.query("SELECT COUNT(*)::int as count FROM car_listings WHERE status = 'PENDING'"),
-      db.query('SELECT id, name, email, created_at FROM users ORDER BY created_at DESC LIMIT 5'),
-      db.query('SELECT id, title, created_at FROM car_listings ORDER BY created_at DESC LIMIT 5'),
-      db.query('SELECT id, reason, status, created_at FROM reports ORDER BY created_at DESC LIMIT 5'),
-      db.query('SELECT id, title, content, updated_at FROM static_content ORDER BY updated_at DESC LIMIT 5'),
+      db.query("SELECT COUNT(*)::int as count FROM reports WHERE status = 'pending'"),
+      db.query("SELECT COUNT(*)::int as count FROM car_listings WHERE status = 'pending'"),
+      db.query('SELECT id, first_name, last_name, username, email, created_at FROM users ORDER BY created_at DESC LIMIT 5'),
+      db.query(`
+  SELECT 
+    car_listings.id,
+    car_listings.title,
+    car_listings.price,
+    car_listings.created_at,
+    car_listings.status,
+    users.id AS seller_id,
+    users.first_name AS seller_name,
+    users.username AS seller_username,
+    users.email AS seller_email,
+    users.phone AS seller_phone,
+    users.created_at AS seller_joined_at
+  FROM car_listings
+  JOIN users ON car_listings.user_id = users.id
+  ORDER BY car_listings.created_at DESC
+  LIMIT 5
+`),
+      // db.query('SELECT id, reason, status, created_at FROM reports ORDER BY created_at DESC LIMIT 5'),
+      db.query(`
+  SELECT 
+    reports.id,
+    reports.reason,
+    reports.status,
+    reports.created_at,
+    users.id AS user_id,
+    users.first_name AS user_first_name,
+    users.last_name AS user_last_name,
+    users.email AS user_email,
+    users.phone AS user_phone,
+    users.created_at AS user_created_at,
+    car_listings.id AS listing_id,
+    car_listings.title AS listing_title,
+    car_listings.price AS listing_price,
+    car_listings.status AS listing_status,
+    car_listings.created_at AS listing_created_at
+
+  FROM reports
+  JOIN users ON reports.user_id = users.id
+  JOIN car_listings ON reports.listing_id = car_listings.id
+  ORDER BY reports.created_at DESC
+  LIMIT 5
+`),
+      db.query(`
+  SELECT 
+    sc.id,
+    sc.title,
+    sc.updated_at,
+    stats.content_ar_null_count,
+    stats.content_ar_filled_count
+  FROM static_content sc,
+    (
+      SELECT 
+        COUNT(*) FILTER (WHERE content_ar IS NULL OR content_ar = '') AS content_ar_null_count,
+        COUNT(*) FILTER (WHERE content_ar IS NOT NULL AND content_ar <> '') AS content_ar_filled_count
+      FROM static_content
+    ) AS stats
+  ORDER BY sc.updated_at DESC
+  LIMIT 5
+`),
     ]);
 
     // Type assertions for each result
@@ -59,6 +116,16 @@ export const StatStorage = {
     const recentListings = results[5] as RecentListing[];
     const recentReports = results[6] as RecentReport[];
     const cmsOverview = results[7] as CmsContent[];
+
+    // Debug logs
+    console.log("👤 Total Users:", totalUsersResult);
+    console.log("🚘 Total Listings:", totalListingsResult);
+    console.log("📄 Pending Reports:", pendingReportsResult);
+    console.log("⏳ Pending Listings:", pendingListingsResult);
+    console.log("🆕 Recent Users:", recentUsers);
+    console.log("🆕 Recent Listings:", recentListings);
+    console.log("🆕 Recent Reports:", recentReports);
+    console.log("📚 CMS Overview:", cmsOverview);
 
     return {
       totalUsers: totalUsersResult[0]?.count ?? 0,

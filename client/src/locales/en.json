@@ -4,6 +4,7 @@
     "home": "Home",
     "add": "Add",
     "all":"All",
+    "review": "Review",
     "browseCars": "Browse Cars",
     "browseShowrooms": "Browse Showrooms",
     "browseServices": "Browse Services",
@@ -579,6 +580,9 @@
   "admin": {
     "dashboard": "Dashboard",
     "welcomeMessage": "Welcome to Admin Panel",
+    "reportedBy":"Reported By",
+    "staticPages": "Static Pages",
+    "translatedContent": "Translated Content",
     "enablePayments": "Enable Payments",
     "enableLocationMap": "Enable Location Map",
     "stripeSecretKey": "Stripe Secret Key",

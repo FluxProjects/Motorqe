@@ -130,26 +130,65 @@ const ManageSettings = () => {
     queryFn: () => fetch("/api/settings").then((res) => res.json()),
   });
 
-  console.log("Settings data", settingsData);
-
   useEffect(() => {
-    if (settingsData) {
-      const {
-        generalSettings,
-        emailSettings,
-        integrationSettings,
-        smsSettings,
-      } = settingsData;
-      if (generalSettings)
-        setGeneralSettings((prev) => ({ ...prev, ...generalSettings }));
-      if (emailSettings)
-        setEmailSettings((prev) => ({ ...prev, ...emailSettings }));
-      if (smsSettings) 
-        setSmsSettings((prev) => ({ ...prev, ...smsSettings }));
-      if (integrationSettings)
-        setIntegrationSettings((prev) => ({ ...prev, ...integrationSettings }));
+  if (settingsData) {
+    // You can either set whole or partial sections based on keys
+    const generalKeys = [
+      "site_name",
+      "site_name_ar",
+      "site_description",
+      "site_description_ar",
+      "contact_email",
+      "logo",
+      "favicon",
+      "primary_color",
+      "secondary_color",
+      "enable_registration",
+      "require_email_verification",
+      "allowed_languages",
+      "default_language",
+      "address",
+      "address_ar",
+      "phone_number",
+      "allow_user_rating",
+      "google_maps_config",
+      "max_images_per_listing",
+      "max_listings_per_user",
+    ];
+
+
+
+    // Assuming your state setters accept partials or entire configs:
+    setGeneralSettings((prev) => ({
+      ...prev,
+      ...Object.fromEntries(
+        generalKeys.map((key) => [key, settingsData[key]])
+      ),
+    }));
+
+    if (settingsData.email_config) {
+      setEmailSettings((prev) => ({
+        ...prev,
+        ...settingsData.email_config,
+      }));
     }
-  }, [settingsData]);
+
+    if (settingsData.sms_config) {
+      setSmsSettings((prev) => ({
+        ...prev,
+        ...settingsData.sms_config,
+      }));
+    }
+
+    if (settingsData.integrations) {
+      setIntegrationSettings((prev) => ({
+        ...prev,
+        ...settingsData.integrations,
+      }));
+    }
+  }
+}, [settingsData]);
+
 
   // === Mutations ===
 

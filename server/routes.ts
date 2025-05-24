@@ -90,8 +90,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (err: any) {
       console.error("Registration error:", err);
       if (err.message === "Email or username already in use") {
-    return res.status(409).json({ message: err.message });
-  }
+        return res.status(409).json({ message: err.message });
+      }
       res.status(500).json({ message: err.message || "An unexpected error occurred" });
     }
   });
@@ -108,43 +108,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.put("/api/users/:id/password", async (req, res) => {
-  try {
-    const { currentPassword, newPassword } = req.body;
-    const userId = Number(req.params.id);
+    try {
+      const { currentPassword, newPassword } = req.body;
+      const userId = Number(req.params.id);
 
-    // Verify current password first
-    const user = await storage.getUserWithPassword(userId);
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
+      // Verify current password first
+      const user = await storage.getUserWithPassword(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
 
-    const isPasswordValid = await verifyPassword(currentPassword, user.password);
-    if (!isPasswordValid) {
-      return res.status(401).json({ message: "Current password is incorrect" });
-    }
+      const isPasswordValid = await verifyPassword(currentPassword, user.password);
+      if (!isPasswordValid) {
+        return res.status(401).json({ message: "Current password is incorrect" });
+      }
 
-    // Update password
-    const hashedPassword = await hashPassword(newPassword);
-    const updated = await storage.updateUserPassword(userId, hashedPassword);
-    
-    if (updated) {
-      res.json({ success: true });
-    } else {
-      res.status(404).json({ message: "User not found" });
+      // Update password
+      const hashedPassword = await hashPassword(newPassword);
+      const updated = await storage.updateUserPassword(userId, hashedPassword);
+
+      if (updated) {
+        res.json({ success: true });
+      } else {
+        res.status(404).json({ message: "User not found" });
+      }
+    } catch (error) {
+      console.error("Password change error:", error);
+      res.status(500).json({
+        message: "Failed to update password",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
     }
-  } catch (error) {
-    console.error("Password change error:", error);
-    res.status(500).json({ 
-      message: "Failed to update password", 
-      error: error instanceof Error ? error.message : "Unknown error" 
-    });
-  }
   });
 
   app.post("/api/auth/forgot-password", async (req: Request, res: Response) => {
     try {
       const { email } = req.body;
-      
+
       if (!email) {
         return res.status(400).json({ message: "Email is required" });
       }
@@ -152,8 +152,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Security: Don't reveal if email exists
       const user = await storage.getUserByEmail(email);
       if (!user) {
-        return res.json({ 
-          success: true, 
+        return res.json({
+          success: true,
           message: "If this email exists, we've sent an OTP",
           token: generateToken() // Return a token anyway for security
         });
@@ -161,14 +161,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const otp = generateOTP();
       const token = generateToken();
-      
+
       await storage.createPasswordResetToken(email, otp, token);
       await notificationService.sendOTP(email, otp);
 
-      res.json({ 
-        success: true, 
-        message: "OTP sent to email", 
-        token 
+      res.json({
+        success: true,
+        message: "OTP sent to email",
+        token
       });
     } catch (error) {
       console.error("Forgot password error:", error);
@@ -180,7 +180,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/verify-otp", async (req: Request, res: Response) => {
     try {
       const { email, otp, token } = req.body;
-      
+
       if (!email || !otp || !token) {
         return res.status(400).json({ message: "All fields are required" });
       }
@@ -193,10 +193,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const verificationToken = generateToken();
       await storage.createPasswordResetToken(email, otp, verificationToken);
 
-      res.json({ 
-        success: true, 
-        message: "OTP verified", 
-        verificationToken 
+      res.json({
+        success: true,
+        message: "OTP verified",
+        verificationToken
       });
     } catch (error) {
       console.error("OTP verification error:", error);
@@ -208,14 +208,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/reset-password", async (req: Request, res: Response) => {
     try {
       const { email, newPassword, token } = req.body;
-      
+
       if (!email || !newPassword || !token) {
         return res.status(400).json({ message: "All fields are required" });
       }
 
       // Verify token exists and is valid
       const result = await verifyToken(token);
-      
+
       if (result.length === 0) {
         return res.status(401).json({ message: "Invalid or expired token" });
       }
@@ -227,9 +227,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Invalidate the token
       await storage.invalidateResetToken(token);
 
-      res.json({ 
-        success: true, 
-        message: "Password reset successfully" 
+      res.json({
+        success: true,
+        message: "Password reset successfully"
       });
     } catch (error) {
       console.error("Password reset error:", error);
@@ -241,21 +241,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/resend-otp", async (req: Request, res: Response) => {
     try {
       const { email } = req.body;
-      
+
       if (!email) {
         return res.status(400).json({ message: "Email is required" });
       }
 
       const otp = generateOTP();
       const token = generateToken();
-      
+
       await storage.createPasswordResetToken(email, otp, token);
       await notificationService.sendOTP(email, otp);
 
-      res.json({ 
-        success: true, 
-        message: "New OTP sent to email", 
-        token 
+      res.json({
+        success: true,
+        message: "New OTP sent to email",
+        token
       });
     } catch (error) {
       console.error("Resend OTP error:", error);
@@ -487,20 +487,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // POST create showroom
   app.post("/api/showrooms", async (req, res) => {
-  try {
-    // Ensure user is authenticated
-    const showroomData: InsertShowroom = {
-      ...req.body,
-      userId: req.body.userId // Get user ID from authenticated session
-    };
+    try {
+      // Ensure user is authenticated
+      const showroomData: InsertShowroom = {
+        ...req.body,
+        userId: req.body.userId // Get user ID from authenticated session
+      };
 
-    const newShowroom = await storage.createShowroom(showroomData);
-    res.status(201).json(newShowroom);
-  } catch (error) {
-    console.error("Showroom creation error:", error);
-    res.status(500).json({ message: "Failed to create showroom", error });
-  }
-});
+      const newShowroom = await storage.createShowroom(showroomData);
+      res.status(201).json(newShowroom);
+    } catch (error) {
+      console.error("Showroom creation error:", error);
+      res.status(500).json({ message: "Failed to create showroom", error });
+    }
+  });
 
   // PUT update showroom
   app.put("/api/showrooms/:id", async (req, res) => {
@@ -508,11 +508,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { id } = req.params;
       const updates: Partial<InsertShowroom> = req.body;
       const updatedShowroom = await storage.updateShowroom(Number(id), updates);
-      
+
       if (!updatedShowroom) {
         return res.status(404).json({ message: "Showroom not found" });
       }
-      
+
       res.json(updatedShowroom);
     } catch (error) {
       res.status(500).json({ message: "Failed to update showroom", error });
@@ -590,46 +590,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ✅ Corrected make detail route
-app.get("/api/car-makes/:id", async (req, res) => {
-  try {
-    const makeId = Number(req.params.id);
-    if (isNaN(makeId)) {
-      return res.status(400).json({ error: "Invalid make ID" });
+  app.get("/api/car-makes/:id", async (req, res) => {
+    try {
+      const makeId = Number(req.params.id);
+      if (isNaN(makeId)) {
+        return res.status(400).json({ error: "Invalid make ID" });
+      }
+
+      console.log(`[API] Fetching make with ID: ${makeId}`);
+      const make = await storage.getCarMake(makeId); // <-- FIXED
+
+      if (!make) {
+        console.log(`[API] Make not found: ${makeId}`);
+        return res.status(404).json({ error: "Make not found" });
+      }
+
+      console.log(`[API] Returning make:`, make);
+      return res.json(make);
+    } catch (error) {
+      console.error(`[API ERROR] Failed to fetch make:`, error);
+      return res.status(500).json({ error: "Internal server error" });
     }
+  });
 
-    console.log(`[API] Fetching make with ID: ${makeId}`);
-    const make = await storage.getCarMake(makeId); // <-- FIXED
+  // Fetch all models for a specific make
+  app.get("/api/car-makes/:id/models", async (req, res) => {
+    try {
+      const makeId = Number(req.params.id);
+      if (isNaN(makeId)) {
+        return res.status(400).json({ error: "Invalid make ID" });
+      }
 
-    if (!make) {
-      console.log(`[API] Make not found: ${makeId}`);
-      return res.status(404).json({ error: "Make not found" });
+      console.log(`[API] Fetching models for make ID: ${makeId}`);
+      const models = await storage.getCarModelsByMake(makeId);
+
+      return res.json(models || []);
+    } catch (error) {
+      console.error(`[API ERROR] Failed to fetch models:`, error);
+      return res.status(500).json({ error: "Internal server error" });
     }
-
-    console.log(`[API] Returning make:`, make);
-    return res.json(make);
-  } catch (error) {
-    console.error(`[API ERROR] Failed to fetch make:`, error);
-    return res.status(500).json({ error: "Internal server error" });
-  }
-});
-
- // Fetch all models for a specific make
-app.get("/api/car-makes/:id/models", async (req, res) => {
-  try {
-    const makeId = Number(req.params.id);
-    if (isNaN(makeId)) {
-      return res.status(400).json({ error: "Invalid make ID" });
-    }
-
-    console.log(`[API] Fetching models for make ID: ${makeId}`);
-    const models = await storage.getCarModelsByMake(makeId);
-
-    return res.json(models || []);
-  } catch (error) {
-    console.error(`[API ERROR] Failed to fetch models:`, error);
-    return res.status(500).json({ error: "Internal server error" });
-  }
-});
+  });
 
   // Get single car model
   app.get("/api/car-model/:id", async (req, res) => {
@@ -663,63 +663,63 @@ app.get("/api/car-makes/:id/models", async (req, res) => {
   });
 
   // GET all engine capacities
-app.get("/api/engine-capacities", async (_req, res) => {
-  try {
-    const capacities = await storage.getAllEngineCapacities();
-    res.json(capacities);
-  } catch (error) {
-    res.status(500).json({ message: "Failed to fetch engine capacities", error });
-  }
-});
-
-// GET a single engine capacity by ID
-app.get("/api/engine-capacities/:id", async (req, res) => {
-  try {
-    const id = parseInt(req.params.id);
-    const capacity = await storage.getEngineCapacity(id);
-    if (!capacity) {
-      return res.status(404).json({ message: "Engine capacity not found" });
+  app.get("/api/engine-capacities", async (_req, res) => {
+    try {
+      const capacities = await storage.getAllEngineCapacities();
+      res.json(capacities);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch engine capacities", error });
     }
-    res.json(capacity);
-  } catch (error) {
-    res.status(500).json({ message: "Failed to fetch engine capacity", error });
-  }
-});
+  });
 
-// POST - create new engine capacity
-app.post("/api/engine-capacities", async (req, res) => {
-  try {
-    const newCapacity = await storage.createEngineCapacity(req.body);
-    res.status(201).json(newCapacity);
-  } catch (error) {
-    res.status(500).json({ message: "Failed to create engine capacity", error });
-  }
-});
-
-// PUT - update engine capacity by ID
-app.put("/api/engine-capacities/:id", async (req, res) => {
-  try {
-    const id = parseInt(req.params.id);
-    const updated = await storage.updateEngineCapacity(id, req.body);
-    if (!updated) {
-      return res.status(404).json({ message: "Engine capacity not found" });
+  // GET a single engine capacity by ID
+  app.get("/api/engine-capacities/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const capacity = await storage.getEngineCapacity(id);
+      if (!capacity) {
+        return res.status(404).json({ message: "Engine capacity not found" });
+      }
+      res.json(capacity);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch engine capacity", error });
     }
-    res.json(updated);
-  } catch (error) {
-    res.status(500).json({ message: "Failed to update engine capacity", error });
-  }
-});
+  });
 
-// DELETE - remove engine capacity by ID
-app.delete("/api/engine-capacities/:id", async (req, res) => {
-  try {
-    const id = parseInt(req.params.id);
-    await storage.deleteEngineCapacity(id);
-    res.status(204).send();
-  } catch (error) {
-    res.status(500).json({ message: "Failed to delete engine capacity", error });
-  }
-});
+  // POST - create new engine capacity
+  app.post("/api/engine-capacities", async (req, res) => {
+    try {
+      const newCapacity = await storage.createEngineCapacity(req.body);
+      res.status(201).json(newCapacity);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to create engine capacity", error });
+    }
+  });
+
+  // PUT - update engine capacity by ID
+  app.put("/api/engine-capacities/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const updated = await storage.updateEngineCapacity(id, req.body);
+      if (!updated) {
+        return res.status(404).json({ message: "Engine capacity not found" });
+      }
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update engine capacity", error });
+    }
+  });
+
+  // DELETE - remove engine capacity by ID
+  app.delete("/api/engine-capacities/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteEngineCapacity(id);
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete engine capacity", error });
+    }
+  });
 
 
   // Car Listings
@@ -771,7 +771,7 @@ app.delete("/api/engine-capacities/:id", async (req, res) => {
       } else {
         console.log("No year range filter or incomplete range");
       }
-      
+
       // Make
       if (req.query.make && req.query.make !== "all") {
         console.log("Processing make filter with value:", req.query.make);
@@ -832,7 +832,7 @@ app.delete("/api/engine-capacities/:id", async (req, res) => {
         console.log("No fuel_type filter or 'all' selected");
       }
 
-       // Transmission
+      // Transmission
       if (req.query.transmission && req.query.transmission !== "all") {
         console.log("Processing transmission filter with value:", req.query.transmission);
         filters.transmission = req.query.transmission;
@@ -849,7 +849,7 @@ app.delete("/api/engine-capacities/:id", async (req, res) => {
         console.log("No car_engine_capacities filter or 'all' selected");
       }
 
-       // Cylinder Count
+      // Cylinder Count
       if (req.query.cylinder_count && req.query.cylinder_count !== "all") {
         console.log("Processing cylinder_count filter with value:", req.query.cylinder_count);
         filters.cylinder_count = req.query.cylinder_count;
@@ -866,14 +866,14 @@ app.delete("/api/engine-capacities/:id", async (req, res) => {
         console.log("No date condition or incomplete range");
       }
 
-       // Location
+      // Location
       if (req.query.location && req.query.location !== "all") {
         console.log("Processing date location with values:", req.query.location);
         filters.location = req.query.location;
         console.log("Added date range filter:", filters.location, "to", filters.location);
       } else {
         console.log("No date location or incomplete range");
-      }      
+      }
 
       // Color
       if (req.query.color && req.query.color !== "all") {
@@ -898,7 +898,7 @@ app.delete("/api/engine-capacities/:id", async (req, res) => {
       } else {
         console.log("No tinted filter or 'all' selected");
       }
-      
+
       // Status
       if (req.query.status && req.query.status !== "all") {
         console.log("Processing status filter with value:", req.query.status);
@@ -942,7 +942,7 @@ app.delete("/api/engine-capacities/:id", async (req, res) => {
       } else {
         console.log("No has_warranty filter");
       }
-      
+
       // Has Insurance
       if (req.query.has_insurance) {
         console.log("Processing has_insurance filter with value:", req.query.has_insurance);
@@ -952,7 +952,7 @@ app.delete("/api/engine-capacities/:id", async (req, res) => {
         console.log("No has_insurance filter");
       }
 
-            // Date Range
+      // Date Range
       if (req.query.updated_from && req.query.updated_to) {
         console.log("Processing date range filter with values:", req.query.updated_from, "to", req.query.updated_to);
         filters.updated_from = req.query.updated_from;
@@ -968,7 +968,7 @@ app.delete("/api/engine-capacities/:id", async (req, res) => {
       console.log("Retrieved listings from storage:", listings);
       res.json(listings);
 
-    // Normalize image URLs (example assumes `image` and `thumbnail`)
+      // Normalize image URLs (example assumes `image` and `thumbnail`)
     } catch (error) {
       console.error("Failed to fetch listings:", error);
       res.status(500).json({ message: "Failed to fetch listings", error });
@@ -976,10 +976,10 @@ app.delete("/api/engine-capacities/:id", async (req, res) => {
   });
 
   function normalizeUrl(url?: string): string | null {
-  if (!url) return null;
-  if (url.startsWith("http")) return url;
-  return `https://yourdomain.com/uploads/${url}`; // Adjust path as needed
-}
+    if (!url) return null;
+    if (url.startsWith("http")) return url;
+    return `https://yourdomain.com/uploads/${url}`; // Adjust path as needed
+  }
 
 
   app.get("/api/car-featured", async (req, res) => {
@@ -992,224 +992,247 @@ app.delete("/api/engine-capacities/:id", async (req, res) => {
     }
   });
 
- app.get("/api/car-listings/:id", async (req, res) => {
-  try {
-    const listing = await storage.getCarListingById(Number(req.params.id));
-    
-    if (listing) {
-      console.log("Fetched Car Listing:", listing); // ✅ log the full response
-      res.json(listing);
-    } else {
-      console.log(`Listing with ID ${req.params.id} not found`);
-      res.status(404).json({ message: "Listing not found" });
+  app.get("/api/car-listings/:id", async (req, res) => {
+    try {
+      const listing = await storage.getCarListingById(Number(req.params.id));
+
+      if (listing) {
+        console.log("Fetched Car Listing:", listing); // ✅ log the full response
+        res.json(listing);
+      } else {
+        console.log(`Listing with ID ${req.params.id} not found`);
+        res.status(404).json({ message: "Listing not found" });
+      }
+    } catch (error) {
+      console.error("Error fetching listing:", error);
+      res.status(500).json({ message: "Failed to fetch listing", error });
     }
-  } catch (error) {
-    console.error("Error fetching listing:", error);
-    res.status(500).json({ message: "Failed to fetch listing", error });
-  }
-});
+  });
+
+  app.get('/api/listings/:id/similar', async (req, res) => {
+    try {
+      const listingId = req.params.id;
+      // allow an optional `limit` query param, defaulting to 5
+      const limit = req.query.limit
+        ? Number(req.query.limit)
+        : 5;
+
+      console.log('Inside getSimilarCarListings route');
+      console.log('Params:', { listingId, limit });
+
+      const similar = await storage.getSimilarCarListings(listingId, limit);
+
+      console.log('Similar listings result:', similar);
+      res.json(similar);
+    } catch (error) {
+      console.error('Failed to fetch similar listings:', error);
+      res
+        .status(500)
+        .json({ message: 'Failed to fetch similar listings', error });
+    }
+  });
 
 
   app.post("/api/car-listings", async (req, res) => {
-  try {
-    console.log("👉 Received POST /api/car-listings");
-    console.log("📦 Payload:", req.body);
+    try {
+      console.log("👉 Received POST /api/car-listings");
+      console.log("📦 Payload:", req.body);
 
-    const {
-      featureIds = [],
-      package_id,
-      start_date,
-      end_date,
-      ...listingData
-    } = req.body;
+      const {
+        featureIds = [],
+        package_id,
+        start_date,
+        end_date,
+        ...listingData
+      } = req.body;
 
-    console.log("🛠 Creating car listing with data:", listingData);
-    const created = await storage.createCarListing(listingData);
-    console.log("✅ Listing created with ID:", created.id);
+      console.log("🛠 Creating car listing with data:", listingData);
+      const created = await storage.createCarListing(listingData);
+      console.log("✅ Listing created with ID:", created.id);
 
-    if (featureIds.length) {
-      console.log("➕ Adding features:", featureIds);
-      await storage.bulkAddFeaturesToListing(created.id, featureIds);
-      console.log("✅ Features added");
-    }
-
-    if (package_id && start_date && end_date) {
-      console.log("📣 Creating promotion with:", {
-        listingId: created.id,
-        packageId: package_id,
-        startDate: start_date,
-        endDate: end_date,
-      });
-      await storage.createListingPromotion({
-        listingId: created.id,
-        packageId: package_id,
-        startDate: start_date,
-        endDate: end_date,
-        transactionId: null,
-        isActive: true,
-      });
-      console.log("✅ Promotion created");
-    }
-
-    const fullListing = await storage.getCarListingById(created.id);
-    console.log("📤 Returning full listing");
-    res.status(201).json(fullListing);
-  } catch (error) {
-    console.error("❌ Failed to create listing:", error);
-    res.status(500).json({ message: "Failed to create listing", error });
-  }
-});
-
-
-app.put("/api/car-listings/:id", async (req, res) => {
-  try {
-    const id = Number(req.params.id);
-    console.log(`👉 Received PUT /api/car-listings/${id}`);
-    console.log("📝 Payload:", req.body);
-
-    const {
-      featureIds = [],
-      package_id,
-      start_date,
-      end_date,
-      ...updates
-    } = req.body;
-
-    // Validate dates if provided
-    if (start_date && end_date) {
-      const startDate = new Date(start_date);
-      const endDate = new Date(end_date);
-      
-      if (startDate >= endDate) {
-        throw new Error("End date must be after start date");
+      if (featureIds.length) {
+        console.log("➕ Adding features:", featureIds);
+        await storage.bulkAddFeaturesToListing(created.id, featureIds);
+        console.log("✅ Features added");
       }
-      
-    }
 
-    console.log("🛠 Updating car listing:", updates);
-    const updated = await storage.updateCarListing(id, updates);
-    if (!updated) {
-      console.warn("⚠️ Listing not found for ID:", id);
-      return res.status(404).json({ message: "Listing not found" });
-    }
-    console.log("✅ Listing updated");
-
-    console.log("🧹 Clearing existing features");
-    await storage.clearFeaturesForListing(id);
-
-    if (featureIds.length) {
-      console.log("➕ Re-adding features:", featureIds);
-      await storage.bulkAddFeaturesToListing(id, featureIds);
-      console.log("✅ Features re-added");
-    }
-
-    if (package_id && start_date && end_date) {
-      console.log("🔍 Checking for existing active promotions");
-      const activePromotions = await storage.getActiveListingPromotions(id);
-      
-      if (activePromotions.length > 0) {
-        console.log("🔄 Updating existing promotion instead of creating new one");
-        const promotionToUpdate = activePromotions[0];
-        
-        await storage.updateListingPromotion(promotionToUpdate.id, {
-          packageId: package_id,
-          startDate: start_date,
-          endDate: end_date
-        });
-      } else {
-        console.log("📣 Creating new promotion with:", {
-          listingId: id,
+      if (package_id && start_date && end_date) {
+        console.log("📣 Creating promotion with:", {
+          listingId: created.id,
           packageId: package_id,
           startDate: start_date,
           endDate: end_date,
         });
-
         await storage.createListingPromotion({
-          listingId: id,
+          listingId: created.id,
           packageId: package_id,
           startDate: start_date,
           endDate: end_date,
           transactionId: null,
           isActive: true,
         });
+        console.log("✅ Promotion created");
       }
-      console.log("✅ Promotion updated");
+
+      const fullListing = await storage.getCarListingById(created.id);
+      console.log("📤 Returning full listing");
+      res.status(201).json(fullListing);
+    } catch (error) {
+      console.error("❌ Failed to create listing:", error);
+      res.status(500).json({ message: "Failed to create listing", error });
     }
+  });
 
-    const fullListing = await storage.getCarListingById(id);
-    console.log("📤 Returning updated full listing");
-    res.json(fullListing);
-  } catch (error: any) {
-    console.error("❌ Failed to update listing:", error);
-    const statusCode = error.message.includes("date") ? 400 : 500;
-    res.status(statusCode).json({ 
-      message: error.message || "Failed to update listing",
-      error: process.env.NODE_ENV === 'development' ? error : undefined
-    });
-  }
-});
 
-app.put("/api/car-listings/:id/actions", async (req, res) => {
-  try {
-    const id = Number(req.params.id);
-    const { action, reason, featured } = req.body;
+  app.put("/api/car-listings/:id", async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      console.log(`👉 Received PUT /api/car-listings/${id}`);
+      console.log("📝 Payload:", req.body);
 
-    console.log("Action Recieved in route:", action);
-    // Validate action
-    const validActions = ['pending', 'draft', 'publish', 'active', 'approve', 'reject', 'feature', 'sold', 'delete'];
-    if (!validActions.includes(action)) {
-      return res.status(400).json({ message: "Invalid action" });
+      const {
+        featureIds = [],
+        package_id,
+        start_date,
+        end_date,
+        ...updates
+      } = req.body;
+
+      // Validate dates if provided
+      if (start_date && end_date) {
+        const startDate = new Date(start_date);
+        const endDate = new Date(end_date);
+
+        if (startDate >= endDate) {
+          throw new Error("End date must be after start date");
+        }
+
+      }
+
+      console.log("🛠 Updating car listing:", updates);
+      const updated = await storage.updateCarListing(id, updates);
+      if (!updated) {
+        console.warn("⚠️ Listing not found for ID:", id);
+        return res.status(404).json({ message: "Listing not found" });
+      }
+      console.log("✅ Listing updated");
+
+      console.log("🧹 Clearing existing features");
+      await storage.clearFeaturesForListing(id);
+
+      if (featureIds.length) {
+        console.log("➕ Re-adding features:", featureIds);
+        await storage.bulkAddFeaturesToListing(id, featureIds);
+        console.log("✅ Features re-added");
+      }
+
+      if (package_id && start_date && end_date) {
+        console.log("🔍 Checking for existing active promotions");
+        const activePromotions = await storage.getActiveListingPromotions(id);
+
+        if (activePromotions.length > 0) {
+          console.log("🔄 Updating existing promotion instead of creating new one");
+          const promotionToUpdate = activePromotions[0];
+
+          await storage.updateListingPromotion(promotionToUpdate.id, {
+            packageId: package_id,
+            startDate: start_date,
+            endDate: end_date
+          });
+        } else {
+          console.log("📣 Creating new promotion with:", {
+            listingId: id,
+            packageId: package_id,
+            startDate: start_date,
+            endDate: end_date,
+          });
+
+          await storage.createListingPromotion({
+            listingId: id,
+            packageId: package_id,
+            startDate: start_date,
+            endDate: end_date,
+            transactionId: null,
+            isActive: true,
+          });
+        }
+        console.log("✅ Promotion updated");
+      }
+
+      const fullListing = await storage.getCarListingById(id);
+      console.log("📤 Returning updated full listing");
+      res.json(fullListing);
+    } catch (error: any) {
+      console.error("❌ Failed to update listing:", error);
+      const statusCode = error.message.includes("date") ? 400 : 500;
+      res.status(statusCode).json({
+        message: error.message || "Failed to update listing",
+        error: process.env.NODE_ENV === 'development' ? error : undefined
+      });
     }
+  });
 
-    // Get current listing
-    const listing = await storage.getCarListingById(id);
-    if (!listing) {
-      return res.status(404).json({ message: "Listing not found" });
+  app.put("/api/car-listings/:id/actions", async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const { action, reason, featured } = req.body;
+
+      console.log("Action Recieved in route:", action);
+      // Validate action
+      const validActions = ['pending', 'draft', 'publish', 'active', 'approve', 'reject', 'feature', 'sold', 'delete'];
+      if (!validActions.includes(action)) {
+        return res.status(400).json({ message: "Invalid action" });
+      }
+
+      // Get current listing
+      const listing = await storage.getCarListingById(id);
+      if (!listing) {
+        return res.status(404).json({ message: "Listing not found" });
+      }
+
+      // Prepare updates based on action
+      let updates: any = {};
+
+      switch (action) {
+        case 'draft':
+          updates.status = 'draft';
+        case 'publish':
+        case 'active':
+        case 'approve':
+          updates.status = 'active';
+          break;
+        case 'pending':
+          updates.status = 'pending';
+          break;
+        case 'reject':
+          updates.status = 'reject';
+          break;
+        case 'feature':
+          updates.is_featured = featured;
+          break;
+        case 'sold':
+          updates.status = 'sold';
+          break;
+        case 'delete':
+          // Soft delete implementation
+          updates.deleted_at = new Date();
+          break;
+      }
+
+      // Apply updates
+      const updated = await storage.updateCarListing(id, updates);
+
+      res.json({
+        success: true,
+        listing: updated
+      });
+
+    } catch (error: any) {
+      res.status(500).json({
+        message: error.message || "Failed to perform action"
+      });
     }
-
-    // Prepare updates based on action
-    let updates: any = {};
-    
-    switch (action) {
-      case 'draft':
-        updates.status = 'draft';
-      case 'publish':
-      case 'active':
-      case 'approve':
-        updates.status = 'active';
-        break;
-      case 'pending':
-        updates.status = 'pending';
-        break;
-      case 'reject':
-        updates.status = 'reject';
-        break;
-      case 'feature':
-        updates.is_featured = featured;
-        break;
-      case 'sold':
-        updates.status = 'sold';
-        break;
-      case 'delete':
-        // Soft delete implementation
-        updates.deleted_at = new Date();
-        break;
-    }
-
-    // Apply updates
-    const updated = await storage.updateCarListing(id, updates);
-    
-    res.json({
-      success: true,
-      listing: updated
-    });
-
-  } catch (error: any) {
-    res.status(500).json({ 
-      message: error.message || "Failed to perform action"
-    });
-  }
-});
+  });
 
 
   app.delete("/api/car-listings/:id", async (req, res) => {
@@ -1222,45 +1245,45 @@ app.put("/api/car-listings/:id/actions", async (req, res) => {
   });
 
   // Car Listing Features
- app.get("/api/car-listings/:id/features", async (req, res) => {
-  try {
-    const listingId = Number(req.params.id);
-    console.log(`📥 GET /api/car-listings/${listingId}/features`);
+  app.get("/api/car-listings/:id/features", async (req, res) => {
+    try {
+      const listingId = Number(req.params.id);
+      console.log(`📥 GET /api/car-listings/${listingId}/features`);
 
-    // Get feature IDs associated with the listing
-    const featureIds = await storage.getFeaturesForListing(listingId);
-    console.log("🔍 Retrieved feature IDs:", featureIds);
+      // Get feature IDs associated with the listing
+      const featureIds = await storage.getFeaturesForListing(listingId);
+      console.log("🔍 Retrieved feature IDs:", featureIds);
 
-    // Fetch details for each feature
-    const featuresWithDetails = await Promise.all(
-      featureIds.map(async (featureObject) => {
-        console.log("➡️ Fetching details for feature ID:", featureObject.feature_id);
-        const features = await storage.getCarFeature(featureObject.feature_id);
+      // Fetch details for each feature
+      const featuresWithDetails = await Promise.all(
+        featureIds.map(async (featureObject) => {
+          console.log("➡️ Fetching details for feature ID:", featureObject.feature_id);
+          const features = await storage.getCarFeature(featureObject.feature_id);
 
-        if (features) {
-          console.log("✅ Feature found:", features);
-          return {
-            id: features.id,
-            name: features.name,
-            nameAr: features.nameAr,
-          };
-        } else {
-          console.warn("⚠️ Feature not found for ID:", featureObject.feature_id);
-          return null;
-        }
-      })
-    );
+          if (features) {
+            console.log("✅ Feature found:", features);
+            return {
+              id: features.id,
+              name: features.name,
+              nameAr: features.nameAr,
+            };
+          } else {
+            console.warn("⚠️ Feature not found for ID:", featureObject.feature_id);
+            return null;
+          }
+        })
+      );
 
-    // Filter out nulls
-    const filteredFeatures = featuresWithDetails.filter((feature) => feature !== null);
-    console.log("📦 Final feature list:", filteredFeatures);
+      // Filter out nulls
+      const filteredFeatures = featuresWithDetails.filter((feature) => feature !== null);
+      console.log("📦 Final feature list:", filteredFeatures);
 
-    res.json(filteredFeatures);
-  } catch (error) {
-    console.error("❌ Error fetching listing features:", error);
-    res.status(500).json({ message: "Failed to fetch listing features", error });
-  }
-});
+      res.json(filteredFeatures);
+    } catch (error) {
+      console.error("❌ Error fetching listing features:", error);
+      res.status(500).json({ message: "Failed to fetch listing features", error });
+    }
+  });
 
 
   app.post("/api/car-listings/:id/features", async (req, res) => {
@@ -1289,7 +1312,7 @@ app.put("/api/car-listings/:id/actions", async (req, res) => {
   /**
  * SERVICE DATA
  */
-  
+
   // get all services
   app.get("/api/services", async (_req, res) => {
     try {
@@ -1384,9 +1407,9 @@ app.put("/api/car-listings/:id/actions", async (req, res) => {
   });
 
 
-   /**
- * SHOWROOM SERVICE DATA
- */
+  /**
+* SHOWROOM SERVICE DATA
+*/
 
   app.get("/api/showroom/services/:id", async (req, res) => {
     try {
@@ -1534,33 +1557,35 @@ app.put("/api/car-listings/:id/actions", async (req, res) => {
       const sortOrder = req.query.sort_order === 'desc' ? 'desc' : 'asc';
 
       console.log("Final filters object before querying storage:", filters);
-      const services = await storage.getAllShowroomServices(filters, sortBy, sortOrder);   
-      
-      if (Array.isArray(services)){
-      console.log("service is an array");
-        // Enrich services with additional data if needed
-      const enrichedServices = await Promise.all(
-        services.map(async (service: any) => {
-          try {
-            const serviceDetails= await storage.getService(service.service_id);
-            const showroomDetails = await storage.getShowroom(service.showroom_id);
-            console.log("service", service);
-            const finalresult= { ...service,
-              service: serviceDetails.service,
-              showroom: showroomDetails,}
-            console.log("Final result", finalresult);
-            return finalresult;
-          } catch (error) {
-            console.error("Error enriching service data:", error);
-            return service;
-          }
-        })
-      );
+      const services = await storage.getAllShowroomServices(filters, sortBy, sortOrder);
 
-      res.json(enrichedServices);
+      if (Array.isArray(services)) {
+        console.log("service is an array");
+        // Enrich services with additional data if needed
+        const enrichedServices = await Promise.all(
+          services.map(async (service: any) => {
+            try {
+              const serviceDetails = await storage.getService(service.service_id);
+              const showroomDetails = await storage.getShowroom(service.showroom_id);
+              console.log("service", service);
+              const finalresult = {
+                ...service,
+                service: serviceDetails.service,
+                showroom: showroomDetails,
+              }
+              console.log("Final result", finalresult);
+              return finalresult;
+            } catch (error) {
+              console.error("Error enriching service data:", error);
+              return service;
+            }
+          })
+        );
+
+        res.json(enrichedServices);
       }
-      
-      
+
+
     } catch (error) {
       console.error("Failed to fetch showroom services:", error);
       res.status(500).json({ message: "Failed to fetch showroom services", error });
@@ -1568,162 +1593,162 @@ app.put("/api/car-listings/:id/actions", async (req, res) => {
   });
 
   // Create Showroom Service
-app.post("/api/showroom/services", async (req, res) => {
-  console.log("Received request to create showroom service:", req.body);
-  try {
-    const {
-      showroomId,
-      serviceId,
-      price,
-      currency = 'USD', // default currency
-      description,
-      descriptionAr,
-      isFeatured = false,
-      isActive = true
-    } = req.body;
+  app.post("/api/showroom/services", async (req, res) => {
+    console.log("Received request to create showroom service:", req.body);
+    try {
+      const {
+        showroomId,
+        serviceId,
+        price,
+        currency = 'USD', // default currency
+        description,
+        descriptionAr,
+        isFeatured = false,
+        isActive = true
+      } = req.body;
 
-    // Validate required fields
-    if (!showroomId || !serviceId || price === undefined) {
-      console.log("Missing required fields");
-      return res.status(400).json({ message: "Missing required fields" });
-    }
+      // Validate required fields
+      if (!showroomId || !serviceId || price === undefined) {
+        console.log("Missing required fields");
+        return res.status(400).json({ message: "Missing required fields" });
+      }
 
-    // Validate price is a number
-    if (isNaN(parseFloat(price))) {
-      console.log("Invalid price value");
-      return res.status(400).json({ message: "Price must be a number" });
-    }
-
-    const newService = await storage.createShowroomService({
-      showroomId,
-      serviceId,
-      price: parseFloat(price),
-      currency,
-      description,
-      descriptionAr,
-      isFeatured,
-      isActive
-    });
-
-    console.log("Successfully created service:", newService);
-    res.status(201).json(newService);
-  } catch (error) {
-    console.error("Failed to create showroom service:", error);
-    res.status(500).json({ message: "Failed to create showroom service", error });
-  }
-});
-
-// Update Showroom Service
-app.put("/api/showroom/services/:id", async (req, res) => {
-  const serviceId = parseInt(req.params.id, 10);
-  console.log(`Received request to update showroom service ${serviceId}:`, req.body);
-  
-  if (isNaN(serviceId)) {
-    return res.status(400).json({ message: "Invalid service ID" });
-  }
-
-  try {
-    const updates = req.body;
-    
-    // Remove fields that shouldn't be updated directly
-    delete updates.id;
-    delete updates.created_at;
-
-    // Convert price to number if provided
-    if (updates.price !== undefined) {
-      updates.price = parseFloat(updates.price);
-      if (isNaN(updates.price)) {
+      // Validate price is a number
+      if (isNaN(parseFloat(price))) {
+        console.log("Invalid price value");
         return res.status(400).json({ message: "Price must be a number" });
       }
+
+      const newService = await storage.createShowroomService({
+        showroomId,
+        serviceId,
+        price: parseFloat(price),
+        currency,
+        description,
+        descriptionAr,
+        isFeatured,
+        isActive
+      });
+
+      console.log("Successfully created service:", newService);
+      res.status(201).json(newService);
+    } catch (error) {
+      console.error("Failed to create showroom service:", error);
+      res.status(500).json({ message: "Failed to create showroom service", error });
+    }
+  });
+
+  // Update Showroom Service
+  app.put("/api/showroom/services/:id", async (req, res) => {
+    const serviceId = parseInt(req.params.id, 10);
+    console.log(`Received request to update showroom service ${serviceId}:`, req.body);
+
+    if (isNaN(serviceId)) {
+      return res.status(400).json({ message: "Invalid service ID" });
     }
 
-    const updatedService = await storage.updateShowroomService(serviceId, updates);
-    
-    if (!updatedService) {
-      console.log("Service not found");
-      return res.status(404).json({ message: "Service not found" });
+    try {
+      const updates = req.body;
+
+      // Remove fields that shouldn't be updated directly
+      delete updates.id;
+      delete updates.created_at;
+
+      // Convert price to number if provided
+      if (updates.price !== undefined) {
+        updates.price = parseFloat(updates.price);
+        if (isNaN(updates.price)) {
+          return res.status(400).json({ message: "Price must be a number" });
+        }
+      }
+
+      const updatedService = await storage.updateShowroomService(serviceId, updates);
+
+      if (!updatedService) {
+        console.log("Service not found");
+        return res.status(404).json({ message: "Service not found" });
+      }
+
+      console.log("Successfully updated service:", updatedService);
+      res.json(updatedService);
+    } catch (error) {
+      console.error("Failed to update showroom service:", error);
+      res.status(500).json({ message: "Failed to update showroom service", error });
+    }
+  });
+
+  // Delete Showroom Service
+  app.delete("/api/showroom/services/:id", async (req, res) => {
+    const serviceId = parseInt(req.params.id, 10);
+    console.log(`Received request to delete showroom service ${serviceId}`);
+
+    if (isNaN(serviceId)) {
+      return res.status(400).json({ message: "Invalid service ID" });
     }
 
-    console.log("Successfully updated service:", updatedService);
-    res.json(updatedService);
-  } catch (error) {
-    console.error("Failed to update showroom service:", error);
-    res.status(500).json({ message: "Failed to update showroom service", error });
-  }
-});
+    try {
+      await storage.deleteShowroomService(serviceId);
+      console.log("Successfully deleted service");
+      res.status(204).end();
+    } catch (error) {
+      console.error("Failed to delete showroom service:", error);
+      res.status(500).json({ message: "Failed to delete showroom service", error });
+    }
+  });
 
-// Delete Showroom Service
-app.delete("/api/showroom/services/:id", async (req, res) => {
-  const serviceId = parseInt(req.params.id, 10);
-  console.log(`Received request to delete showroom service ${serviceId}`);
-  
-  if (isNaN(serviceId)) {
-    return res.status(400).json({ message: "Invalid service ID" });
-  }
+  // Feature/Activate/Deactivate Service (Special Actions)
+  app.put("/api/showroom/services/:id/:action", async (req, res) => {
+    const serviceId = parseInt(req.params.id, 10);
+    const action = req.params.action;
+    console.log(`Received ${action} request for service ${serviceId}`);
 
-  try {
-    await storage.deleteShowroomService(serviceId);
-    console.log("Successfully deleted service");
-    res.status(204).end();
-  } catch (error) {
-    console.error("Failed to delete showroom service:", error);
-    res.status(500).json({ message: "Failed to delete showroom service", error });
-  }
-});
-
-// Feature/Activate/Deactivate Service (Special Actions)
-app.put("/api/showroom/services/:id/:action", async (req, res) => {
-  const serviceId = parseInt(req.params.id, 10);
-  const action = req.params.action;
-  console.log(`Received ${action} request for service ${serviceId}`);
-
-  const validActions = ['feature', 'activate', 'deactivate'];
-  if (!validActions.includes(action)) {
-    return res.status(400).json({ message: "Invalid action" });
-  }
-
-  if (isNaN(serviceId)) {
-    return res.status(400).json({ message: "Invalid service ID" });
-  }
-
-  try {
-    let updateField: string;
-    let updateValue: boolean;
-
-    switch (action) {
-      case 'feature':
-        updateField = 'is_featured';
-        updateValue = true;
-        break;
-      case 'activate':
-        updateField = 'is_active';
-        updateValue = true;
-        break;
-      case 'deactivate':
-        updateField = 'is_active';
-        updateValue = false;
-        break;
-      default:
-        return res.status(400).json({ message: "Invalid action" });
+    const validActions = ['feature', 'activate', 'deactivate'];
+    if (!validActions.includes(action)) {
+      return res.status(400).json({ message: "Invalid action" });
     }
 
-    const updatedService = await storage.updateShowroomService(serviceId, {
-      [updateField]: updateValue
-    });
-
-    if (!updatedService) {
-      return res.status(404).json({ message: "Service not found" });
+    if (isNaN(serviceId)) {
+      return res.status(400).json({ message: "Invalid service ID" });
     }
 
-    console.log(`Successfully ${action}d service:`, updatedService);
-    res.json(updatedService);
-  } catch (error) {
-    console.error(`Failed to ${action} service:`, error);
-    res.status(500).json({ message: `Failed to ${action} service`, error });
-  }
-});
+    try {
+      let updateField: string;
+      let updateValue: boolean;
 
-  
+      switch (action) {
+        case 'feature':
+          updateField = 'is_featured';
+          updateValue = true;
+          break;
+        case 'activate':
+          updateField = 'is_active';
+          updateValue = true;
+          break;
+        case 'deactivate':
+          updateField = 'is_active';
+          updateValue = false;
+          break;
+        default:
+          return res.status(400).json({ message: "Invalid action" });
+      }
+
+      const updatedService = await storage.updateShowroomService(serviceId, {
+        [updateField]: updateValue
+      });
+
+      if (!updatedService) {
+        return res.status(404).json({ message: "Service not found" });
+      }
+
+      console.log(`Successfully ${action}d service:`, updatedService);
+      res.json(updatedService);
+    } catch (error) {
+      console.error(`Failed to ${action} service:`, error);
+      res.status(500).json({ message: `Failed to ${action} service`, error });
+    }
+  });
+
+
 
   app.post("/api/service-bookings", async (req, res) => {
     try {
@@ -1744,13 +1769,53 @@ app.put("/api/showroom/services/:id/:action", async (req, res) => {
    * FAVORITES
    */
   app.get("/api/favorites/:userId", async (req, res) => {
+    const userId = Number(req.params.userId);
+
+    if (!userId || isNaN(userId)) {
+      return res.status(400).json({ message: "Invalid userId parameter" });
+    }
+
     try {
-      const favorites = await storage.getFavoritesByUser(Number(req.params.userId));
+      const favorites = await storage.getFavoritesByUser(userId);
       res.json(favorites);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch favorites", error });
     }
   });
+
+  app.post("/api/favorites/check", async (req, res) => {
+    try {
+      const listingId = req.body.listingId;
+      const userId = req.body.userId;
+      console.log("listingId", listingId);
+      console.log("userId", userId)
+
+      console.log("Raw body values:", req.body); // ✅
+
+      const parsedListingId = parseInt(listingId as string, 10);
+      const parsedUserId = parseInt(userId as string, 10);
+
+      console.log("Parsed IDs:", { parsedListingId, parsedUserId }); // ✅
+
+      if (isNaN(parsedListingId) || isNaN(parsedUserId)) {
+        return res.status(400).json({ message: "Invalid userId or listingId parameter" });
+      }
+
+      const isFav = await storage.isFavorite({
+        listingId: parsedListingId,
+        userId: parsedUserId,
+      });
+
+      return res.json({ isFavorited: isFav });
+    } catch (error) {
+      console.error("Error checking favorite:", error);
+      return res.status(500).json({ message: "Failed to check favorite" });
+    }
+  });
+
+
+
+
 
   app.post("/api/favorites", async (req, res) => {
     try {
@@ -1763,12 +1828,10 @@ app.put("/api/showroom/services/:id/:action", async (req, res) => {
 
   app.delete("/api/favorites", async (req, res) => {
     try {
-      const { userId, listingId } = req.body;
-      if (!userId || !listingId) return res.status(400).json({ message: "userId and listingId are required" });
-      await storage.removeFavorite(userId, listingId);
-      res.status(204).end();
+      const fav = await storage.addFavorite(req.body);
+      res.status(201).json(fav);
     } catch (error) {
-      res.status(500).json({ message: "Failed to remove favorite", error });
+      res.status(500).json({ message: "Failed to add favorite", error });
     }
   });
 
@@ -1792,44 +1855,44 @@ app.put("/api/showroom/services/:id/:action", async (req, res) => {
   });
 
   // Get all published static content
-app.get("/api/published/static-content", async (_req, res) => { 
-  try {
-    const content = await storage.getAllPublishedStaticContents();
-    res.json(content);
-  } catch (error) {
-    res.status(500).json({ message: "Failed to fetch published static content", error });
-  }
-});
-
-// Get specific published static content by key
-app.get("/api/published/static-content/:key", async (req, res) => {
-  try {
-    const content = await storage.getPublishedStaticContentByKey(req.params.key);
-    content ? res.json(content) : res.status(404).json({ message: "Published content not found" });
-  } catch (error) {
-    res.status(500).json({ message: "Failed to fetch published static content", error });
-  }
-});
-
-app.get('/api/published/static-content/placement/:placement', async (req, res) => {
-  const placement = req.params.placement;
-  try {
-    // Example: fetching from DB
-    const pages = await storage.getStaticContentByPlacement(placement);
-    // Make sure pages is an array
-    if (!Array.isArray(pages)) {
-      throw new Error('Invalid DB response');
+  app.get("/api/published/static-content", async (_req, res) => {
+    try {
+      const content = await storage.getAllPublishedStaticContents();
+      res.json(content);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch published static content", error });
     }
+  });
 
-    res.json(pages);
-  } catch (err: any) {
-    console.error('Error fetching pages:', err);
-    res.status(500).json({
-      message: 'Failed to fetch content by placement',
-      error: err.message || err,
-    });
-  }
-});
+  // Get specific published static content by key
+  app.get("/api/published/static-content/:key", async (req, res) => {
+    try {
+      const content = await storage.getPublishedStaticContentByKey(req.params.key);
+      content ? res.json(content) : res.status(404).json({ message: "Published content not found" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch published static content", error });
+    }
+  });
+
+  app.get('/api/published/static-content/placement/:placement', async (req, res) => {
+    const placement = req.params.placement;
+    try {
+      // Example: fetching from DB
+      const pages = await storage.getStaticContentByPlacement(placement);
+      // Make sure pages is an array
+      if (!Array.isArray(pages)) {
+        throw new Error('Invalid DB response');
+      }
+
+      res.json(pages);
+    } catch (err: any) {
+      console.error('Error fetching pages:', err);
+      res.status(500).json({
+        message: 'Failed to fetch content by placement',
+        error: err.message || err,
+      });
+    }
+  });
 
 
 
@@ -1916,98 +1979,98 @@ app.get('/api/published/static-content/placement/:placement', async (req, res) =
   });
 
   app.put("/api/settings", async (req, res) => {
-  try {
-    const updates = req.body;
-    const updatedSettings = await storage.updateSettings(updates);
-    res.json(updatedSettings);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to update settings" });
-  }
-});
+    try {
+      const updates = req.body;
+      const updatedSettings = await storage.updateSettings(updates);
+      res.json(updatedSettings);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update settings" });
+    }
+  });
 
-// --- Email Config routes ---
+  // --- Email Config routes ---
 
-app.get("/api/settings/email", async (req, res) => {
-  try {
-    const emailConfig = await storage.getEmailConfig();
-    res.json(emailConfig);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to get email config" });
-  }
-});
+  app.get("/api/settings/email", async (req, res) => {
+    try {
+      const emailConfig = await storage.getEmailConfig();
+      res.json(emailConfig);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get email config" });
+    }
+  });
 
-app.put("/api/settings/email", async (req, res) => {
-  try {
-    const configUpdates = req.body;
-    await storage.updateEmailConfig(configUpdates);
-    res.json({ message: "Email config updated" });
-  } catch (error) {
-    res.status(500).json({ error: "Failed to update email config" });
-  }
-});
+  app.put("/api/settings/email", async (req, res) => {
+    try {
+      const configUpdates = req.body;
+      await storage.updateEmailConfig(configUpdates);
+      res.json({ message: "Email config updated" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update email config" });
+    }
+  });
 
-// --- SMS Config routes ---
+  // --- SMS Config routes ---
 
-app.get("/api/settings/sms-config", async (req, res) => {
-  try {
-    const smsConfig = await storage.getSmsConfig();
-    res.json(smsConfig);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to get SMS config" });
-  }
-});
+  app.get("/api/settings/sms-config", async (req, res) => {
+    try {
+      const smsConfig = await storage.getSmsConfig();
+      res.json(smsConfig);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get SMS config" });
+    }
+  });
 
-app.put("/api/settings/sms-config", async (req, res) => {
-  try {
-    const configUpdates = req.body;
-    await storage.updateSmsConfig(configUpdates);
-    res.json({ message: "SMS config updated" });
-  } catch (error) {
-    res.status(500).json({ error: "Failed to update SMS config" });
-  }
-});
+  app.put("/api/settings/sms-config", async (req, res) => {
+    try {
+      const configUpdates = req.body;
+      await storage.updateSmsConfig(configUpdates);
+      res.json({ message: "SMS config updated" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update SMS config" });
+    }
+  });
 
-// --- Google Maps Config routes ---
+  // --- Google Maps Config routes ---
 
-app.get("/settings/google-maps-config", async (req, res) => {
-  try {
-    const googleMapsConfig = await storage.getGoogleMapsConfig();
-    res.json(googleMapsConfig);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to get Google Maps config" });
-  }
-});
+  app.get("/settings/google-maps-config", async (req, res) => {
+    try {
+      const googleMapsConfig = await storage.getGoogleMapsConfig();
+      res.json(googleMapsConfig);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get Google Maps config" });
+    }
+  });
 
-app.put("/settings/google-maps-config", async (req, res) => {
-  try {
-    const configUpdates = req.body;
-    await storage.updateGoogleMapsConfig(configUpdates);
-    res.json({ message: "Google Maps config updated" });
-  } catch (error) {
-    res.status(500).json({ error: "Failed to update Google Maps config" });
-  }
-});
+  app.put("/settings/google-maps-config", async (req, res) => {
+    try {
+      const configUpdates = req.body;
+      await storage.updateGoogleMapsConfig(configUpdates);
+      res.json({ message: "Google Maps config updated" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update Google Maps config" });
+    }
+  });
 
-// --- Integration Config routes ---
+  // --- Integration Config routes ---
 
-app.get("/settings/integrations", async (req, res) => {
-  try {
-    const integrations = await storage.getIntegrationConfig();
-    res.json(integrations);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to get integrations config" });
-  }
-});
+  app.get("/settings/integrations", async (req, res) => {
+    try {
+      const integrations = await storage.getIntegrationConfig();
+      res.json(integrations);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get integrations config" });
+    }
+  });
 
-app.put("/settings/integrations", async (req, res) => {
-  try {
-    const integrationUpdates = req.body;
-    await storage.updateIntegrationConfig(integrationUpdates);
-    res.json({ message: "Integrations config updated" });
-  } catch (error) {
-    res.status(500).json({ error: "Failed to update integrations config" });
-  }
-});
+  app.put("/settings/integrations", async (req, res) => {
+    try {
+      const integrationUpdates = req.body;
+      await storage.updateIntegrationConfig(integrationUpdates);
+      res.json({ message: "Integrations config updated" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update integrations config" });
+    }
+  });
 
 
   /**
@@ -2216,7 +2279,7 @@ app.put("/settings/integrations", async (req, res) => {
   app.post("/api/user-subscriptions/:id/cancel", async (req, res) => {
     try {
       const subscriptionId = Number(req.params.id);
-      const subscription = await storage.getUserSubscription(subscriptionId);
+      const subscription = await storage.getUserSubscription(subscriptionId, true);
 
       if (!subscription) {
         return res.status(404).json({ message: "Subscription not found" });
@@ -2246,7 +2309,7 @@ app.put("/settings/integrations", async (req, res) => {
   app.post("/api/user-subscriptions/:id/renew", async (req, res) => {
     try {
       const subscriptionId = Number(req.params.id);
-      const subscription = await storage.getUserSubscription(subscriptionId);
+      const subscription = await storage.getUserSubscription(subscriptionId, false);
 
       if (!subscription) {
         return res.status(404).json({ message: "Subscription not found" });
@@ -2427,14 +2490,17 @@ app.put("/settings/integrations", async (req, res) => {
   });
 
   app.get('/api/stats/overview', async (req, res) => {
-try {
-const stats = await storage.getAllStats();
-res.json(stats);
-} catch (error) {
-console.error('Failed to fetch dashboard stats:', error);
-res.status(500).json({ message: 'Failed to fetch dashboard stats', error });
-}
-});
+    try {
+      console.log("Inside Stat");
+      const stats = await storage.getAllStats();
+      console.log("stats", stats);
+      res.json(stats);
+
+    } catch (error) {
+      console.error('Failed to fetch dashboard stats:', error);
+      res.status(500).json({ message: 'Failed to fetch dashboard stats', error });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;

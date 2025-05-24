@@ -13,6 +13,10 @@ export interface ICarListingStorage {
     deleteCarListing(id: number): Promise<void>;
     incrementListingViews(id: number): Promise<void>;
     updateListingStatus(id: number, status: 'draft' | 'pending' | 'active' | 'sold' | 'expired' | 'reject'): Promise<void>;
+    getSimilarCarListings(
+    listingId: string,
+    limit: number
+  ): Promise<CarListing[]>;
 
 }
 
@@ -35,7 +39,7 @@ export const CarListingStorage = {
             transmission?: string;
             engine_capacity?: number | string;
             cylinder_count?: number | string;
-            
+
             color?: string;
             interior_color?: string;
             tinted?: boolean;
@@ -52,7 +56,7 @@ export const CarListingStorage = {
 
             updated_from?: string;
             updated_to?: string;
-            
+
             user_id?: number;
         } = {},
         sortBy?: keyof CarListing,
@@ -454,6 +458,43 @@ export const CarListingStorage = {
 
     async updateListingStatus(id: number, status: 'draft' | 'pending' | 'active' | 'sold' | 'expired' | 'reject'): Promise<void> {
         await db.query('UPDATE car_listings SET status = $1 WHERE id = $2', [status, id]);
+    },
+
+    async getSimilarCarListings(
+    listingId: string,
+    limit = 5
+  ): Promise<CarListing[]> {
+    console.log('🔍 Fetching similar listings for:', listingId);
+
+    // Step 1: Get the target listing's make_id and category_id
+    const [base] = await db.query(
+      `SELECT category_id
+       FROM car_listings
+       WHERE id = $1
+       LIMIT 1`,
+      [listingId]
+    );
+
+    console.log('📋 Base listing details:', base);
+    if (!base) {
+      console.warn(`Listing with ID ${listingId} not found, returning empty.`);
+      return [];
     }
+
+    // Step 2: Query for similar listings
+    const similar = await db.query(
+      `SELECT *
+       FROM car_listings
+       WHERE category_id = $1
+         AND id != $2
+       ORDER BY created_at DESC
+       LIMIT $3`,
+      [base.category_id, listingId, limit]
+    );
+
+    console.log(`✅ Found ${similar.length} similar listings.`);
+    return similar as CarListing[];
+  },
+
 
 };

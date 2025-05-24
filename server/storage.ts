@@ -8,7 +8,7 @@ import { CarListingStorage, ICarListingStorage } from "./storage/carListings";
 import { CarMakeStorage, ICarMakeStorage } from "./storage/carMakes";
 import { CarModelStorage, ICarModelStorage } from "./storage/carModels";
 import { CarServiceStorage, ICarServiceStorage } from "./storage/carServices";
-import { FavoriteStorage, IFavoriteStorage } from "./storage/favoutites";
+import { FavoriteStorage, IFavoriteStorage } from "./storage/favourites";
 import { IListingPromotionStorage, ListingPromotionStorage } from "./storage/listingPromotions";
 import { IMessageStorage, MessageStorage } from "./storage/messages";
 import { IPromotionPackageStorage, PromotionPackageStorage } from "./storage/promotionPackages";

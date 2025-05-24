@@ -86,7 +86,7 @@ const BrowseCars = () => {
 
     sort: "newest",
     page: 1,
-    limit: 10,
+    limit: 9,
   });
   const [filtersOpen, setFiltersOpen] = useState(false);
 
@@ -630,7 +630,7 @@ if (params.has("maxMile")) {
 
       sort: "newest",
       page: 1,
-      limit: 10,
+      limit: 9,
     });
 
     // Clear URL params and navigate to /browse
