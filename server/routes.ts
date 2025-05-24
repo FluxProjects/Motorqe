@@ -1554,6 +1554,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Sort parameters
       const sortBy = req.query.sort_by as keyof ShowroomService | undefined;
+
+      const validSortFields = ["id", "price", "duration", "created_at"]; // example
+      if (sortBy && !validSortFields.includes(sortBy)) {
+        return res.status(400).json({ message: "Invalid sort_by field" });
+      }
+
+
       const sortOrder = req.query.sort_order === 'desc' ? 'desc' : 'asc';
 
       console.log("Final filters object before querying storage:", filters);

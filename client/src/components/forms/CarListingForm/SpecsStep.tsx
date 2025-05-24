@@ -288,9 +288,9 @@ export function SpecsStep({ data, updateData, nextStep, prevStep }: StepProps) {
             <SelectValue placeholder="Select exterior color" />
           </SelectTrigger>
           <SelectContent>
-            {colorOptions.map((color) => (
-              <SelectItem key={color} value={color}>
-                {color}
+            {colorOptions.map((colr) => (
+              <SelectItem key={colr} value={colr}>
+                {colr}
               </SelectItem>
             ))}
           </SelectContent>

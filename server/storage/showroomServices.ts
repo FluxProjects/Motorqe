@@ -34,28 +34,29 @@ export const ShowroomServiceStorage = {
           package_price?: number;
       })[]> {
     let baseQuery = `
-    SELECT 
-      cl.*, 
-      lp.id AS promotion_id,
-      lp.package_id, 
-      lp.start_date, 
-      lp.end_date, 
-      lp.is_active,
-      lp.transaction_id,
-      p.name AS package_name,
-      p.name_ar AS package_name_ar,
-      p.description AS package_description,
-      p.description_ar AS package_description_ar,
-      p.plan AS package_plan
-      p.price AS package_price,
-      p.currency AS package_currency,
-      p.duration_days AS package_duration_days,
-      p.is_featured AS package_is_featured
-    FROM showroom_services cl
-    INNER JOIN service_promotions lp ON cl.id = lp.service_id
-      AND lp.end_date > NOW()
-    LEFT JOIN service_promotion_packages p ON lp.package_id = p.id
-    `;
+  SELECT 
+    cl.*, 
+    lp.id AS promotion_id,
+    lp.package_id, 
+    lp.start_date, 
+    lp.end_date, 
+    lp.is_active,
+    lp.transaction_id,
+    p.name AS package_name,
+    p.name_ar AS package_name_ar,
+    p.description AS package_description,
+    p.description_ar AS package_description_ar,
+    p.plan AS package_plan,
+    p.price AS package_price,
+    p.currency AS package_currency,
+    p.duration_days AS package_duration_days,
+    p.is_featured AS package_is_featured
+  FROM showroom_services cl
+  INNER JOIN service_promotions lp ON cl.id = lp.service_id
+    AND lp.end_date > NOW()
+  LEFT JOIN service_promotion_packages p ON lp.package_id = p.id
+`;
+
 
     const whereClauses: string[] = [];
     const values: any[] = [];

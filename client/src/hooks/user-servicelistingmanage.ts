@@ -5,7 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { AdminServiceListing, ServiceListingAction } from "@shared/schema";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { Permission } from "@shared/permissions";
+import { Permission, roleMapping } from "@shared/permissions";
 import { useAuth } from "@/contexts/AuthContext";
 import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
 
@@ -42,6 +42,20 @@ export const useServiceListingManage = () => {
     queryKey: ["showroom-services", searchQuery, filters, user?.id],
     queryFn: async () => {
       const searchParams = new URLSearchParams();
+
+      const roleName = roleMapping[user?.roleId ?? 1];
+
+      if (!roleName) {
+          console.warn(`No role mapping found for role ID: ${user?.roleId}`);
+          return false;
+      }
+
+      // For sellers and showrooms, only fetch their own listings
+      if (roleName === "SELLER" || roleName === "DEALER" || roleName === "GARAGE") {
+          console.log("User Id is this:", user?.id);
+          searchParams.append("user_id", user?.id);
+          
+      }
 
       if (searchQuery) searchParams.append("search", searchQuery);
       if (filters.isActive !== null) {

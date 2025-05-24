@@ -2,6 +2,7 @@ import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { Role } from "@shared/permissions";
 import { UseFormReturn } from "react-hook-form";
+import { CarEngineCapacity } from "@shared/schema";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -102,4 +103,13 @@ export const handleApiError = (
 
   form.setError("root", { type: "manual", message });
 };
+
+export function getEngineSizeLabel(
+  engineCapacityId: number | undefined,
+  capacities: CarEngineCapacity[]
+): string {
+  if (!engineCapacityId) return "Unknown";
+  const match = capacities.find((e) => e.id === engineCapacityId);
+  return match?.size_liters ?? "Unknown";
+}
 

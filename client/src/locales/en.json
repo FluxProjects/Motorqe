@@ -235,6 +235,9 @@
     "specialOffers": "Special Offers"
   },
   "car": {
+   "requestInspection":"Resquest Inspection",
+"unlockInspection":"Unlock Inspection",
+"inspectionReportLink":"Inspection Report",
     "make": "Make",
     "model": "Model",
     "makeModel": "Make/Model",

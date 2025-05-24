@@ -56,7 +56,7 @@ export const useListingFormHandler = (onSuccess?: () => void) => {
         fuel_type: formData.specifications?.fuelType,
         transmission: formData.specifications?.transmission,
         engine_capacity_id: formData.specifications?.engineCapacityId,
-        Cylinder_count: formData.specifications?.cylinderCount,
+        cylinder_count: formData.specifications?.cylinderCount,
         
         color: formData.specifications?.color,
         interior_color: formData.specifications?.interiorColor,

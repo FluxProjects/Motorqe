@@ -272,7 +272,7 @@ function functionStaticPage({ keyParam }: { keyParam: string }) {
             </ProtectedRoute>
           </Route>
 
-          <Route path="/showroom-dashboard/servicebookings">
+          <Route path="/admin/servicebookings">
             <ProtectedRoute permissions={[Permission.MANAGE_BOOKINGS]}>
               <ManageServiceBookings />
             </ProtectedRoute>

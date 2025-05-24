@@ -462,7 +462,7 @@ export const CarListingStorage = {
 
     async getSimilarCarListings(
     listingId: string,
-    limit = 5
+    limit = 4
   ): Promise<CarListing[]> {
     console.log('🔍 Fetching similar listings for:', listingId);
 

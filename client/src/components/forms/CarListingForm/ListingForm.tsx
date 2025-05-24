@@ -58,15 +58,24 @@ export function ListingForm({ listing, onSuccess }: Props) {
           location: listing.location,
         },
         specifications: {
-          categoryId: listing.category_id?.toString(),
+          year: listing.year?.toString(),
           makeId: listing.make_id?.toString(),
           modelId: listing.model_id?.toString(),
-          year: listing.year?.toString(),
+          categoryId: listing.category_id?.toString(),
+          
           mileage: listing.mileage?.toString(),
           fuelType: listing.fuel_type,
           transmission: listing.transmission,
+          engineCapacityId: listing.engine_capacity_id?.toString(),
+          cylinderCount: listing.cylinder_count?.toString(),
+
           color: listing.color,
+          interiorColor: listing.interior_color,
+          tinted: listing.tinted?.toString(),
+
+          ownerType: listing.owner_type,
           condition: listing.condition,
+          isImported: listing.is_imported?.toString(),
         },
         media: listing.images?.map((img) => {
           try {
