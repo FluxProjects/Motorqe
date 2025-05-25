@@ -3,6 +3,7 @@ import { twMerge } from "tailwind-merge"
 import { Role } from "@shared/permissions";
 import { UseFormReturn } from "react-hook-form";
 import { CarEngineCapacity } from "@shared/schema";
+import { Badge } from "@/components/ui/badge";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -112,4 +113,3 @@ export function getEngineSizeLabel(
   const match = capacities.find((e) => e.id === engineCapacityId);
   return match?.size_liters ?? "Unknown";
 }
-

@@ -8,7 +8,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Eye, MoreHorizontal, Star, Check, X, Wrench, Pencil } from "lucide-react";
+import { Eye, MoreHorizontal, Star, Check, X, Wrench, Pencil, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { ShowroomService } from "@shared/schema";
 import { TableCell, TableRow } from "@/components/ui/table";
