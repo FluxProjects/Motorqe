@@ -81,6 +81,10 @@ const engineCapacityRanges: BudgetRange[] = [
 
   const currentTab = activeType || tabs[0].key;
 
+  const famousMakes = ["Toyota", "Honda", "Kia", "Mercedes-Benz", "Audi", "Ford", "Chevrolet", "Lexus", "Volkswagen", "Hyundai"];
+
+
+
   return (
     <section className="bg-white py-20">
       <div className="max-w-7xl mx-auto px-4 text-center relative">
@@ -113,8 +117,12 @@ const engineCapacityRanges: BudgetRange[] = [
               <CarCategoryCard key={cat.id} category={cat} />
             ))}
 
-          {currentTab === "brand" &&
-            makes.map((brand) => <CarMakeCard key={brand.id} make={brand} />)}
+         {currentTab === "brand" &&
+  makes
+    .filter((brand) => famousMakes.includes(brand.name))
+    .slice(0, 10)
+    .map((brand) => <CarMakeCard key={brand.id} make={brand} />)}
+
 
           {currentTab === "budget" &&
             staticBudgets.map((budget) => (
