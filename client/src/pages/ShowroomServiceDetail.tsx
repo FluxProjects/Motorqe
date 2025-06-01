@@ -231,6 +231,7 @@ export default function ShowroomServiceDetails() {
     apiRequest("POST", "/api/service-bookings", {
       userId: user?.id,
       serviceId: values.serviceId,
+      showroonId: parseInt(id),
       scheduledAt: new Date(
         `${formatDate(values.date, "yyyy-MM-dd")}T${values.time}`
       ).toISOString(),

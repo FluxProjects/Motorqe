@@ -45,7 +45,7 @@ export function CarListingDetail ({ vehicleDescription, vehicleDescriptionAr }: 
               <p>
                {vehicleDescription}
               </p>
-              <p>{vehicleDescriptionAr}</p>
+              <p dir="rtl" className="text-right">{vehicleDescriptionAr}</p>
               <button className="text-primary-blue hover:underline font-medium">
                 See more
               </button>

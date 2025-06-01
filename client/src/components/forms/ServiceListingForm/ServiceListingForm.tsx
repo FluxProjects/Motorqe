@@ -7,12 +7,12 @@ import { useServiceListingFormHandler } from "./useListingFormHandler";
 import { ServiceListingFormSteps } from "./ServiceListingFormSteps";
 import { ProgressHeader } from "@/components/layout/ProgressHeader";
 import { ServiceListingFormData, AdminServiceListing } from "@shared/schema";
+import { calculateDurationDays } from "@/lib/utils";
 
 const steps = [
-  "Service Details",
-  "Pricing",
-  "Description",
+  "Basic Info",
   "Availability",
+  "Pricing",
   "Review"
 ];
 
@@ -32,15 +32,29 @@ export function ServiceListingForm({ service, onSuccess }: Props) {
       console.log("[ServiceListingForm] Initializing form with service data:", service);
       
       const parsedData: ServiceListingFormData = {
-        serviceId: service.serviceId.toString(),
-        price: service.price,
-        currency: service.currency || "QAR",
-        description: service.description,
-        descriptionAr: service.descriptionAr,
-        isFeatured: service.isFeatured,
-        isActive: service.isActive,
-        showroomId: service.showroomId.toString(),
+        basicInfo: {
+          showroomId: service.showroom_id?.toString(),
+          serviceId: service.service_id?.toString(),
+          price: service.price?.toString(),
+          currency: service.currency || "QAR",
+          description: service.description,
+          descriptionAr: service.description_ar,
+        },
+        availability: service.availability,      
+        isFeatured: service.is_featured,
+        isActive: service.is_active,
+        package: service.package_id ? {
+          packageId: service.package_id.toString(),
+          packageName: service.package_name || undefined,
+          packagePrice: service.package_price?.toString(),
+          durationDays: calculateDurationDays(service.start_date?.toString(), service.end_date?.toString()),
+        } : undefined,
+        status: service.status,
+        
       };
+
+       console.log("Transformed form data:", parsedData);
+      console.groupEnd();
 
       reset(parsedData);
     }
@@ -56,18 +70,25 @@ export function ServiceListingForm({ service, onSuccess }: Props) {
 
   const { mutate } = useServiceListingFormHandler(onSuccess);
 
-  const onSubmitHandler = rhfHandleSubmit(async (data) => {
-    console.log('Submitting service form with data:', data);
-
-    try {
-      await mutate({
-        formData: data,
-        service,
-      });
-    } catch (error) {
-      console.error('Error submitting service form:', error);
-    }
-  });
+   const onSubmitHandler = (action: 'draft' | 'publish') =>
+    rhfHandleSubmit(async (data) => {
+      const status = (action === 'publish' ? 'pending' : 'draft') as ServiceListingFormData['status'];
+      const payload = {
+        ...data,
+        status,
+      };
+  
+      console.log('[onSubmitHandler] Submitting with data:', payload);
+  
+      try {
+        await mutate({
+          formData: payload,
+          service,
+        });
+      } catch (error) {
+        console.error('[onSubmitHandler] Error submitting form:', error);
+      }
+    });
 
   return (
     <FormProvider {...methods}>
@@ -77,14 +98,14 @@ export function ServiceListingForm({ service, onSuccess }: Props) {
           totalSteps={steps.length}
           stepTitles={steps}
         />
-        <PermissionGuard permission={Permission.MANAGE_SERVICES}>
+        <PermissionGuard permission={Permission.CREATE_SERVICES}>
           <ServiceListingFormSteps
             step={step}
             data={methods.getValues()}
             updateData={updateData}
             nextStep={nextStep}
             prevStep={prevStep}
-            handleSubmit={onSubmitHandler}
+            handleSubmit={(action: 'draft' | 'publish') => onSubmitHandler(action)()}
             service={service}
           />
         </PermissionGuard>

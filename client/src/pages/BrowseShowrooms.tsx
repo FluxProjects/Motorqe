@@ -6,7 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
-import { CarMake, ShowroomService } from "@shared/schema";
+import { CarMake, CarService, Showroom, ShowroomService } from "@shared/schema";
 import { ShowroomCard } from "@/components/showroom/ShowroomCard";
 import { Wrench } from "lucide-react";
 
@@ -19,23 +19,8 @@ type ServiceItem = {
   description: string;
   description_ar: string;
   is_featured: boolean;
-  service: {
-    id: number;
-    name: string;
-    nameAr: string;
-    price: string;
-    description: string;
-    descriptionAr: string;
-    image: string;
-  };
-  showrooms: {
-    id: number;
-    name: string;
-    nameAr: string;
-    logo: string;
-    description: string;
-    descriptionAr: string;
-  }[];
+  service:CarService
+  showrooms:Showroom[];
 };
 
 const BrowseShowrooms = () => {
@@ -71,7 +56,7 @@ const BrowseShowrooms = () => {
   });
 
   // Fetch services for each showroom in parallel
-  const { data: showroomsWithServices } = useQuery({
+  const { data: showroomsWithListings } = useQuery({
     queryKey: ["showrooms-with-services"],
     queryFn: async () => {
       if (!showrooms) return [];
@@ -79,16 +64,16 @@ const BrowseShowrooms = () => {
       const showroomsData = await Promise.all(
         showrooms.map(async (showroom: any) => {
           try {
-            const servicesResponse = await apiRequest(
+            const listingResponse = await apiRequest(
               "GET",
-              `/api/showrooms/${showroom.id}/services`
+              `/api/showrooms/${showroom.id}/cars`
             ).then((res) => res.json());
 
-            console.log("servicesResponse", servicesResponse);
+            console.log("listingResponse", listingResponse);
             // Transform services to match expected structure
-            const uniqueServices = Array.from(
+            const uniqueListings = Array.from(
               new Map(
-                servicesResponse.map((item: any) => [
+                listingResponse.map((item: any) => [
                   item.id,
                   {
                     id: item.id,
@@ -103,16 +88,16 @@ const BrowseShowrooms = () => {
 
             return {
               ...showroom,
-              services: uniqueServices,
+              listings: uniqueListings,
             };
           } catch (error) {
             console.error(
-              `Failed to fetch services for showroom ${showroom.id}`,
+              `Failed to fetch listings for showroom ${showroom.id}`,
               error
             );
             return {
               ...showroom,
-              services: [],
+              listings: [],
             };
           }
         })
@@ -123,8 +108,8 @@ const BrowseShowrooms = () => {
     enabled: !!showrooms,
   });
 
-  console.log("showroomsWithServices", showroomsWithServices);
-  const filteredShowrooms = showroomsWithServices?.filter((showroom: any) => {
+  console.log("showroomsWithListings", showroomsWithListings);
+  const filteredShowrooms = showroomsWithListings?.filter((showroom: any) => {
     const matchesSearch =
       showroom.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       showroom.nameAr?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -140,16 +125,8 @@ const BrowseShowrooms = () => {
             sm.make_id.toString() === selectedMake
         ));
 
-    // Filter by service
-    const matchesService =
-      selectedTab !== "services" ||
-      selectedService === "all" ||
-      (showroom.services &&
-        showroom.services.some(
-          (service: any) => service.id.toString() === selectedService
-        ));
 
-    return matchesSearch && matchesMake && matchesService;
+    return matchesSearch && matchesMake;
   });
 
   const renderShowrooms = () =>
@@ -172,7 +149,7 @@ const BrowseShowrooms = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-neutral-900 mb-2">
-            {t("common.browseGarages")}
+            {t("common.browseShowrooms")}
           </h1>
           <div className="w-40 h-1 bg-orange-500 mx-auto rounded-full" />
         </div>
@@ -196,7 +173,7 @@ const BrowseShowrooms = () => {
                         : "text-blue-900"
                     }`}
                   >
-                    {t("showroom.allGarages")}
+                    {t("showroom.allShowrooms")}
                   </TabsTrigger>
                   <TabsTrigger
                     value="makes"
@@ -207,16 +184,6 @@ const BrowseShowrooms = () => {
                     }`}
                   >
                     {t("showroom.byMake")}
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="services"
-                    className={`px-5 py-2 text-sm font-medium transition-all ${
-                      selectedTab === "services"
-                        ? "text-orange-500 border-b-4 border-b-orange-500 hover:font-bold"
-                        : "text-blue-900"
-                    }`}
-                  >
-                    {t("showroom.byService")}
                   </TabsTrigger>
                 </TabsList>
               </div>

@@ -4,6 +4,9 @@ import pg from 'pg';
 const { Pool } = pg;
 
 
+
+
+
 // Log that the dotenv config is loaded
 console.log('Environment variables loaded from .env');
 
@@ -17,7 +20,15 @@ if (!process.env.DATABASE_URL) {
 
 // Create a new database connection pool
 console.log("Creating database connection pool...");
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+//export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+
+export const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  max: parseInt(process.env.PG_MAX || '10', 10),
+  idleTimeoutMillis: parseInt(process.env.PG_IDLE_TIMEOUT || '6000', 10),
+  connectionTimeoutMillis: parseInt(process.env.PG_CONN_TIMEOUT || '10000', 10),
+  keepAlive: true,
+});
 
 // Log that the pool is created and ready
 pool.on('connect', () => {

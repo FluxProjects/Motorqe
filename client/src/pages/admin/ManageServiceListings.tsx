@@ -29,6 +29,9 @@ const ManageServiceListing = () => {
     setActionDialogOpen,
     currentService,
     actionType,
+    setActionType,
+    actionReason,
+    setActionReason,
     actionInProgress,
     setFormDialogOpen,
     formDialogOpen,
@@ -36,6 +39,7 @@ const ManageServiceListing = () => {
 
     // Data
     services,
+    promotionPackages,
     isLoading,
 
     // Functions
@@ -46,6 +50,7 @@ const ManageServiceListing = () => {
     handleCreateService,
     handleAction,
     confirmAction,
+    getStatusBadge,
     refetch,
   } = useServiceListingManage();
 
@@ -116,6 +121,7 @@ const ManageServiceListing = () => {
                   handleViewService={handleViewService}
                   handleEditService={handleEditService}
                   handleAction={handleAction}
+                  getStatusBadge={getStatusBadge}
                 />
               </div>
             </div>
@@ -135,6 +141,8 @@ const ManageServiceListing = () => {
                   actionType={actionType}
                   open={actionDialogOpen}
                   onOpenChange={setActionDialogOpen}
+                  actionReason={actionReason}
+                  setActionReason={setActionReason}
                   actionInProgress={actionInProgress}
                   confirmAction={confirmAction}
                 />
@@ -142,7 +150,6 @@ const ManageServiceListing = () => {
                 <PermissionGuard permission={Permission.MANAGE_SERVICES}>
                   <ServiceListingFormDialog
                     service={currentService}
-                    isEditing={isEditing}
                     open={formDialogOpen}
                     onOpenChange={setFormDialogOpen}
                     onSuccess={refetch}

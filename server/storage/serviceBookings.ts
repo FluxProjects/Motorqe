@@ -3,6 +3,8 @@ import { ServiceBooking, InsertServiceBooking } from "@shared/schema";
 
 export interface IServiceBookingStorage {
 
+    getAllServiceBookings(filter?: Partial<ServiceBooking>, sortBy?: keyof ServiceBooking, sortOrder?: 'asc' | 'desc'  // No default value here
+        ): Promise<ServiceBooking[]>;
     getServiceBookingsByUser(userId: number): Promise<ServiceBooking[]>;
     getServiceBookingsByShowroom(showroomId: number): Promise<ServiceBooking[]>;
     getServiceBooking(id: number): Promise<ServiceBooking | undefined>;
@@ -14,6 +16,126 @@ export interface IServiceBookingStorage {
 }
 
 export const ServiceBookingStorage = {
+
+    async getAllServiceBookings(
+  filter?: Partial<ServiceBooking> & {
+    user_id?: number;
+    service_id?: number;
+    showroom_id?: number;
+    status?: string;
+    scheduled_from?: string;
+    scheduled_to?: string;
+    created_from?: string;
+    created_to?: string;
+    price_from?: number;
+    price_to?: number;
+  },
+  sortBy?: keyof ServiceBooking,
+  sortOrder: 'asc' | 'desc' = 'asc'
+): Promise<ServiceBooking[]> {
+  console.log('--- START: getAllServiceBookings ---');
+  console.log('Filter:', filter);
+  console.log('Sort:', sortBy, sortOrder);
+
+  let baseQuery = `
+    SELECT sb.*, 
+           u.username AS user_name, 
+           u.first_name AS first_name,
+           u.last_name AS last_name,
+           cs.name AS service_name, 
+           s.name AS showroom_name
+    FROM service_bookings sb
+    LEFT JOIN users u ON sb.user_id = u.id
+    LEFT JOIN showroom_services ss ON sb.service_id = ss.id
+    LEFT JOIN car_services cs ON ss.service_id = cs.id
+    LEFT JOIN showrooms s ON sb.showroom_id = s.id
+  `;
+
+  const whereClauses: string[] = [];
+  const values: any[] = [];
+  let paramIndex = 1;
+
+  for (const key in filter) {
+    const value = filter[key as keyof typeof filter];
+    if (value === undefined || value === null) continue;
+
+    switch (key) {
+      case 'user_id':
+      case 'service_id':
+      case 'showroom_id':
+        whereClauses.push(`sb.${key} = $${paramIndex}`);
+        values.push(value);
+        break;
+
+      case 'status':
+        whereClauses.push(`sb.status = $${paramIndex}`);
+        values.push(value);
+        break;
+
+      case 'scheduled_from':
+        whereClauses.push(`sb.scheduled_at >= $${paramIndex}`);
+        values.push(new Date(value).toISOString());
+        break;
+
+      case 'scheduled_to': {
+        const date = new Date(value);
+        date.setUTCHours(23, 59, 59, 999);
+        whereClauses.push(`sb.scheduled_at <= $${paramIndex}`);
+        values.push(date.toISOString());
+        break;
+      }
+
+      case 'created_from':
+        whereClauses.push(`sb.created_at >= $${paramIndex}`);
+        values.push(new Date(value).toISOString());
+        break;
+
+      case 'created_to': {
+        const date = new Date(value);
+        date.setUTCHours(23, 59, 59, 999);
+        whereClauses.push(`sb.created_at <= $${paramIndex}`);
+        values.push(date.toISOString());
+        break;
+      }
+
+      case 'price_from':
+        whereClauses.push(`sb.price >= $${paramIndex}`);
+        values.push(value);
+        break;
+
+      case 'price_to':
+        whereClauses.push(`sb.price <= $${paramIndex}`);
+        values.push(value);
+        break;
+    }
+
+    paramIndex++;
+  }
+
+  if (whereClauses.length > 0) {
+    baseQuery += ' WHERE ' + whereClauses.join(' AND ');
+  }
+
+  const validSortFields: (keyof ServiceBooking)[] = [
+    'id', 'price', 'scheduled_at', 'created_at', 'status'
+  ];
+
+  if (sortBy && validSortFields.includes(sortBy)) {
+    baseQuery += ` ORDER BY sb.${sortBy} ${sortOrder.toUpperCase()}`;
+  }
+
+  console.log('Final SQL:', baseQuery);
+  console.log('Values:', values);
+
+  try {
+    const result = await db.query(baseQuery, values);
+    console.log('Rows:', result.length);
+    return result;
+  } catch (err) {
+    console.error('Query failed:', err);
+    throw err;
+  }
+},
 
     async getServiceBookingsByUser(userId: number): Promise<ServiceBooking[]> {
         return await db.query(
@@ -39,11 +161,12 @@ export const ServiceBookingStorage = {
 
     async createServiceBooking(booking: InsertServiceBooking): Promise<ServiceBooking> {
         const result = await db.query(
-            'INSERT INTO service_bookings (user_id, service_id, scheduled_at, status, notes) ' +
-            'VALUES ($1, $2, $3, $4, $5) RETURNING *',
+            'INSERT INTO service_bookings (user_id, service_id, showroom_id, scheduled_at, status, notes) ' +
+            'VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
             [
                 booking.userId,
                 booking.serviceId,
+                booking.showroomId,
                 booking.scheduledAt,
                 booking.status || 'pending',
                 booking.notes

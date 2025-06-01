@@ -413,6 +413,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/garages", async (_req, res) => {
+    try {
+      const garages = await storage.getAllGarages();
+      res.json(garages);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch garages", error });
+    }
+  });
+
   app.get("/api/showrooms/service/makes", async (_req, res) => {
     try {
       const showroomsmakes = await storage.getAllShowroomsMakes();
@@ -431,12 +440,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/garages/user/:userId", async (req, res) => {
+    try {
+      const garages = await storage.getGaragesByUser(Number(req.params.userId));
+      res.json(garages);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch user garages", error });
+    }
+  });
+
   app.get("/api/showrooms/:id", async (req, res) => {
     try {
       const showroom = await storage.getShowroom(Number(req.params.id));
       showroom ? res.json(showroom) : res.status(404).json({ message: "Showroom not found" });
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch showroom", error });
+    }
+  });
+
+   app.get("/api/garages/:id", async (req, res) => {
+    try {
+      const garage = await storage.getGarage(Number(req.params.id));
+      garage ? res.json(garage) : res.status(404).json({ message: "Garage not found" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch Garage", error });
     }
   });
 
@@ -952,6 +979,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log("No has_insurance filter");
       }
 
+      // IS Business
+      if (req.query.has_insurance) {
+        console.log("Processing is_business filter with value:", req.query.is_business);
+        filters.is_business = req.query.is_business === "true";
+        console.log("Added is_business filter:", filters.is_business);
+      } else {
+        console.log("No is_business filter");
+      }
+
       // Date Range
       if (req.query.updated_from && req.query.updated_to) {
         console.log("Processing date range filter with values:", req.query.updated_from, "to", req.query.updated_to);
@@ -974,12 +1010,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to fetch listings", error });
     }
   });
-
-  function normalizeUrl(url?: string): string | null {
-    if (!url) return null;
-    if (url.startsWith("http")) return url;
-    return `https://yourdomain.com/uploads/${url}`; // Adjust path as needed
-  }
 
 
   app.get("/api/car-featured", async (req, res) => {
@@ -1610,6 +1640,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         currency = 'USD', // default currency
         description,
         descriptionAr,
+        availability,
         isFeatured = false,
         isActive = true
       } = req.body;
@@ -1633,6 +1664,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         currency,
         description,
         descriptionAr,
+        availability,
         isFeatured,
         isActive
       });
@@ -1704,65 +1736,166 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Feature/Activate/Deactivate Service (Special Actions)
-  app.put("/api/showroom/services/:id/:action", async (req, res) => {
-    const serviceId = parseInt(req.params.id, 10);
-    const action = req.params.action;
-    console.log(`Received ${action} request for service ${serviceId}`);
-
-    const validActions = ['feature', 'activate', 'deactivate'];
-    if (!validActions.includes(action)) {
-      return res.status(400).json({ message: "Invalid action" });
-    }
-
-    if (isNaN(serviceId)) {
-      return res.status(400).json({ message: "Invalid service ID" });
-    }
-
+  app.put("/api/showroom/services/:id/actions", async (req, res) => {
     try {
-      let updateField: string;
-      let updateValue: boolean;
+      const id = Number(req.params.id);
+      const { action, reason, featured } = req.body;
+      console.log(`Received ${action} request for service ${id}`);
+
+      const validActions = ['pending', 'draft', 'publish', 'active', 'approve', 'reject', 'feature', 'delete'];
+      if (!validActions.includes(action)) {
+        return res.status(400).json({ message: "Invalid action" });
+      }
+
+      // Get current listing
+      const service = await storage.getShowroomService(id);
+
+      if (!service) {
+        return res.status(404).json({ message: "Listing not found" });
+      }
+
+
+      let updates: any = {};
 
       switch (action) {
+        case 'draft':
+          updates.status = 'draft';
+        case 'publish':
+        case 'active':
+        case 'approve':
+          updates.status = 'active';
+          break;
+        case 'pending':
+          updates.status = 'pending';
+          break;
+        case 'reject':
+          updates.status = 'reject';
+          break;
         case 'feature':
-          updateField = 'is_featured';
-          updateValue = true;
+          updates.is_featured = 'featured';
           break;
-        case 'activate':
-          updateField = 'is_active';
-          updateValue = true;
+        case 'delete':
+          // Soft delete implementation
+          updates.deleted_at = new Date();
           break;
-        case 'deactivate':
-          updateField = 'is_active';
-          updateValue = false;
-          break;
-        default:
-          return res.status(400).json({ message: "Invalid action" });
       }
 
-      const updatedService = await storage.updateShowroomService(serviceId, {
-        [updateField]: updateValue
+      const updated = await storage.updateShowroomService(id, updates);
+
+      res.json({
+        success: true,
+        service: updated
       });
 
-      if (!updatedService) {
-        return res.status(404).json({ message: "Service not found" });
-      }
 
-      console.log(`Successfully ${action}d service:`, updatedService);
-      res.json(updatedService);
-    } catch (error) {
-      console.error(`Failed to ${action} service:`, error);
-      res.status(500).json({ message: `Failed to ${action} service`, error });
+      console.log(`Successfully ${action}d service:`, service);
+
+    } catch (error: any) {
+      res.status(500).json({
+        message: error.message || "Failed to perform action"
+      });
     }
   });
 
 
+  app.get("/api/service-bookings", async (req, res) => {
+  console.log("Received request to /api/bookings with query:", req.query);
+  try {
+    const filters: any = {};
+    console.log("Initial filters object:", filters);
+
+    // Showroom ID
+    if (req.query.showroom_id) {
+      const showroomId = parseInt(req.query.showroom_id as string, 10);
+      if (!isNaN(showroomId)) {
+        filters.showroom_id = showroomId;
+        console.log("Added showroom_id filter:", showroomId);
+      } else {
+        console.log("Invalid showroom_id");
+      }
+    }
+
+    // Service ID
+    if (req.query.service_id) {
+      const serviceId = parseInt(req.query.service_id as string, 10);
+      if (!isNaN(serviceId)) {
+        filters.service_id = serviceId;
+        console.log("Added service_id filter:", serviceId);
+      } else {
+        console.log("Invalid service_id");
+      }
+    }
+
+    // User ID
+    if (req.query.user_id) {
+      const userId = parseInt(req.query.user_id as string, 10);
+      if (!isNaN(userId)) {
+        filters.user_id = userId;
+        console.log("Added user_id filter:", userId);
+      } else {
+        console.log("Invalid user_id");
+      }
+    }
+
+    // Status
+    if (req.query.status && req.query.status !== "all") {
+      filters.status = req.query.status;
+      console.log("Added status filter:", req.query.status);
+    }
+
+    // Date Range (created_at)
+    if (req.query.date_from && req.query.date_to) {
+      filters.date_from = req.query.date_from;
+      filters.date_to = req.query.date_to;
+      console.log("Added date range filter:", filters.date_from, "to", filters.date_to);
+    }
+
+    // Sort Parameters
+    const sortBy = req.query.sort_by as string;
+    const sortOrder = req.query.sort_order === "desc" ? "desc" : "asc";
+
+    const validSortFields = ["id", "created_at", "status"]; // Add more if needed
+    if (sortBy && !validSortFields.includes(sortBy)) {
+      return res.status(400).json({ message: "Invalid sort_by field" });
+    }
+
+    console.log("Final filters before query:", filters);
+
+    const bookings = await storage.getAllServiceBookings(filters, sortBy, sortOrder);
+
+    const enrichedBookings = await Promise.all(
+      bookings.map(async (booking: any) => {
+        try {
+          const service = await storage.getService(booking.service_id);
+          const showroom = await storage.getShowroom(booking.showroom_id);
+          const user = await storage.getUser(booking.user_id);
+          return {
+            ...booking,
+            service,
+            showroom,
+            user,
+          };
+        } catch (err) {
+          console.error("Error enriching booking:", err);
+          return booking;
+        }
+      })
+    );
+
+    res.json(enrichedBookings);
+  } catch (error) {
+    console.error("Failed to fetch bookings:", error);
+    res.status(500).json({ message: "Failed to fetch bookings", error });
+  }
+});
+
 
   app.post("/api/service-bookings", async (req, res) => {
     try {
-      const { userId, serviceId, price, scheduledAt, status, notes } = req.body;
+      const { userId, serviceId, showroomId, price, scheduledAt, status, notes } = req.body;
       console.log("Received new service booking request:", req.body);
 
-      const booking = await storage.createServiceBooking({ userId, serviceId, price, scheduledAt, status, notes });
+      const booking = await storage.createServiceBooking({ userId, serviceId, showroomId, price, scheduledAt, status, notes });
       console.log("Created service booking:", booking);
 
       res.status(201).json(booking);
@@ -1909,7 +2042,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/messages/:userId", async (req, res) => {
     try {
       const messages = await storage.getMessagesByUser(Number(req.params.userId));
+      console.log("messages", messages);
       res.json(messages);
+
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch messages", error });
     }
@@ -2397,6 +2532,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(packages);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch promotion packages", error });
+    }
+  });
+
+  app.get("/api/promotion-packages/services", async (req, res) => {
+    try {
+      const activeOnly = req.query.activeOnly !== 'false'; // Defaults to true
+      const packages = await storage.getAllServicePromotionPackages(activeOnly);
+      res.json(packages);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch promotion packages", error });
+    }
+  });
+
+  app.get("/api/promotion-packages/services/:packageId", async (req, res) => {
+    try {
+      const promotions = await storage.getServicePromotionPackage(Number(req.params.packageId));
+      res.json(promotions);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch package promotions", error });
     }
   });
 

@@ -137,29 +137,37 @@ export const showrooms = pgTable("showrooms", {
   userId: integer("user_id").references(() => users.id).notNull(), // Owner user ID
   name: text("name").notNull(),                   // Showroom name in English
   nameAr: text("name_ar"),                        // Showroom name in Arabic
+  description: text("description"),
+  descriptionAr: text("description_ar"),
   isMainBranch: boolean("is_main_branch").default(false), // Is this the main branch?
   parentId: integer("parent_id"),
   // Parent showroom for branches
   address: text("address"),                       // Physical address
   addressAr: text("address_ar"),                  // Physical address in Arabic
   location: text("location"),                     // Geographic location
+  timing: text("timing"),
   phone: text("phone"),                            // Contact phone number
   logo: text("logo"),
   isFeatured: boolean('is_featured').default(false),
+  isGarage: boolean('is_garage').default(false),
 });
 
 export const insertShowroomSchema = createInsertSchema(showrooms).pick({
   userId: true,
   name: true,
   nameAr: true,
+  description: true,
+  descriptionAr: true,
   isMainBranch: true,
   parentId: true,
   address: true,
   addressAr: true,
   location: true,
+  timing: true,
   phone: true,
   logo: true,
   isFeatured: true,
+  isGarage: true,
 });
 
 export type InsertShowroom = z.infer<typeof insertShowroomSchema>;
@@ -304,6 +312,7 @@ export type CarService = typeof carServices.$inferSelect;
 // Stores vehicle listings posted by users
 // =============================================
 export const carListings = pgTable("car_listings", {
+
   id: serial("id").primaryKey(),
 
   // Seller and basic info
@@ -353,10 +362,14 @@ export const carListings = pgTable("car_listings", {
   insuranceType: text("insurance_type").$type<"comprehensive" | "third-party" | "none">(),
   insuranceExpiry: timestamp("insurance_expiry"),
 
+  isBusiness: boolean("is_business").default(false),
+  showroomId: integer("showroom_id"),
+
   // System info
   views: integer("views").default(0),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at"),
+
 });
 
 export const insertCarListingSchema = createInsertSchema(carListings).pick({
@@ -406,6 +419,9 @@ export const insertCarListingSchema = createInsertSchema(carListings).pick({
   hasInsurance: true,
   insuranceType: true,
   insuranceExpiry: true,
+
+  isBusiness: true,
+  showroomId: true,
 });
 
 export type InsertCarListing = z.infer<typeof insertCarListingSchema>;
@@ -444,6 +460,7 @@ export const showroomServices = pgTable("showroom_services", {
   isFeatured: boolean("is_featured").default(false),  // Featured listing flag
   isActive: boolean("is_active").default(true),
   status: text("status").default("draft").notNull().$type<"draft" | "pending" | "active" | "sold" | "expired" | "rejected">(),
+  availability: text("availability"),
 });
 
 export const insertShowroomServiceSchema = createInsertSchema(showroomServices).pick({
@@ -456,6 +473,7 @@ export const insertShowroomServiceSchema = createInsertSchema(showroomServices).
   isFeatured: true,
   isActive: true,
   status: true,
+  availability: true,
 });
 
 export type InsertShowroomService = z.infer<typeof insertShowroomServiceSchema>;
@@ -469,6 +487,7 @@ export const serviceBookings = pgTable("service_bookings", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id).notNull(), // Booking user ID
   serviceId: integer("service_id").references(() => showroomServices.id).notNull(), // Service ID
+  showroomId: integer("showroom_id").notNull(),
   scheduledAt: timestamp("scheduled_at").notNull(), // Scheduled service time
   price: integer("price").notNull(),                  // Service price
   currency: text("currency").default("QAR"), 
@@ -480,6 +499,7 @@ export const serviceBookings = pgTable("service_bookings", {
 export const insertServiceBookingSchema = createInsertSchema(serviceBookings).pick({
   userId: true,
   serviceId: true,
+  showroomId: true,
   scheduledAt: true,
   price: true,
   currency: true,
@@ -1163,6 +1183,7 @@ export interface CarListingFilters {
   ownerType?: string[];
   hasWarranty?: boolean | string;
   hasInsurance?: boolean | string;
+  isBusiness?: boolean | string;
   // Sorting and Pagination
   sort: string;
   page: number;
@@ -1211,6 +1232,7 @@ export interface AdminCarListing {
   has_insurance?: boolean;
   insurance_type?: 'comprehensive' | 'third-party' | 'none';
   insurance_expirty?: string;
+  is_business?: string;
 
   views?: number;
   created_at: string;
@@ -1223,6 +1245,18 @@ export interface AdminCarListing {
     username: string;
     avatar?: string;
     created_at?: string;
+  };
+  showroom?: {
+    id?: number;
+    name?: string;                   // Showroom name in English
+    nameAr?: string;                        // Showroom name in Arabic
+    isMainBranch?: boolean; // Is this the main branch?
+    address?: string;                       // Physical address
+    addressAr?: string;                  // Physical address in Arabic
+    location?: string;                     // Geographic location
+    phone?: string;                            // Contact phone number
+    logo?: string;
+    isFeatured?: boolean;
   };
   make?: {
     id: number;
@@ -1323,10 +1357,11 @@ export interface AdminServiceBooking {
   // Relations
   service?: {
     id: number;
-    name: string;
+    name?: string;
     description?: string;
-    price: number;
-    currency: string;
+    descriptionAr?: string;
+    price?: number;
+    currency?: string;
     duration?: number; // in minutes
   };
   user?: {
@@ -1337,26 +1372,54 @@ export interface AdminServiceBooking {
     avatar?: string;
   };
   showroom?: {
-    id: number;
-    name: string;
-    address?: string;
-    contactNumber?: string;
+    id?: number;
+    name?: string;                   // Showroom name in English
+    nameAr?: string;                        // Showroom name in Arabic
+    isMainBranch?: boolean; // Is this the main branch?
+    address?: string;                       // Physical address
+    addressAr?: string;                  // Physical address in Arabic
+    location?: string;                     // Geographic location
+    phone?: string;                            // Contact phone number
     logo?: string;
+    isFeatured?: boolean;
   };
+  
 }
 
 export type ServiceBookingAction = 'confirm' | 'reschedule' | 'complete' | 'cancel' | 'reject';
 
 export type ServiceListingFormData = {
-  showroomId: string;
-  serviceId: string;
-  price: number;
-  currency: string;
-  description?: string;
-  descriptionAr?: string;
+   basicInfo: {
+    serviceId: string;
+    showroomId: string;
+    description?: string;
+    descriptionAr?: string;
+    price: string;
+    currency?: string;
+  };
+  availability?: string;
   isFeatured?: boolean;
   isActive?: boolean;
+  status: 'draft' | 'active' | 'pending' | 'reject';
+  package?: {
+    packageId?: string;
+    packageName?: string;
+    packagePrice?: string;
+    durationDays?: number;
+  };
 };
+
+export type ServiceStepProps = {
+  serviceId?: number;
+  data: ServiceListingFormData;
+  updateData: (data: Partial<ServiceListingFormData>) => void;
+  nextStep: () => void;
+  prevStep: () => void;
+  handleSubmit?: (status: 'draft' | 'publish') => void;
+};
+
+export type ServiceListingFormAction = 'draft' | 'publish';
+export type ServiceListingStatus = 'draft' | 'active' | 'pending' | 'reject' | 'sold';
 
 export interface AdminServiceListingFilters {
   isActive: boolean | null;
@@ -1367,9 +1430,11 @@ export interface AdminServiceListingFilters {
   searchQuery?: string;
   dateRangePreset?: string; // Add this
   dateRange?: { from: string; to: string }; // Add this
+  status?: string;
 }
 
 export interface AdminServiceListing {
+  availability: string;
   id: number;
   showroomId: number;
   serviceId: number;
@@ -1379,14 +1444,14 @@ export interface AdminServiceListing {
   descriptionAr?: string;
   isFeatured: boolean;
   isActive: boolean;
-  status: string;
-  createdAt: string;
+  status: 'draft' | 'active' | 'pending' | 'reject';
+  createdAt?: string;
   updatedAt?: string;
   
   // Relations
-  service?: {
+  serviceData?: {
     id: number;
-    name: string;
+    name?: string;
     nameAr?: string;
     description?: string;
     descriptionAr?: string;
@@ -1394,13 +1459,23 @@ export interface AdminServiceListing {
     category?: string;
   };
   showroom?: {
+    id?: number;
+    name?: string;                   // Showroom name in English
+    nameAr?: string;                        // Showroom name in Arabic
+    isMainBranch?: boolean; // Is this the main branch?
+    address?: string;                       // Physical address
+    addressAr?: string;                  // Physical address in Arabic
+    location?: string;                     // Geographic location
+    phone?: string;                            // Contact phone number
+    logo?: string;
+    isFeatured?: boolean;
+  };
+  user?: {
     id: number;
     name: string;
-    nameAr?: string;
-    address?: string;
-    addressAr?: string;
-    contactNumber?: string;
-    logo?: string;
+    email: string;
+    phone?: string;
+    avatar?: string;
   };
   package_id?: number;
   package_name?: string;
@@ -1410,7 +1485,7 @@ export interface AdminServiceListing {
   end_date?: Date;
 }
 
-export type ServiceListingAction = 'feature' | 'activate' | 'deactivate' | 'delete';
+export type ServiceListingAction = 'publish' | 'edit' | 'approve' | 'reject' | 'feature' | 'delete';
 
 // Extended types for service management
 export interface ServiceCategory {

@@ -21,12 +21,32 @@ export interface IMessageStorage {
 
 export const MessageStorage = {
 
-    async getMessagesByUser(userId: number): Promise<Message[]> {
-        return await db.query(
-            'SELECT * FROM messages WHERE sender_id = $1 OR receiver_id = $1 ORDER BY created_at DESC',
-            [userId]
-        );
-    },
+   async getMessagesByUser(userId: number): Promise<Message[]> {
+  return await db.query(
+    `
+    SELECT 
+      m.*,
+      sender.id AS sender_id,
+      sender.first_name AS sender_first_name,
+      sender.last_name AS sender_last_name,
+      sender.username AS sender_username,
+      sender.email AS sender_email,
+      sender.phone AS sender_phone,
+      receiver.id AS receiver_id,
+      receiver.first_name AS receiver_first_name,
+      receiver.last_name AS receiver_last_name,
+      receiver.username AS receiver_username,
+      receiver.email AS receiver_email,
+      receiver.phone AS receiver_phone
+    FROM messages m
+    LEFT JOIN users sender ON m.sender_id = sender.id
+    LEFT JOIN users receiver ON m.receiver_id = receiver.id
+    WHERE m.sender_id = $1 OR m.receiver_id = $1
+    ORDER BY m.created_at DESC
+    `,
+    [userId]
+  );
+},
 
     async getMessagesBetweenUsers(user1Id: number, user2Id: number): Promise<Message[]> {
         return await db.query(`

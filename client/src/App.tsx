@@ -1,42 +1,65 @@
-import { Switch, Route, useLocation} from "wouter";
+// 🌐 Core & Routing
+import { useEffect, useState } from "react";
+import { Switch, Route, useLocation } from "wouter";
+
+// 🌍 Internationalization
 import { useTranslation } from "react-i18next";
+
+// 🔐 Authentication & Authorization
+import { useAuth } from "@/contexts/AuthContext";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { RoleSpecificRoute } from "@/components/RoleSpecificRoute";
+import { LoginRedirect } from "./lib/auth/loginRedirect";
+import { Permission, roleMapping } from "@shared/permissions";
+
+// 🧩 UI Components
 import Header from "./components/layout/Header";
 import Footer from "./components/layout/Footer";
+import { LoadingScreen } from "@/components/LoadingScreen";
+import { AuthForms } from "./components/forms/AuthForm/AuthForms";
+import ManageMessages from "./pages/admin/ManageMessages";
+import ManageProfile from "./components/dashboard/ManageProfile";
+
+// 📄 Static Pages
+import StaticPage from "./pages/StaticPage";
+import NotFound from "./pages/not-found";
+
+// 🏠 Public Pages
 import Home from "./pages/Home";
 import BrowseCars from "./pages/BrowseCars";
 import CarDetails from "./pages/CarDetails";
 import SellCar from "./pages/SellCar";
 import BrowseShowrooms from "./pages/BrowseShowrooms";
-import NotFound from "./pages/not-found";
+import BrowseGarages from "./pages/BrowseGarages";
+import BrowseServices from "./pages/BrowseServices";
+import ShowroomDetails from "./pages/ShowroomDetails";
+import GarageDetails from "./pages/GarageDetails";
+import ServiceDetails from "./pages/ServiceDetail";
+import ShowroomServiceDetails from "./pages/ShowroomServiceDetail";
+import Login from "./pages/Login";
+
+// 👤 Buyer Pages
 import BuyerDashboard from "./pages/buyer/BuyerDashboard";
-import ManageListings from "./pages/admin/ManageListings";
-import ManageServiceListings from "./pages/admin/ManageServiceListings";
-import ManageServiceBookings from "./pages/admin/ManageServiceBookings";
 import BuyerManageSettings from "./pages/buyer/ManageSettings";
+
+// 🧑‍💼 Seller Pages
 import SellerDashboard from "./pages/seller/SellerDashboard";
 import SellerManageSettings from "./pages/seller/ManageSettings";
+
+// 🏢 Showroom Pages
 import ShowroomDashboard from "./pages/showroom/ShowroomDashboard";
 import ShowroomManageSettings from "./pages/showroom/ManageSettings";
+
+// 🛠️ Admin Pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminManageUsers from "./pages/admin/ManageUsers";
 import AdminManageSettings from "./pages/admin/ManageSettings";
 import AdminManageContent from "./pages/admin/ManageContent";
-import ManageMessages from "./components/dashboard/ManageMessages";
-import ManageProfile from "./components/dashboard/ManageProfile";
-import Login from "./pages/Login";
-import { useAuth } from "@/contexts/AuthContext";
-import { AuthForms } from "./components/forms/AuthForm/AuthForms";
-import { Permission, roleMapping } from "@shared/permissions";
-import { RoleSpecificRoute } from "@/components/RoleSpecificRoute";
+import ManageListings from "./pages/admin/ManageListings";
+import ManageServiceListings from "./pages/admin/ManageServiceListings";
+import ManageServiceBookings from "./pages/admin/ManageServiceBookings";
+import SellService from "./pages/SellService";
 
-import { LoadingScreen } from "@/components/LoadingScreen";
-import { useEffect, useState } from "react";
-import { ProtectedRoute } from "@/components/ProtectedRoute"
-import ShowroomDetails from "./pages/ShowroomDetails";
-import BrowseServices from "./pages/BrowseServices";
-import ServiceDetails from "./pages/ServiceDetail";
-import ShowroomServiceDetails from "./pages/ShowroomServiceDetail";
-import StaticPage from "./pages/StaticPage";
 
 function App() {
   const [error, setError] = useState<Error | null>(null);
@@ -95,40 +118,40 @@ function functionStaticPage({ keyParam }: { keyParam: string }) {
       
       <main className="flex-grow">
         <Switch>
-          {/* Public Pages */}
-         <Route path="/page/:key">
+          {/* ---------- Public Pages ---------- */}
+          <Route path="/page/:key">
             {(params) => {
               if (!params) return <p>Loading...</p>;
               console.log("Params in route:", params);
               return <StaticPage keyParam={params.key} />;
             }}
           </Route>
-
           <Route path="/" component={Home} />
           <Route path="/browse" component={BrowseCars} />
           <Route path="/browse-showrooms" component={BrowseShowrooms} />
+          <Route path="/browse-garages" component={BrowseGarages} />
           <Route path="/browse-services" component={BrowseServices} />
           <Route path="/cars/:id" component={CarDetails} />
           <Route path="/showrooms/:id" component={ShowroomDetails} />
+          <Route path="/garages/:id" component={GarageDetails} />
           <Route path="/services/:id" component={ServiceDetails} />
           <Route path="/showroom-services/:id" component={ShowroomServiceDetails} />
-          <Route path="/login" component={Login} />
-          
+          <Route path="/login" component={LoginRedirect} />
 
-
-          
-          {/* Sell Car - Protected by CREATE_LISTINGS permission */}
+          {/* ---------- Sell Car & Service--------------- */}
           <Route path="/sell-car">
-              <SellCar />
+            <SellCar />
+          </Route>
+          <Route path="/sell-service">
+            <SellService />
           </Route>
 
-          {/* Buyer Dashboard Routes */}
+          {/* ---------- Buyer Dashboard Routes ---------- */}
           <Route path="/buyer-dashboard">
             <RoleSpecificRoute role="BUYER">
               <BuyerDashboard />
             </RoleSpecificRoute>
           </Route>
-          
           <Route path="/buyer-dashboard/listings">
             <RoleSpecificRoute role="BUYER">
               <ProtectedRoute permissions={[Permission.SAVE_FAVORITES]}>
@@ -136,19 +159,16 @@ function functionStaticPage({ keyParam }: { keyParam: string }) {
               </ProtectedRoute>
             </RoleSpecificRoute>
           </Route>
-          
           <Route path="/buyer-dashboard/settings">
             <RoleSpecificRoute role="BUYER">
               <BuyerManageSettings />
             </RoleSpecificRoute>
           </Route>
-          
           <Route path="/buyer-dashboard/profile">
             <RoleSpecificRoute role="BUYER">
               <ManageProfile />
             </RoleSpecificRoute>
           </Route>
-          
           <Route path="/buyer-dashboard/messages">
             <RoleSpecificRoute role="BUYER">
               <ProtectedRoute permissions={[Permission.CONTACT_SELLERS]}>
@@ -157,13 +177,12 @@ function functionStaticPage({ keyParam }: { keyParam: string }) {
             </RoleSpecificRoute>
           </Route>
 
-          {/* Seller Dashboard Routes */}
+          {/* ---------- Seller Dashboard Routes ---------- */}
           <Route path="/seller-dashboard">
             <RoleSpecificRoute role="SELLER">
               <SellerDashboard />
             </RoleSpecificRoute>
           </Route>
-          
           <Route path="/seller-dashboard/listings">
             <RoleSpecificRoute role="SELLER">
               <ProtectedRoute permissions={[Permission.MANAGE_OWN_LISTINGS]}>
@@ -171,19 +190,16 @@ function functionStaticPage({ keyParam }: { keyParam: string }) {
               </ProtectedRoute>
             </RoleSpecificRoute>
           </Route>
-          
           <Route path="/seller-dashboard/settings">
             <RoleSpecificRoute role="SELLER">
               <SellerManageSettings />
             </RoleSpecificRoute>
           </Route>
-          
           <Route path="/seller-dashboard/profile">
             <RoleSpecificRoute role="SELLER">
               <ManageProfile />
             </RoleSpecificRoute>
           </Route>
-          
           <Route path="/seller-dashboard/messages">
             <RoleSpecificRoute role="SELLER">
               <ProtectedRoute permissions={[Permission.RESPOND_TO_INQUIRIES]}>
@@ -192,63 +208,53 @@ function functionStaticPage({ keyParam }: { keyParam: string }) {
             </RoleSpecificRoute>
           </Route>
 
-          {/* Showroom Dashboard Routes */}
+          {/* ---------- Showroom Dashboard Routes ---------- */}
           <Route path="/showroom-dashboard">
-            <ProtectedRoute 
-              permissions={[Permission.CREATE_SHOWROOM_PROFILE]} 
-              fallback="/"
-            >
+            <ProtectedRoute permissions={[Permission.CREATE_SHOWROOM_PROFILE]} fallback="/">
               <ShowroomDashboard />
             </ProtectedRoute>
           </Route>
-          
           <Route path="/showroom-dashboard/listings">
             <ProtectedRoute permissions={[Permission.MANAGE_OWN_LISTINGS]}>
               <ManageListings />
             </ProtectedRoute>
           </Route>
-         
           <Route path="/showroom-dashboard/servicelistings">
             <ProtectedRoute permissions={[Permission.MANAGE_OWN_SERVICES]}>
               <ManageServiceListings />
             </ProtectedRoute>
           </Route>
-
           <Route path="/showroom-dashboard/servicebookings">
             <ProtectedRoute permissions={[Permission.MANAGE_OWN_BOOKINGS]}>
               <ManageServiceBookings />
             </ProtectedRoute>
           </Route>
-          
           <Route path="/showroom-dashboard/settings">
             <ProtectedRoute permissions={[Permission.MANAGE_SHOWROOM_PROFILE]}>
               <ShowroomManageSettings />
             </ProtectedRoute>
           </Route>
-          
           <Route path="/showroom-dashboard/profile">
             <ProtectedRoute permissions={[Permission.MANAGE_SHOWROOM_PROFILE]}>
               <ManageProfile />
             </ProtectedRoute>
           </Route>
-          
           <Route path="/showroom-dashboard/messages">
             <ProtectedRoute permissions={[Permission.RESPOND_TO_INQUIRIES]}>
               <ManageMessages />
             </ProtectedRoute>
           </Route>
-          
           <Route path="/showroom-dashboard/staff">
             <ProtectedRoute permissions={[Permission.MANAGE_SHOWROOM_STAFF]}>
               <ShowroomManageSettings />
             </ProtectedRoute>
           </Route>
 
-          {/* Admin Routes */}
+          {/* ---------- Admin Routes ---------- */}
           <Route path="/admin">
-            <ProtectedRoute 
+            <ProtectedRoute
               permissions={[
-                Permission.MANAGE_ALL_LISTINGS, 
+                Permission.MANAGE_ALL_LISTINGS,
                 Permission.MANAGE_ALL_USERS,
                 Permission.MANAGE_ALL_SERVICES,
                 Permission.MANAGE_BOOKINGS,
@@ -259,58 +265,51 @@ function functionStaticPage({ keyParam }: { keyParam: string }) {
               <AdminDashboard />
             </ProtectedRoute>
           </Route>
-          
           <Route path="/admin/listings">
             <ProtectedRoute permissions={[Permission.MANAGE_ALL_LISTINGS]}>
               <ManageListings />
             </ProtectedRoute>
           </Route>
-
-           <Route path="/admin/servicelistings">
+          <Route path="/admin/servicelistings">
             <ProtectedRoute permissions={[Permission.MANAGE_ALL_SERVICES]}>
               <ManageServiceListings />
             </ProtectedRoute>
           </Route>
-
           <Route path="/admin/servicebookings">
             <ProtectedRoute permissions={[Permission.MANAGE_BOOKINGS]}>
               <ManageServiceBookings />
             </ProtectedRoute>
           </Route>
-          
           <Route path="/admin/users">
             <ProtectedRoute permissions={[Permission.MANAGE_ALL_USERS]}>
               <AdminManageUsers />
             </ProtectedRoute>
           </Route>
-          
           <Route path="/admin/settings">
             <ProtectedRoute permissions={[Permission.MANAGE_PLATFORM_SETTINGS]}>
               <AdminManageSettings />
             </ProtectedRoute>
           </Route>
-          
           <Route path="/admin/content">
             <ProtectedRoute permissions={[Permission.MANAGE_CONTENT]}>
               <AdminManageContent />
             </ProtectedRoute>
           </Route>
-          
           <Route path="/admin/profile">
             <ProtectedRoute permissions={[Permission.MANAGE_ALL_USERS]}>
               <ManageProfile />
             </ProtectedRoute>
           </Route>
-          
           <Route path="/admin/messages">
             <ProtectedRoute permissions={[Permission.MANAGE_REPORTS]}>
               <ManageMessages />
             </ProtectedRoute>
           </Route>
 
-          {/* 404 */}
+          {/* ---------- 404 - Not Found ---------- */}
           <Route component={NotFound} />
         </Switch>
+
       </main>
 
       {!isAdminRoute && <Footer />}

@@ -1,10 +1,9 @@
 // Messages.tsx
-
 import { FC, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import DashboardSidebar from "./DashboardSidebar";
+import DashboardSidebar from "../../components/dashboard/DashboardSidebar";
 import { roleSchema, roleMapping } from "@shared/permissions";
 import { Message } from "@shared/schema";
 import { z } from "zod";
@@ -17,15 +16,15 @@ import {
   Trash2,
   Users,
 } from "lucide-react";
-import { Button } from "../ui/button";
-import { Input } from "../ui/input";
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "../ui/select";
+} from "../../components/ui/select";
 import {
   Table,
   TableBody,
@@ -33,17 +32,23 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "../ui/table";
-import { Badge } from "../ui/badge";
+} from "../../components/ui/table";
+import { Badge } from "../../components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "../ui/dropdown-menu";
+} from "../../components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "../../components/ui/dialog";
+import { queryClient } from "@/lib/queryClient";
 
 type UserRole = z.infer<typeof roleSchema>;
-
 
 const ManageMessages = () => {
   const { t } = useTranslation();
@@ -55,6 +60,8 @@ const ManageMessages = () => {
     status: "all",
     sortBy: "newest",
   });
+  const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const {
     data: messagesData = [],
@@ -62,11 +69,40 @@ const ManageMessages = () => {
     refetch,
     error,
   } = useQuery<Message[]>({
-    queryKey: ["getMessages", user?.id],
-    enabled: !!user?.id && isAuthenticated,
+    queryKey: ["/api/messages", user?.id],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      const res = await fetch(`/api/messages/${user?.id}`);
+      if (!res.ok) throw new Error("Failed to fetch messages");
+      return res.json();
+    },
   });
 
-  // ✅ Correct filtering
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(`/api/messages/${id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error("Failed to delete message");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/messages", user?.id] });
+    },
+  });
+
+  const handleDeleteMessage = (id: number) => {
+    if (confirm(t("admin.confirmDeleteMessage") || "Are you sure you want to delete this message?")) {
+      deleteMutation.mutate(id);
+    }
+  };
+
+  const handleViewMessage = (message: Message) => {
+    setSelectedMessage(message);
+    setIsDialogOpen(true);
+  };
+
+  // Filter and sort messages
   const filteredMessages = messagesData
     .filter((msg) => {
       const matchesType =
@@ -77,10 +113,9 @@ const ManageMessages = () => {
 
       const matchesSearch =
         searchTerm.trim() === "" ||
-        msg.senderId
-          .toString()
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase());
+        msg.sender_username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        msg.receiver_username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        msg.content?.toLowerCase().includes(searchTerm.toLowerCase());
 
       return matchesType && matchesStatus && matchesSearch;
     })
@@ -99,73 +134,19 @@ const ManageMessages = () => {
       return 0;
     });
 
-  // ✅ Handle form submit
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.senderId || !formData.content) return;
-
-    // You can now use formData to submit a reply or update message status, etc.
-    console.log("Submit message formData:", formData);
-  };
-
-  // ✅ Handle form field changes
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
   const resetFilters = () => {
-    setSearchTerm(""); // Reset the search term
+    setSearchTerm("");
     setStatusFilter({
-      type: "all", // Default value for 'type'
-      status: "all", // Default value for 'status'
-      sortBy: "newest", // Default value for 'sortBy'
+      type: "all",
+      status: "all",
+      sortBy: "newest",
     });
   };
 
-  const renderRoleSpecificFields = () => {
-    const fields: Record<UserRole, JSX.Element[]> = {
-      BUYER: [],
-      SELLER: [],
-      DEALER: [
-        renderInput("showroomName", t("profile.showroomName")),
-        renderInput("showroomLocation", t("profile.showroomLocation")),
-      ],
-      GARAGE: [
-        renderInput("showroomName", t("profile.showroomName")),
-        renderInput("showroomLocation", t("profile.showroomLocation")),
-      ],
-      MODERATOR: [],
-      SENIOR_MODERATOR: [],
-      ADMIN: [],
-      SUPER_ADMIN: [],
-    };
-
-    return fields[userRole] || null;
-  };
-
-  const renderInput = (name: string, label: string) => (
-    <div className="mb-4" key={name}>
-      <label htmlFor={name} className="block text-sm font-medium">
-        {label}
-      </label>
-      <input
-        type="text"
-        id={name}
-        name={name}
-        value={(formData as any)[name] || ""}
-        onChange={handleChange}
-        className="mt-1 p-2 border rounded w-full"
-      />
-    </div>
-  );
-
   return (
-    <div className="min-h-screen bg-white py-8">
+    <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div className="bg-white rounded-xl shadow overflow-hidden">
           <div className="md:flex">
             {/* Admin Sidebar */}
             <div className="hidden md:block">
@@ -178,13 +159,13 @@ const ManageMessages = () => {
             <div className="flex-1 p-6 overflow-auto">
               <div className="max-w-7xl mx-auto">
                 <div className="flex justify-between items-center mb-6">
-                  <h1 className="text-3xl font-bold">
+                  <h1 className="text-3xl font-bold text-gray-800">
                     {t("admin.manageMessages")}
                   </h1>
                   <div className="flex gap-2">
                     <Button
                       variant="outline"
-                      className="text-slate-200 border-slate-700 bg-slate-700 hover:bg-blue-600 hover:text-white mr-2"
+                      className="text-white bg-orange-500 hover:bg-orange-700 hover:text-white mr-2"
                       onClick={() => refetch()}
                       disabled={isLoading}
                     >
@@ -199,18 +180,18 @@ const ManageMessages = () => {
                 </div>
 
                 {/* Search & Filters */}
-                <div className="mt-4 mb-6 bg-neutral-50 border-2 border-orange-500 border-solid rounded-lg shadow p-4">
+                <div className="mt-4 mb-6 bg-neutral-50 border border-orange-300 rounded-lg shadow p-4">
                   <form
                     onSubmit={(e) => e.preventDefault()}
                     className="flex gap-3 mb-4"
                   >
                     <div className="flex-1 relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                       <Input
                         placeholder={t("admin.searchMessages")}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-10 bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
+                        className="pl-10 bg-white border-gray-300 text-gray-800 placeholder:text-gray-400"
                       />
                     </div>
                     <Button
@@ -223,7 +204,7 @@ const ManageMessages = () => {
                     <Button
                       type="button"
                       variant="outline"
-                      className="border-slate-600 text-slate-700 hover:bg-slate-700"
+                      className="border-gray-400 text-gray-700 hover:bg-gray-100"
                       onClick={resetFilters}
                     >
                       {t("common.reset")}
@@ -233,15 +214,15 @@ const ManageMessages = () => {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div>
                       <Select
-                        value={statusFilter.type || "all"}
+                        value={statusFilter.type}
                         onValueChange={(value) =>
                           setStatusFilter({ ...statusFilter, type: value })
                         }
                       >
-                        <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                        <SelectTrigger className="bg-white border-gray-300 text-gray-800">
                           <SelectValue placeholder={t("admin.filterByType")} />
                         </SelectTrigger>
-                        <SelectContent className="bg-slate-800 border-slate-700 text-white">
+                        <SelectContent className="bg-white border-gray-300 text-gray-800">
                           <SelectItem value="all">
                             {t("admin.allMessageTypes")}
                           </SelectItem>
@@ -253,17 +234,15 @@ const ManageMessages = () => {
 
                     <div>
                       <Select
-                        value={statusFilter.status || "all"}
+                        value={statusFilter.status}
                         onValueChange={(value) =>
                           setStatusFilter({ ...statusFilter, status: value })
                         }
                       >
-                        <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
-                          <SelectValue
-                            placeholder={t("admin.filterByStatus")}
-                          />
+                        <SelectTrigger className="bg-white border-gray-300 text-gray-800">
+                          <SelectValue placeholder={t("admin.filterByStatus")} />
                         </SelectTrigger>
-                        <SelectContent className="bg-slate-800 border-slate-700 text-white">
+                        <SelectContent className="bg-white border-gray-300 text-gray-800">
                           <SelectItem value="all">
                             {t("admin.allStatuses")}
                           </SelectItem>
@@ -276,15 +255,15 @@ const ManageMessages = () => {
 
                     <div>
                       <Select
-                        value={statusFilter.sortBy || "newest"}
+                        value={statusFilter.sortBy}
                         onValueChange={(value) =>
                           setStatusFilter({ ...statusFilter, sortBy: value })
                         }
                       >
-                        <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                        <SelectTrigger className="bg-white border-gray-300 text-gray-800">
                           <SelectValue placeholder={t("admin.sortBy")} />
                         </SelectTrigger>
-                        <SelectContent className="bg-slate-800 border-slate-700 text-white">
+                        <SelectContent className="bg-white border-gray-300 text-gray-800">
                           <SelectItem value="newest">
                             {t("admin.newest")}
                           </SelectItem>
@@ -298,49 +277,44 @@ const ManageMessages = () => {
                 </div>
 
                 {/* Messages Table */}
-                <div className="bg-slate-800 rounded-lg border border-slate-700 overflow-hidden">
+                <div className="bg-white rounded-lg border border-gray-300 overflow-hidden">
                   {isLoading ? (
                     <div className="flex justify-center items-center py-16">
                       <Loader2 className="h-8 w-8 text-blue-500 animate-spin" />
-                      <span className="ml-2 text-slate-400">
+                      <span className="ml-2 text-gray-500">
                         {t("common.loading")}
                       </span>
                     </div>
-                  ) : messagesData && messagesData.length > 0 ? (
+                  ) : filteredMessages.length > 0 ? (
                     <Table>
-                    <TableHeader>
-                      <TableRow className="bg-neutral-500 hover:bg-neutral-700 border-neutral-50">
-                        <TableHead className="text-white">
-                            Sender ID
-                          </TableHead>
-                          <TableHead className="text-white">
-                            Receiver ID
-                          </TableHead>
-                          <TableHead className="text-white">Type</TableHead>
-                          <TableHead className="text-white">
-                            Status
-                          </TableHead>
-                          <TableHead className="text-white">
-                            Sent At
-                          </TableHead>
-                          <TableHead className="text-right text-slate-300">
+                      <TableHeader>
+                        <TableRow className="bg-gray-100 hover:bg-gray-200 border-b">
+                          <TableHead className="text-gray-700">Sender</TableHead>
+                          <TableHead className="text-gray-700">Receiver</TableHead>
+                          <TableHead className="text-gray-700">Type</TableHead>
+                          <TableHead className="text-gray-700">Status</TableHead>
+                          <TableHead className="text-gray-700">Sent At</TableHead>
+                          <TableHead className="text-right text-gray-600">
                             {t("common.actions")}
                           </TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {messagesData.map((message: any) => (
-                          <TableRow
-                            key={message.id}
-                            className="hover:bg-slate-700/50 border-slate-700"
-                          >
-                            <TableCell className="text-slate-200">
-                              {message.senderId}
+                        {filteredMessages.map((message: any) => (
+                          <TableRow key={message.id} className="hover:bg-gray-50 border-b">
+                            <TableCell className="text-gray-800">
+                              {message.sender_first_name} {message.sender_last_name}
+                              <span className="block text-sm text-gray-500">
+                                {message.sender_username}
+                              </span>
                             </TableCell>
-                            <TableCell className="text-slate-200">
-                              {message.receiverId}
+                            <TableCell className="text-gray-800">
+                              {message.receiver_first_name} {message.receiver_last_name}
+                              <span className="block text-sm text-gray-500">
+                                {message.receiver_username}
+                              </span>
                             </TableCell>
-                            <TableCell className="text-slate-200 capitalize">
+                            <TableCell className="capitalize text-gray-800">
                               {message.type}
                             </TableCell>
                             <TableCell>
@@ -349,7 +323,7 @@ const ManageMessages = () => {
                                   Sent
                                 </Badge>
                               ) : message.status === "pending" ? (
-                                <Badge className="bg-amber-100 text-amber-800">
+                                <Badge className="bg-yellow-100 text-yellow-800">
                                   Pending
                                 </Badge>
                               ) : (
@@ -358,9 +332,9 @@ const ManageMessages = () => {
                                 </Badge>
                               )}
                             </TableCell>
-                            <TableCell className="text-slate-400 text-sm">
-                              {message.sentAt
-                                ? new Date(message.sentAt).toLocaleString()
+                            <TableCell className="text-gray-600 text-sm">
+                              {message.sent_at
+                                ? new Date(message.sent_at).toLocaleString()
                                 : "-"}
                             </TableCell>
                             <TableCell className="text-right">
@@ -369,25 +343,25 @@ const ManageMessages = () => {
                                   <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-8 w-8 text-slate-400 hover:text-white"
+                                    className="h-8 w-8 text-gray-500 hover:text-gray-700"
                                   >
                                     <MoreHorizontal className="h-4 w-4" />
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent
                                   align="end"
-                                  className="bg-slate-800 border-slate-700 text-slate-300"
+                                  className="bg-white border border-gray-300 text-gray-800"
                                 >
                                   <DropdownMenuItem
-                                    className="hover:bg-slate-700 focus:bg-slate-700"
+                                    className="hover:bg-gray-100"
                                     onClick={() => handleViewMessage(message)}
                                   >
                                     <Eye className="mr-2 h-4 w-4" />
                                     {t("common.view")}
                                   </DropdownMenuItem>
                                   <DropdownMenuItem
-                                    className="text-red-400 hover:bg-red-900/30 focus:bg-red-900/30"
-                                    onClick={() => handleDeleteMessage(message)}
+                                    className="text-red-500 hover:bg-red-100"
+                                    onClick={() => handleDeleteMessage(message.id)}
                                   >
                                     <Trash2 className="mr-2 h-4 w-4" />
                                     {t("common.delete")}
@@ -401,10 +375,8 @@ const ManageMessages = () => {
                     </Table>
                   ) : (
                     <div className="flex flex-col items-center justify-center py-16">
-                      <Users className="h-16 w-16 text-slate-700 mb-4" />
-                      <p className="text-slate-400">
-                        {t("admin.noMessagesFound")}
-                      </p>
+                      <Users className="h-16 w-16 text-gray-300 mb-4" />
+                      <p className="text-gray-500">{t("admin.noMessagesFound")}</p>
                     </div>
                   )}
                 </div>
@@ -413,6 +385,72 @@ const ManageMessages = () => {
           </div>
         </div>
       </div>
+
+      {/* Message Details Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Message Details</DialogTitle>
+          </DialogHeader>
+          {selectedMessage && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Sender</h3>
+                  <p className="mt-1 text-sm text-gray-900">
+                    {selectedMessage.sender_first_name} {selectedMessage.sender_last_name}
+                    <span className="block text-gray-500">
+                      @{selectedMessage.sender_username}
+                    </span>
+                  </p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Receiver</h3>
+                  <p className="mt-1 text-sm text-gray-900">
+                    {selectedMessage.receiver_first_name} {selectedMessage.receiver_last_name}
+                    <span className="block text-gray-500">
+                      @{selectedMessage.receiver_username}
+                    </span>
+                  </p>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Type</h3>
+                  <p className="mt-1 text-sm text-gray-900 capitalize">
+                    {selectedMessage.type}
+                  </p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Status</h3>
+                  <p className="mt-1 text-sm text-gray-900 capitalize">
+                    {selectedMessage.status}
+                  </p>
+                </div>
+              </div>
+              
+              <div>
+                <h3 className="text-sm font-medium text-gray-500">Sent At</h3>
+                <p className="mt-1 text-sm text-gray-900">
+                  {selectedMessage.sent_at
+                    ? new Date(selectedMessage.sent_at).toLocaleString()
+                    : "-"}
+                </p>
+              </div>
+              
+              <div>
+                <h3 className="text-sm font-medium text-gray-500">Content</h3>
+                <div className="mt-1 p-3 bg-gray-50 rounded-md">
+                  <p className="text-sm text-gray-900 whitespace-pre-wrap">
+                    {selectedMessage.content}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

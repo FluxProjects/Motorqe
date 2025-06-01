@@ -4,7 +4,7 @@ import { storage } from "server/storage";
 
 export interface IServicePromotionPackageStorage {
 
-    getAllPromotionPackages(activeOnly?: boolean): Promise<ServicePromotionPackage[]>;
+    getAllServicePromotionPackages(activeOnly?: boolean): Promise<ServicePromotionPackage[]>;
     getServicePromotionPackage(id: number): Promise<ServicePromotionPackage | undefined>;
     createServicePromotionPackage(pkg: InsertServicePromotionPackage): Promise<ServicePromotionPackage>;
     updateServicePromotionPackage(id: number, updates: Partial<InsertServicePromotionPackage>): Promise<ServicePromotionPackage | undefined>;
@@ -14,7 +14,7 @@ export interface IServicePromotionPackageStorage {
 
 export const ServicePromotionPackageStorage = {
 
-    async getAllPromotionPackages(activeOnly: boolean = true): Promise<ServicePromotionPackage[]> {
+    async getAllServicePromotionPackages(activeOnly: boolean = true): Promise<ServicePromotionPackage[]> {
             let query = 'SELECT * FROM service_promotion_packages';
             if (activeOnly) {
                 query += ' WHERE is_active = true';

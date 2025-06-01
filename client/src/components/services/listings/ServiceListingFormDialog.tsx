@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { ServiceListingForm } from "@/components/forms/ServiceListingForm/ServiceListingForm";
 import { AdminServiceListing } from "@shared/schema";
 
-interface ListingFormDialogProps {
+interface ServiceListingFormDialogProps {
   service?: AdminServiceListing | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -15,7 +15,7 @@ export const ServiceListingFormDialog = ({
   open,
   onOpenChange,
   onSuccess,
-}: ListingFormDialogProps) => {
+}: ServiceListingFormDialogProps) => {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">

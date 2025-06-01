@@ -164,9 +164,7 @@ export function CarLoanCalculator({ vehiclePrice }: LoanCalculatorProps) {
 
         {/* Center Column - Nationwide Building Society */}
         <div className="flex flex-col items-center justify-center bg-gray-100 rounded-lg p-6">
-          <div className="bg-blue-900 text-white w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg mb-4">
-            M
-          </div>
+
           <div className="bg-blue-600 text-white px-4 py-2 rounded mb-2">
             <div className="flex items-center">
               <svg
@@ -191,7 +189,7 @@ export function CarLoanCalculator({ vehiclePrice }: LoanCalculatorProps) {
           </div>
 
           <Button
-            className="bg-orange-500W text-white hover:bg-orange-600 rounded-full px-8"
+            className="bg-orange-500 text-white hover:bg-orange-600 rounded-full px-8"
             onClick={() => {
               alert("Redirecting to loan application...");
               window.open(

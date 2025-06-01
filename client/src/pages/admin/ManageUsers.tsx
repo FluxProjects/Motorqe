@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import i18n, { resources } from "@/lib/i18n";
 import { useTranslation } from "react-i18next";
@@ -66,6 +66,7 @@ import {
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { roleMapping } from "@shared/permissions";
+import { RoleBadge } from "@/lib/utils";
 
 const ManageUsers = () => {
   const { t } = useTranslation();
@@ -73,10 +74,10 @@ const ManageUsers = () => {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState({
-    role: "", // example
-    status: "", // example
-    sortBy: "newest", // example
-  });
+  role: "all", 
+  status: "all",
+  sortBy: "newest",
+});
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [actionDialogOpen, setActionDialogOpen] = useState(false);
@@ -101,45 +102,27 @@ const ManageUsers = () => {
   } = useQuery({
     queryKey: ["/api/get-users", searchQuery, filters],
     queryFn: async () => {
-      console.log("Running queryFn...");
-
       const searchParams = new URLSearchParams();
 
       if (searchQuery) {
-        console.log("Appending search:", searchQuery);
-        searchParams.append("search", searchQuery || "");
+        searchParams.append("search", searchQuery);
       }
 
       if (filters.role && filters.role !== "all") {
-        console.log("Appending role:", filters.role);
-        searchParams.append("role", filters.role || "");
+        searchParams.append("role", filters.role.toUpperCase());
       }
 
       if (filters.status && filters.status !== "all") {
-        console.log("Appending status:", filters.status);
-        searchParams.append("status", filters.status || "all");
+        searchParams.append("status", filters.status);
       }
 
-      // Add sorting filter if it's defined
       if (filters.sortBy) {
-        console.log("Appending sortBy:", filters.sortBy);
-        searchParams.append("sortBy", filters.sortBy || "newest");
+        searchParams.append("sortBy", filters.sortBy);
       }
 
-      const fullUrl = `/api/get-users?${searchParams.toString()}`;
-      console.log("Fetching URL:", fullUrl);
-
-      const response = await fetch(fullUrl);
-
-      if (!response.ok) {
-        console.error("Fetch failed with status:", response.status);
-        throw new Error("Failed to fetch users");
-      }
-
-      const data = await response.json();
-      console.log("Fetched data:", data);
-
-      return data;
+      const response = await fetch(`/api/get-users?${searchParams.toString()}`);
+      if (!response.ok) throw new Error("Failed to fetch users");
+      return await response.json();
     },
   });
 
@@ -266,7 +249,7 @@ const ManageUsers = () => {
       id: user.id,
       username: user.username,
       email: user.email,
-      role: user.role,
+      role: user.role.toUpperCase(),
       isEmailVerified: user.isEmailVerified,
     });
     setEditDialogOpen(true);
@@ -308,6 +291,18 @@ const ManageUsers = () => {
   const handleUpdateUser = () => {
     updateUser.mutate(editedUser);
   };
+
+  useEffect(() => {
+  // Debounce the refetch to avoid too many requests
+  const timer = setTimeout(() => {
+    refetch();
+  }, 300);
+
+  return () => clearTimeout(timer);
+}, [filters, refetch]);
+
+
+
 
   return (
     <div className="min-h-screen bg-white py-8">
@@ -387,60 +382,44 @@ const ManageUsers = () => {
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div>
+                      {/* Role Filter */}
                       <Select
-                        value={filters.role || ""}
-                        onValueChange={(value) =>
-                          setFilters({ ...filters, role: value })
-                        }
+                        value={filters.role}
+                        onValueChange={(value) => {
+                          setFilters({ ...filters, role: value });
+                        }}
                       >
-                        <SelectTrigger className="">
+                        <SelectTrigger>
                           <SelectValue placeholder={t("admin.filterByRole")} />
                         </SelectTrigger>
-                        <SelectContent className="bg-slate-800 border-slate-700 text-white">
-                          <SelectItem value="admin">
-                            {t("admin.admin")}
-                          </SelectItem>
-                          <SelectItem value="moderator">
-                            {t("admin.moderator")}
-                          </SelectItem>
-                          <SelectItem value="seller">
-                            {t("admin.seller")}
-                          </SelectItem>
-                          <SelectItem value="buyer">
-                            {t("admin.buyer")}
-                          </SelectItem>
-                          <SelectItem value="showroom">
-                            {t("admin.showroom")}
-                          </SelectItem>
+                        <SelectContent>
+                          <SelectItem value="all">{t("admin.allRoles")}</SelectItem>
+                          <SelectItem value="ADMIN">{t("admin.admin")}</SelectItem>
+                          <SelectItem value="MODERATOR">{t("admin.moderator")}</SelectItem>
+                          <SelectItem value="SELLER">{t("admin.seller")}</SelectItem>
+                          <SelectItem value="DEALER">{t("admin.dealer")}</SelectItem>
+                          <SelectItem value="GARAGE">{t("admin.garage")}</SelectItem>
+                          <SelectItem value="BUYER">{t("admin.buyer")}</SelectItem>
                         </SelectContent>
                       </Select>
-                    </div>
-
-                    <div>
+                      </div>
+                      
+                      <div>
+                      {/* Status Filter */}
                       <Select
-                        value={filters.status || "all"}
-                        onValueChange={(value) =>
-                          setFilters({ ...filters, status: value })
-                        }
+                        value={filters.status}
+                        onValueChange={(value) => {
+                          setFilters({ ...filters, status: value });
+                        }}
                       >
-                        <SelectTrigger className="">
-                          <SelectValue
-                            placeholder={t("admin.filterByStatus")}
-                          />
+                        <SelectTrigger>
+                          <SelectValue placeholder={t("admin.filterByStatus")} />
                         </SelectTrigger>
-                        <SelectContent className="bg-slate-800 border-slate-700 text-white">
-                          <SelectItem value="all">
-                            {t("admin.allStatuses")}
-                          </SelectItem>
-                          <SelectItem value="active">
-                            {t("admin.active")}
-                          </SelectItem>
-                          <SelectItem value="suspended">
-                            {t("admin.suspended")}
-                          </SelectItem>
-                          <SelectItem value="unverified">
-                            {t("admin.unverified")}
-                          </SelectItem>
+                        <SelectContent>
+                          <SelectItem value="all">{t("admin.allStatuses")}</SelectItem>
+                          <SelectItem value="verified">{t("admin.verified")}</SelectItem>
+                          <SelectItem value="suspended">{t("admin.suspended")}</SelectItem>
+                          <SelectItem value="unverified">{t("admin.unverified")}</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -455,7 +434,7 @@ const ManageUsers = () => {
                         <SelectTrigger className="">
                           <SelectValue placeholder={t("admin.sortBy")} />
                         </SelectTrigger>
-                        <SelectContent className="bg-slate-800 border-slate-700 text-white">
+                        <SelectContent className="bg-white border-gray-200 text-gray-800">
                           <SelectItem value="newest">
                             {t("admin.newest")}
                           </SelectItem>
@@ -479,33 +458,33 @@ const ManageUsers = () => {
                   {isLoading ? (
                     <div className="flex justify-center items-center py-16">
                       <Loader2 className="h-8 w-8 text-blue-500 animate-spin" />
-                      <span className="ml-2 text-slate-400">
+                      <span className="ml-2 text-gray-500">
                         {t("common.loading")}
                       </span>
                     </div>
                   ) : usersData && usersData.length > 0 ? (
                     <Table>
                       <TableHeader>
-                        <TableRow className="bg-neutral-500 hover:bg-neutral-700 border-neutral-50">
-                          <TableHead className="text-white">
+                        <TableRow className="bg-gray-100 border-b border-gray-300">
+                          <TableHead className="text-gray-800 font-semibold">
                             {t("admin.user")}
                           </TableHead>
-                          <TableHead className="text-white">
+                          <TableHead className="text-gray-800 font-semibold">
                             {t("admin.email")}
                           </TableHead>
-                          <TableHead className="text-white">
+                          <TableHead className="text-gray-800 font-semibold">
                             {t("admin.phone")}
                           </TableHead>
-                          <TableHead className="text-white">
+                          <TableHead className="text-gray-800 font-semibold">
                             {t("admin.role")}
                           </TableHead>
-                          <TableHead className="text-white">
+                          <TableHead className="text-gray-800 font-semibold">
                             {t("admin.verificationStatus")}
                           </TableHead>
-                          <TableHead className="text-white">
+                          <TableHead className="text-gray-800 font-semibold">
                             {t("admin.joinedOn")}
                           </TableHead>
-                          <TableHead className="text-right text-white">
+                          <TableHead className="text-gray-800 font-semibold">
                             {t("common.actions")}
                           </TableHead>
                         </TableRow>
@@ -514,11 +493,11 @@ const ManageUsers = () => {
                         {usersData.map((user: any) => (
                           <TableRow
                             key={user.id}
-                            className="border-neutral-300"
+                            className="border-b border-gray-200"
                           >
                             <TableCell>
                               <div className="flex items-center">
-                                <Avatar className="h-8 w-8 mr-2 bg-slate-600">
+                                <Avatar className="h-8 w-8 mr-2 bg-gray-300">
                                   <AvatarImage src={user.avatar} />
                                   <AvatarFallback className="">
                                     {user.username.charAt(0).toUpperCase()}
@@ -536,11 +515,11 @@ const ManageUsers = () => {
                             </TableCell>
                             <TableCell>
                               {!user.is_email_verified ? (
-                                <Badge className="bg-amber-100 text-amber-800">
+                                <Badge className="bg-yellow-100 text-yellow-800 hover:text-white">
                                   {t("admin.unverified")}
                                 </Badge>
                               ) : (
-                                <Badge className="bg-green-100 text-green-800">
+                                <Badge className="bg-green-100 text-green-800 hover:text-white">
                                   {t("admin.verified")}
                                 </Badge>
                               )}
@@ -559,57 +538,48 @@ const ManageUsers = () => {
                                     <MoreHorizontal className="h-4 w-4" />
                                   </Button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent
-                                  align="end"
-                                  className="bg-slate-800 border-slate-700 text-slate-300"
-                                >
+                                <DropdownMenuContent className="bg-white border border-gray-200 text-gray-800">
                                   <DropdownMenuLabel>
                                     {t("common.actions")}
                                   </DropdownMenuLabel>
                                   <DropdownMenuItem
-                                    className="hover:bg-slate-700 focus:bg-slate-700"
+                                    className="hover:bg-gray-100"
                                     onClick={() => handleViewUser(user)}
                                   >
                                     <Eye className="mr-2 h-4 w-4" />
                                     {t("common.view")}
                                   </DropdownMenuItem>
                                   <DropdownMenuItem
-                                    className="hover:bg-slate-700 focus:bg-slate-700"
+                                    className="hover:bg-gray-100"
                                     onClick={() => handleEditUser(user)}
                                   >
                                     <Edit className="mr-2 h-4 w-4" />
                                     {t("common.edit")}
                                   </DropdownMenuItem>
 
-                                  {!user.isSuspended &&
-                                    user.role !== "admin" && (
-                                      <DropdownMenuItem
-                                        className="hover:bg-slate-700 focus:bg-slate-700"
-                                        onClick={() =>
-                                          handleAction(user, "reject")
-                                        }
-                                      >
-                                        <Ban className="mr-2 h-4 w-4 text-amber-500" />
-                                        {t("admin.suspendUser")}
-                                      </DropdownMenuItem>
-                                    )}
+                                  {/* In the dropdown menu */}
+                                  {!user.isSuspended && user.role !== "ADMIN" && (
+                                    <DropdownMenuItem
+                                      className="hover:bg-gray-100"
+                                      onClick={() => handleAction(user, "ban")}
+                                    >
+                                      <Ban className="mr-2 h-4 w-4 text-amber-500" />
+                                      {t("admin.suspendUser")}
+                                    </DropdownMenuItem>
+                                  )}
 
-                                  {user.role !== "admin" &&
-                                    user.role !== "moderator" && (
-                                      <DropdownMenuItem
-                                        className="hover:bg-slate-700 focus:bg-slate-700"
-                                        onClick={() =>
-                                          handleAction(user, "feature")
-                                        }
-                                      >
-                                        <Shield className="mr-2 h-4 w-4 text-blue-500" />
-                                        {t("admin.promoteToModerator")}
-                                      </DropdownMenuItem>
-                                    )}
-
-                                  <DropdownMenuSeparator className="bg-slate-700" />
+                                  {user.role !== "ADMIN" && user.role !== "MODERATOR" && (
+                                    <DropdownMenuItem
+                                      className="hover:bg-gray-100"
+                                      onClick={() => handleAction(user, "promote")}
+                                    >
+                                      <Shield className="mr-2 h-4 w-4 text-blue-500" />
+                                      {t("admin.promoteToModerator")}
+                                    </DropdownMenuItem>
+                                  )}
+                                  <DropdownMenuSeparator className="bg-gray-200" />
                                   <DropdownMenuItem
-                                    className="text-red-400 hover:bg-red-900/30 focus:bg-red-900/30"
+                                    className="text-red-400 hover:bg-gray-100 focus:bg-red-900/30"
                                     onClick={() => handleAction(user, "delete")}
                                   >
                                     <Trash2 className="mr-2 h-4 w-4" />
@@ -760,7 +730,7 @@ const ManageUsers = () => {
                     <Calendar className="h-4 w-4 mr-2 text-neutral-500" />
                     <span className="text-neutral-600">
                       {t("admin.joinedOn")}:{" "}
-                      {new Date(selectedUser.createdAt).toLocaleDateString()}
+                      {new Date(selectedUser.created_at).toLocaleDateString()}
                     </span>
                   </div>
                 </div>
@@ -918,6 +888,106 @@ const ManageUsers = () => {
         </Dialog>
       )}
 
+      {/* Edit User Dialog */}
+      {selectedUser && (
+        <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+          <DialogContent className="bg-white text-neutral-900 border-neutral-200 max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-xl text-neutral-900">
+                {t("admin.editUser")}
+              </DialogTitle>
+              <DialogDescription>
+                {t("admin.editUserDesc", { username: selectedUser.username })}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="username" className="text-right">
+                  {t("admin.username")}
+                </Label>
+                <Input
+                  id="username"
+                  value={editedUser.username}
+                  onChange={(e) => setEditedUser({...editedUser, username: e.target.value})}
+                  className="col-span-3"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="email" className="text-right">
+                  {t("admin.email")}
+                </Label>
+                <Input
+                  id="email"
+                  value={editedUser.email}
+                  onChange={(e) => setEditedUser({...editedUser, email: e.target.value})}
+                  className="col-span-3"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="role" className="text-right">
+                  {t("admin.role")}
+                </Label>
+                <Select
+                  value={editedUser.role}
+                  onValueChange={(value) => setEditedUser({...editedUser, role: value})}
+                >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder={t("admin.selectRole")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ADMIN">{t("admin.admin")}</SelectItem>
+                    <SelectItem value="MODERATOR">{t("admin.moderator")}</SelectItem>
+                    <SelectItem value="SELLER">{t("admin.seller")}</SelectItem>
+                    <SelectItem value="DEALER">{t("admin.dealer")}</SelectItem>
+                    <SelectItem value="GARAGE">{t("admin.garage")}</SelectItem>
+                    <SelectItem value="BUYER">{t("admin.buyer")}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="verified" className="text-right">
+                  {t("admin.emailVerified")}
+                </Label>
+                <div className="col-span-3 flex items-center">
+                  <input
+                    type="checkbox"
+                    id="verified"
+                    checked={editedUser.isEmailVerified}
+                    onChange={(e) => setEditedUser({...editedUser, isEmailVerified: e.target.checked})}
+                    className="mr-2 h-4 w-4"
+                  />
+                  <Label htmlFor="verified">
+                    {editedUser.isEmailVerified ? t("common.yes") : t("common.no")}
+                  </Label>
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setEditDialogOpen(false)}
+                disabled={actionInProgress}
+              >
+                {t("common.cancel")}
+              </Button>
+              <Button
+                onClick={handleUpdateUser}
+                disabled={actionInProgress}
+              >
+                {actionInProgress ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Check className="h-4 w-4 mr-2" />
+                )}
+                {t("common.saveChanges")}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
       {/* Action Dialog */}
       {selectedUser && (
         <Dialog open={actionDialogOpen} onOpenChange={setActionDialogOpen}>
@@ -1030,46 +1100,9 @@ const ManageUsers = () => {
           </DialogContent>
         </Dialog>
       )}
+
+      
     </div>
-  );
-};
-
-// Helper component for role badges
-const RoleBadge = ({
-  role,
-  className = "",
-}: {
-  role: string;
-  className?: string;
-}) => {
-  let bgColor = "bg-slate-100";
-  let textColor = "text-slate-800";
-
-  switch (role) {
-    case "admin":
-      bgColor = "bg-red-100";
-      textColor = "text-red-800";
-      break;
-    case "moderator":
-      bgColor = "bg-amber-100";
-      textColor = "text-amber-800";
-      break;
-    case "seller":
-      bgColor = "bg-blue-100";
-      textColor = "text-blue-800";
-      break;
-    case "buyer":
-      bgColor = "bg-green-100";
-      textColor = "text-green-800";
-      break;
-    case "both":
-      bgColor = "bg-purple-100";
-      textColor = "text-purple-800";
-      break;
-  }
-
-  return (
-    <Badge className={`${bgColor} ${textColor} ${className}`}>{role}</Badge>
   );
 };
 

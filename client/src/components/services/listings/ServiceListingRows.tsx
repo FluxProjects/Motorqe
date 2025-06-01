@@ -8,18 +8,33 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Eye, MoreHorizontal, Star, Check, X, Wrench, Pencil, Trash2 } from "lucide-react";
+import {
+  Eye,
+  MoreHorizontal,
+  Star,
+  Check,
+  X,
+  Wrench,
+  Pencil,
+  Trash2,
+  CheckCircle,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { ShowroomService } from "@shared/schema";
+import { AdminServiceListing, ServiceListingAction } from "@shared/schema";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Permission } from "@shared/permissions";
 import { PermissionGuard } from "@/components/PermissionGuard";
+import { formatAvailability } from "@/lib/utils";
 
 interface ServiceListingRowsProps {
-  service: ShowroomService;
-  handleViewService: (service: ShowroomService) => void;
-  handleEditService: (service: ShowroomService) => void;
-  handleAction: (service: ShowroomService, action: 'feature' | 'activate' | 'deactivate' | 'delete') => void;
+  service: AdminServiceListing;
+  handleViewService: (service: AdminServiceListing) => void;
+  handleEditService: (service: AdminServiceListing) => void;
+  handleAction: (
+    service: AdminServiceListing,
+    action: ServiceListingAction
+  ) => void;
+  getStatusBadge: (status: string) => React.ReactNode;
 }
 
 export const ServiceListingRows = ({
@@ -27,44 +42,36 @@ export const ServiceListingRows = ({
   handleViewService,
   handleEditService,
   handleAction,
+  getStatusBadge,
 }: ServiceListingRowsProps) => {
   const { t } = useTranslation();
+
+  console.log("servicelisting", service);
 
   return (
     <TableRow key={service.id} className="border-neutral-300">
       <TableCell>
         <div className="flex items-center font-medium">
           <Wrench className="h-4 w-4 mr-2" />
-          {service.service?.name || t("services.unknownService")}
+          {service?.service?.name || t("services.unknownService")}
         </div>
       </TableCell>
-      <TableCell className="max-w-[200px] truncate">
-        {service.description || t("services.noDescription")}
+      <TableCell>
+        {service?.showroom_name}
+      </TableCell>
+      <TableCell>
+        {service?.description || t("services.unknownShowroom")}
       </TableCell>
       <TableCell>
         {service.price} {service.currency}
       </TableCell>
+
+      <TableCell>{getStatusBadge(service.status)}</TableCell>
       <TableCell>
-        {service.showroom?.name || t("services.unknownShowroom")}
-      </TableCell>
-      <TableCell>
-        {service.isActive ? (
-          <Badge className="bg-green-100 text-green-800">
-            <Check className="h-3 w-3 mr-1" />
-            {t("services.active")}
-          </Badge>
-        ) : (
-          <Badge className="bg-red-100 text-red-800">
-            <X className="h-3 w-3 mr-1" />
-            {t("services.inactive")}
-          </Badge>
-        )}
-      </TableCell>
-      <TableCell>
-        {service.isFeatured ? (
-          <Badge className="bg-yellow-100 text-yellow-800">
-            <Star className="h-3 w-3 mr-1" />
-            {t("services.featured")}
+        {service.is_featured ? (
+          <Badge className="bg-purple-100 text-purple-800">
+            <Star className="h-3 w-3 mr-1 fill-purple-800" />
+            {t("admin.featured")}
           </Badge>
         ) : (
           <span className="text-slate-400 text-sm">-</span>
@@ -93,8 +100,8 @@ export const ServiceListingRows = ({
               <Eye className="mr-2 h-4 w-4" />
               {t("common.view")}
             </DropdownMenuItem>
-            
-            <PermissionGuard permission={Permission.MANAGE_SHOWROOM_SERVICES}>
+
+            <PermissionGuard permission={Permission.MANAGE_OWN_SERVICES}>
               <DropdownMenuItem
                 className="hover:bg-slate-700 focus:bg-slate-700"
                 onClick={() => handleEditService(service)}
@@ -102,39 +109,63 @@ export const ServiceListingRows = ({
                 <Pencil className="mr-2 h-4 w-4" />
                 {t("common.edit")}
               </DropdownMenuItem>
-
-              {!service.isFeatured && (
-                <DropdownMenuItem
-                  className="hover:bg-slate-700 focus:bg-slate-700"
-                  onClick={() => handleAction(service, 'feature')}
-                >
-                  <Star className="mr-2 h-4 w-4 text-yellow-500" />
-                  {t("services.feature")}
-                </DropdownMenuItem>
-              )}
-
-
-              <DropdownMenuItem
-                className="hover:bg-slate-700 focus:bg-slate-700"
-                onClick={() => handleAction(service, service.isActive ? 'deactivate' : 'activate')}
-              >
-                {service.isActive ? (
-                  <>
-                    <X className="mr-2 h-4 w-4 text-red-500" />
-                    {t("services.deactivate")}
-                  </>
-                ) : (
-                  <>
+            </PermissionGuard>
+            {service.status === "pending" && (
+              <>
+                <PermissionGuard permission={Permission.APPROVE_LISTINGS}>
+                  <DropdownMenuItem
+                    className="hover:bg-slate-700 focus:bg-slate-700"
+                    onClick={() => handleAction(service, "approve")}
+                  >
                     <Check className="mr-2 h-4 w-4 text-green-500" />
-                    {t("services.activate")}
-                  </>
-                )}
-              </DropdownMenuItem>
+                    {t("admin.approve")}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="hover:bg-slate-700 focus:bg-slate-700"
+                    onClick={() => handleAction(service, "reject")}
+                  >
+                    <X className="mr-2 h-4 w-4 text-red-500" />
+                    {t("admin.reject")}
+                  </DropdownMenuItem>
+                </PermissionGuard>
+              </>
+            )}
 
+            {service.status === "active" && (
+              <>
+                <PermissionGuard permission={Permission.MANAGE_PROMOTIONS}>
+                  {!service.is_featured && (
+                    <DropdownMenuItem
+                      className="hover:bg-slate-700 focus:bg-slate-700"
+                      onClick={() => handleAction(service, "feature")}
+                    >
+                      <Star className="mr-2 h-4 w-4 text-yellow-500" />
+                      {t("admin.featureservice")}
+                    </DropdownMenuItem>
+                  )}
+                </PermissionGuard>
+              </>
+            )}
+
+            {service.status === "draft" && (
+              <>
+                <PermissionGuard permission={Permission.MANAGE_OWN_SERVICES}>
+                  <DropdownMenuItem
+                    className="hover:bg-slate-700 focus:bg-slate-700"
+                    onClick={() => handleAction(service, "publish")}
+                  >
+                    <CheckCircle className="mr-2 h-4 w-4 text-blue-500" />
+                    {t("admin.publishService")}
+                  </DropdownMenuItem>
+                </PermissionGuard>
+              </>
+            )}
+
+            <PermissionGuard permission={Permission.MANAGE_OWN_SERVICES}>
               <DropdownMenuSeparator className="bg-slate-700" />
               <DropdownMenuItem
                 className="text-red-400 hover:bg-red-900/30 focus:bg-red-900/30"
-                onClick={() => handleAction(service, 'delete')}
+                onClick={() => handleAction(service, "delete")}
               >
                 <Trash2 className="mr-2 h-4 w-4" />
                 {t("common.delete")}

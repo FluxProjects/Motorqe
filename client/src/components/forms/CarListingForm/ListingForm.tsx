@@ -7,6 +7,7 @@ import { useListingFormHandler } from "./useListingFormHandler";
 import { ListingFormSteps } from "./ListingFormSteps";
 import { ProgressHeader } from "@/components/layout/ProgressHeader";
 import { ListingFormData, AdminCarListing } from "@shared/schema";
+import { calculateDurationDays } from "@/lib/utils";
 
 const steps = [
   "Basic Info",
@@ -28,19 +29,7 @@ export function ListingForm({ listing, onSuccess }: Props) {
   const { reset, handleSubmit : rhfHandleSubmit, getValues } = methods;
 
   // Calculate duration days from package dates
-  const calculateDurationDays = (startDateStr?: string, endDateStr?: string): number | undefined => {
-    if (!startDateStr || !endDateStr) return undefined;
-    
-    try {
-      const startDate = new Date(startDateStr);
-      const endDate = new Date(endDateStr);
-      const msPerDay = 1000 * 60 * 60 * 24;
-      return Math.round((endDate.getTime() - startDate.getTime()) / msPerDay);
-    } catch (error) {
-      console.error("Error calculating duration days:", error);
-      return undefined;
-    }
-  };
+  
 
   // Initialize form with listing data if in edit mode
   useEffect(() => {

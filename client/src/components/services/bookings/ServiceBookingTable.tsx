@@ -1,8 +1,8 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, Calendar, Wrench } from "lucide-react";
+import { Loader2, Calendar, Wrench, Badge } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { NoListingsFound } from "@/components/listings/NoListingFound";
-import { AdminServiceBooking } from "@shared/schema";
+import { AdminServiceBooking, ServiceBookingAction } from "@shared/schema";
 
 interface ServiceBookingTableProps {
   bookings?: AdminServiceBooking[];
@@ -10,7 +10,7 @@ interface ServiceBookingTableProps {
   resetFilters: () => void;
   handleViewBooking: (booking: AdminServiceBooking) => void;
   handleEditBooking: (booking: AdminServiceBooking) => void;
-  handleAction: (booking: AdminServiceBooking, action: 'confirm' | 'reschedule' | 'complete' | 'cancel' | 'reject') => void;
+  handleAction: (booking: AdminServiceBooking, action: ServiceBookingAction) => void;
   getStatusBadge: (status: string) => React.ReactNode;
 }
 
@@ -21,7 +21,6 @@ export const ServiceBookingTable = ({
   handleViewBooking,
   handleEditBooking,
   handleAction,
-  getStatusBadge,
 }: ServiceBookingTableProps) => {
   const { t } = useTranslation();
 
@@ -38,12 +37,47 @@ export const ServiceBookingTable = ({
     return <NoListingsFound resetFilters={resetFilters} />;
   }
 
+   const getStatusBadge = (status: string) => {
+    const statusMap: Record<string, { color: string; text: string }> = {
+      draft: { color: "bg-gray-100 text-gray-800", text: t("services.draft") },
+      pending: {
+        color: "bg-yellow-100 text-yellow-800",
+        text: t("services.pending"),
+      },
+      confirmed: {
+        color: "bg-blue-100 text-blue-800",
+        text: t("services.active"),
+      },
+      complete: {
+        color: "bg-green-100 text-green-800",
+        text: t("services.complete"),
+      },
+      expired: {
+        color: "bg-red-100 text-red-800",
+        text: t("services.expired"),
+      },
+      rejected: {
+        color: "bg-red-100 text-red-800",
+        text: t("services.rejected"),
+      },
+    };
+
+    return (
+      <Badge
+        className={statusMap[status]?.color || "bg-gray-100 text-gray-800"}
+      >
+        {statusMap[status]?.text || status}
+      </Badge>
+    );
+  };
+
   return (
     <Table>
       <TableHeader>
         <TableRow className="bg-neutral-500 hover:bg-neutral-700 border-neutral-50">
           <TableHead className="text-white">{t("services.bookingId")}</TableHead>
           <TableHead className="text-white">{t("services.service")}</TableHead>
+          <TableHead className="text-white">{t("services.garage")}</TableHead>
           <TableHead className="text-white">{t("services.customer")}</TableHead>
           <TableHead className="text-white">{t("services.scheduledAt")}</TableHead>
           <TableHead className="text-white">{t("services.price")}</TableHead>
@@ -59,19 +93,20 @@ export const ServiceBookingTable = ({
             <TableCell>
               <div className="flex items-center gap-2">
                 <Wrench className="h-4 w-4" />
-                {booking.service?.name || t("services.unknownService")}
+                {booking?.service_name || t("services.unknownService")}
               </div>
             </TableCell>
-            <TableCell>{booking.user?.name || t("services.unknownCustomer")}</TableCell>
+            <TableCell>{booking?.showroom_name}</TableCell>
+            <TableCell>{booking?.user?.first_name} {booking?.user?.last_name}</TableCell>
             <TableCell>
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4" />
-                {new Date(booking.scheduledAt).toLocaleString()}
+                {new Date(booking?.scheduled_at).toLocaleString()}
               </div>
             </TableCell>
-            <TableCell>{booking.price} {booking.currency}</TableCell>
-            <TableCell>{getStatusBadge(booking.status)}</TableCell>
-            <TableCell>{new Date(booking.createdAt).toLocaleDateString()}</TableCell>
+            <TableCell>{booking?.currency || "QAR"} {booking?.price}</TableCell>
+            <TableCell>{getStatusBadge(booking?.status)}</TableCell>
+            <TableCell>{new Date(booking?.created_at).toLocaleDateString()}</TableCell>
             <TableCell className="text-right">
               <div className="flex gap-2 justify-end">
                 <button 

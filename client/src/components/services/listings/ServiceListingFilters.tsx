@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, RefreshCw } from "lucide-react";
+import { Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { AdminServiceListingFilters } from "@shared/schema";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -22,6 +22,8 @@ interface FiltersSectionProps {
     dateRangePreset?: string;
     priceRange?: FilterRange;
     user_id?: number;
+    showroomId?: number;
+    serviceId?: number;
   };
   setFilters: (filters: any) => void;
   handleSearch: (e: React.FormEvent) => void;
@@ -106,28 +108,28 @@ export const ServiceListingFilters = ({
             {t("admin.allServices")}
           </TabsTrigger>
           <TabsTrigger
-            value="draft"
-            className="data-[state=active]:bg-blue-900 hover:bg-blue-600 hover:text-white data-[state=active]:text-white"
-          >
-            {t("admin.draft")}
-          </TabsTrigger>
-          <TabsTrigger
             value="pending"
             className="data-[state=active]:bg-blue-900 hover:bg-blue-600 hover:text-white data-[state=active]:text-white"
           >
             {t("admin.pending")}
           </TabsTrigger>
           <TabsTrigger
-            value="confirmed"
+            value="active"
             className="data-[state=active]:bg-blue-900 hover:bg-blue-600 hover:text-white data-[state=active]:text-white"
           >
-            {t("admin.confirmed")}
+            {t("admin.active")}
           </TabsTrigger>
           <TabsTrigger
-            value="complete"
+            value="reject"
             className="data-[state=active]:bg-blue-900 hover:bg-blue-600 hover:text-white data-[state=active]:text-white"
           >
-            {t("admin.completed")}
+            {t("admin.reject")}
+          </TabsTrigger>
+          <TabsTrigger
+            value="draft"
+            className="data-[state=active]:bg-blue-900 hover:bg-blue-600 hover:text-white data-[state=active]:text-white"
+          >
+            {t("admin.draft")}
           </TabsTrigger>
         </TabsList>
       </Tabs>
@@ -180,11 +182,11 @@ export const ServiceListingFilters = ({
                 <SelectItem value="pending">
                   {t("admin.pending")}
                 </SelectItem>
-                <SelectItem value="confirmed">
-                  {t("admin.confirmed")}
+                <SelectItem value="active">
+                  {t("admin.active")}
                 </SelectItem>
-                <SelectItem value="complete">
-                  {t("admin.completed")}
+                <SelectItem value="reject">
+                  {t("admin.rejected")}
                 </SelectItem>
                 <SelectItem value="expired">
                   {t("admin.expired")}
@@ -247,7 +249,9 @@ export const ServiceListingFilters = ({
               <SelectContent className="bg-slate-800 border-slate-700 text-white">
                 <SelectItem value="all">{t("admin.any")}</SelectItem>
                 <SelectItem value="0">0 QAR</SelectItem>
+                <SelectItem value="50">50 QAR</SelectItem>
                 <SelectItem value="100">100 QAR</SelectItem>
+                <SelectItem value="200">200 QAR</SelectItem>
                 <SelectItem value="500">500 QAR</SelectItem>
                 <SelectItem value="1000">1,000 QAR</SelectItem>
                 <SelectItem value="2000">2,000 QAR</SelectItem>
@@ -269,6 +273,7 @@ export const ServiceListingFilters = ({
               </SelectTrigger>
               <SelectContent className="bg-slate-800 border-slate-700 text-white">
                 <SelectItem value="all">{t("admin.any")}</SelectItem>
+                <SelectItem value="200">200 QAR</SelectItem>
                 <SelectItem value="500">500 QAR</SelectItem>
                 <SelectItem value="1000">1,000 QAR</SelectItem>
                 <SelectItem value="2000">2,000 QAR</SelectItem>

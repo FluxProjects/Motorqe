@@ -4,7 +4,6 @@ import { useQuery } from "@tanstack/react-query";
 import i18n from "@/lib/i18n";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -17,7 +16,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Carousel,
@@ -31,18 +29,12 @@ import {
   Share,
   Flag,
   MapPin,
-  Calendar,
-  DollarSign,
   MessageSquare,
   Loader2,
   AlertTriangle,
   ArrowLeft,
-  Check,
-  Wrench,
   Clock,
-  Car,
   Phone,
-  ChevronRight,
   Navigation,
   MessageCircle,
 } from "lucide-react";
@@ -61,57 +53,12 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import CarCard from "@/components/car/CarCard";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Calendar as CalendarIcon } from "lucide-react";
-import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { format } from "date-fns";
-import { cn } from "@/lib/utils";
+
+import { cn, formatAvailability, isOpenNow } from "@/lib/utils";
+import { Showroom } from "@shared/schema";
 
 // Types for our data
-interface Showroom {
-  id: number;
-  userId: number;
-  name: string;
-  nameAr: string;
-  isMainBranch: boolean;
-  parentId: number | null;
-  address: string;
-  addressAr: string;
-  location: string;
-  phone: string;
-  logo: string;
-  description?: string;
-  descriptionAr?: string;
-}
 
-interface ShowroomService {
-  id: number;
-  showroomId: number;
-  serviceId: number;
-  price: number;
-  currency: string;
-  description: string;
-  descriptionAr: string;
-  isFeatured: boolean;
-  service: {
-    id: number;
-    name: string;
-    nameAr: string;
-    image: string;
-  };
-}
 
 interface ShowroomMake {
   id: number;
@@ -123,18 +70,6 @@ interface ShowroomMake {
     nameAr: string;
   };
 }
-
-// Booking form schema
-const bookingSchema = z.object({
-  serviceId: z.number().min(1, "Service is required"),
-  date: z.date({
-    required_error: "A date is required.",
-  }),
-  time: z.string().min(1, "Time is required"),
-  notes: z.string().max(500, "Notes cannot exceed 500 characters").optional(),
-});
-
-type BookingValues = z.infer<typeof bookingSchema>;
 
 // Message form schema
 const messageSchema = z.object({
@@ -157,22 +92,8 @@ const ShowroomDetails = () => {
     "login" | "register" | "forget-password" | null
   >(null);
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
-  const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
-  const [selectedService, setSelectedService] =
-    useState<ShowroomService | null>(null);
-  const [selectedTab, setSelectedTab] = useState("services");
 
-  // Booking form
-  const bookingForm = useForm<BookingValues>({
-    resolver: zodResolver(bookingSchema),
-    defaultValues: {
-      serviceId: 0,
-      date: new Date(),
-      time: "",
-      notes: "",
-    },
-  });
 
   // Message form
   const messageForm = useForm<MessageValues>({
@@ -191,13 +112,6 @@ const ShowroomDetails = () => {
     queryKey: [`/api/showrooms/${id}`],
   });
 
-  // Fetch showroom services
-  const { data: services = [], isLoading: isLoadingServices } = useQuery<
-    ShowroomService[]
-  >({
-    queryKey: [`/api/showrooms/${id}/services`],
-    enabled: !!id,
-  });
 
   // Fetch showroom makes (brands they service)
   const { data: makes = [], isLoading: isLoadingMakes } = useQuery<
@@ -227,13 +141,6 @@ const ShowroomDetails = () => {
       setIsFavorited(favoriteData.isFavorited);
     }
   }, [favoriteData]);
-
-  // Set selected service when booking dialog opens
-  useEffect(() => {
-    if (bookingDialogOpen && selectedService) {
-      bookingForm.setValue("serviceId", selectedService.id);
-    }
-  }, [bookingDialogOpen, selectedService]);
 
   const handleFavoriteToggle = async () => {
     if (!isAuthenticated) {
@@ -296,50 +203,6 @@ const ShowroomDetails = () => {
         });
       });
   };
-
-  const handleBookService = (values: BookingValues) => {
-    if (!isAuthenticated) {
-      setBookingDialogOpen(false);
-      setAuthModal("login");
-      return;
-    }
-
-    apiRequest("POST", "/api/service-bookings", {
-      userId: user?.id,
-      serviceId: values.serviceId,
-      scheduledAt: new Date(
-        `${format(values.date, "yyyy-MM-dd")}T${values.time}`
-      ).toISOString(),
-      status: "pending",
-      notes: values.notes,
-    })
-      .then(() => {
-        toast({
-          title: t("showroom.bookingSuccess"),
-          description: t("showroom.bookingSuccessDesc"),
-        });
-        bookingForm.reset();
-        setBookingDialogOpen(false);
-        setSelectedService(null);
-      })
-      .catch((error) => {
-        toast({
-          title: t("common.error"),
-          description: error.message || t("showroom.bookingError"),
-          variant: "destructive",
-        });
-      });
-  };
-
-  const formatPrice = (price: number, currency = "QAR") => {
-    return new Intl.NumberFormat(i18n.language, {
-      style: "currency",
-      currency,
-      minimumFractionDigits: 0,
-    }).format(price);
-  };
-
-
 
   if (isLoadingShowroom) {
     return (
@@ -572,111 +435,7 @@ const ShowroomDetails = () => {
             {/* Showroom details tabs */}
             <Card className="border-transparent shadow-none">
               <CardContent className="p-0">
-                <Tabs 
-                value={selectedTab}
-                onValueChange={setSelectedTab}
-                defaultValue="services" 
-                className="w-full">
-                  <TabsList className="flex flex-wrap justify-center gap-3 bg-transparent p-0">
-                    <TabsTrigger 
-                    value="services"
-                    className={`px-5 py-2 text-sm font-medium transition-all ${
-                    selectedTab === "services"
-                      ? "text-orange-500 border-b-4 border-b-orange-500 hover:font-bold"
-                      : "text-blue-900"
-                  }`}
-                    >
-                      {t("showroom.services")}
-                    </TabsTrigger>
-                    <TabsTrigger value="inventory"
-                    className={`px-5 py-2 text-sm font-medium transition-all ${
-                    selectedTab === "inventory"
-                      ? "text-orange-500 border-b-4 border-b-orange-500 hover:font-bold"
-                      : "text-blue-900"
-                  }`}
-                    >
-                      {t("showroom.listings")}
-                    </TabsTrigger>
-                  </TabsList>
-
-                  <TabsContent value="services" className="p-6">
-                    {isLoadingServices ? (
-                      <div className="flex justify-center py-8">
-                        <Loader2 className="h-8 w-8 text-primary animate-spin" />
-                      </div>
-                    ) : services.length > 0 ? (
-                      <div className="space-y-6">
-                        {services.map((service) => (
-                          <Card
-                            key={service.id}
-                            className="rounded-2xl border-2 border-blue-900"
-                          >
-                            <CardContent className="p-6">
-                              <div className="flex flex-col md:flex-row md:items-center gap-6">
-                                {service?.image && (
-                                  <div className="w-24 h-24 flex-shrink-0 bg-neutral-100 rounded-lg overflow-hidden">
-                                    <img
-                                      src={service.image}
-                                      alt={
-                                        language === "ar" && service.nameAr
-                                          ? service.nameAr
-                                          : service.name
-                                      }
-                                      className="w-full h-full object-cover"
-                                    />
-                                  </div>
-                                )}
-
-                                <div className="flex-1">
-                                  <div className="flex justify-between items-start">
-                                    <h3 className="text-lg font-semibold">
-                                      {language === "ar" && service.nameAr
-                                        ? service.nameAr
-                                        : service.name}
-                                    </h3>
-                                    <span className="text-lg font-bold text-primary">
-                                      {formatPrice(
-                                        service.price,
-                                        service.currency
-                                      )}
-                                    </span>
-                                  </div>
-
-                                  <p className="text-neutral-600 mt-2">
-                                    {language === "ar" && service?.descriptionAr
-                                      ? service?.descriptionAr
-                                      : service?.description ||
-                                        t("showroom.noServiceDescription")}
-                                  </p>
-
-                                  <div className="mt-4 flex justify-end">
-                                    <Button
-                                      size="sm"
-                                      className="rounded-full bg-orange-500 hover:bg-orange-700"
-                                      onClick={() => {
-                                        setSelectedService(service);
-                                        setBookingDialogOpen(true);
-                                      }}
-                                    >
-                                      <Wrench size={16} className="mr-1" />
-                                      {t("showroom.bookService")}
-                                    </Button>
-                                  </div>
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-8 text-neutral-500">
-                        {t("showroom.noServices")}
-                      </div>
-                    )}
-                  </TabsContent>
-
-                  <TabsContent value="inventory" className="p-6">
-                    {isLoadingCarListings ? (
+                 {isLoadingCarListings ? (
                       <div className="flex justify-center py-8">
                         <Loader2 className="h-8 w-8 text-primary animate-spin" />
                       </div>
@@ -691,8 +450,6 @@ const ShowroomDetails = () => {
                         {t("showroom.noInventory")}
                       </div>
                     )}
-                  </TabsContent>
-                </Tabs>
               </CardContent>
             </Card>
           </div>
@@ -705,7 +462,7 @@ const ShowroomDetails = () => {
                   {t("showroom.about")} {showroom.name || showroom.nameAr}
                 </CardTitle>
                 <div className="max-w-none">
-                  <p>{showroom.description}</p>
+                  <p>{showroom?.description}</p>
                 </div>
               </CardHeader>
 
@@ -713,33 +470,36 @@ const ShowroomDetails = () => {
                 
               <Separator className="my-4" />
                 <div className="mt-4 grid grid-cols-1 md:grid-cols-1 gap-4">
-                  <div>
-                    <h3 className="text-lg font-semibold mb-4">
-                      {t("showroom.businessHours")}
-                    </h3>
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-neutral-600">
-                          {t("showroom.weekdays")}
-                        </span>
-                        <span className="font-medium">8:00 AM - 6:00 PM</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-neutral-600">
-                          {t("showroom.friday")}
-                        </span>
-                        <span className="font-medium">8:00 AM - 12:00 PM</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-neutral-600">
-                          {t("showroom.saturday")}
-                        </span>
-                        <span className="font-medium">
-                          {t("showroom.closed")}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
+                  {showroom?.timing && (
+  <div className="mt-4 p-3 border rounded-lg">
+    <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center">
+        <Clock className="h-4 w-4 text-gray-500 mr-2" />
+        <span className="text-sm">
+          Timings (24h format) •{" "}
+          <span className={isOpenNow(showroom.timing) ? "text-green-600" : "text-red-600"}>
+            {isOpenNow(showroom.timing) ? "Open now" : "Closed now"}
+          </span>
+        </span>
+      </div>
+      <span className="text-xs text-green-600">▼</span>
+    </div>
+
+    <div className="space-y-1 text-xs">
+      {(() => {
+        try {
+          const availability = typeof showroom.timing === "string"
+            ? JSON.parse(showroom.timing)
+            : showroom.timing;
+          return formatAvailability(availability) || t("services.unknownAvailability");
+        } catch (e) {
+          return t("services.unknownAvailability");
+        }
+      })()}
+    </div>
+  </div>
+)}
+
                 </div>
 
                 <Separator className="my-4" />
@@ -840,150 +600,6 @@ const ShowroomDetails = () => {
                     <MessageSquare size={16} className="mr-1" />
                   )}
                   {t("showroom.sendMessage")}
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Book Service Dialog */}
-      <Dialog open={bookingDialogOpen} onOpenChange={setBookingDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>{t("showroom.bookService")}</DialogTitle>
-            <DialogDescription>
-              {selectedService && (
-                <div className="mt-2">
-                  <p className="font-medium">
-                    {language === "ar" && selectedService.service?.nameAr
-                      ? selectedService.service?.nameAr
-                      : selectedService.service?.name}
-                  </p>
-                  <p className="text-primary font-medium">
-                    {formatPrice(
-                      selectedService?.price,
-                      selectedService?.currency
-                    )}
-                  </p>
-                </div>
-              )}
-            </DialogDescription>
-          </DialogHeader>
-
-          <Form {...bookingForm}>
-            <form
-              onSubmit={bookingForm.handleSubmit(handleBookService)}
-              className="space-y-4"
-            >
-              <input type="hidden" {...bookingForm.register("serviceId")} />
-
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={bookingForm.control}
-                  name="date"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant={"outline"}
-                              className={cn(
-                                "w-full pl-3 text-left font-normal",
-                                !field.value && "text-muted-foreground"
-                              )}
-                            >
-                              {field.value ? (
-                                format(field.value, "PPP")
-                              ) : (
-                                <span>{t("showroom.selectDate")}</span>
-                              )}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <CalendarComponent
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                            disabled={(date) =>
-                              date < new Date() ||
-                              date >
-                                new Date(
-                                  new Date().setDate(new Date().getDate() + 30)
-                                )
-                            }
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={bookingForm.control}
-                  name="time"
-                  render={({ field }) => (
-                    <FormItem>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue
-                              placeholder={t("showroom.selectTime")}
-                            />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="08:00">8:00 AM</SelectItem>
-                          <SelectItem value="09:00">9:00 AM</SelectItem>
-                          <SelectItem value="10:00">10:00 AM</SelectItem>
-                          <SelectItem value="11:00">11:00 AM</SelectItem>
-                          <SelectItem value="12:00">12:00 PM</SelectItem>
-                          <SelectItem value="13:00">1:00 PM</SelectItem>
-                          <SelectItem value="14:00">2:00 PM</SelectItem>
-                          <SelectItem value="15:00">3:00 PM</SelectItem>
-                          <SelectItem value="16:00">4:00 PM</SelectItem>
-                          <SelectItem value="17:00">5:00 PM</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <FormField
-                control={bookingForm.control}
-                name="notes"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormControl>
-                      <Textarea
-                        placeholder={t("showroom.specialInstructions")}
-                        className="min-h-[100px]"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <DialogFooter>
-                <Button type="submit" className="w-full">
-                  {bookingForm.formState.isSubmitting ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : (
-                    <Wrench size={16} className="mr-1" />
-                  )}
-                  {t("showroom.confirmBooking")}
                 </Button>
               </DialogFooter>
             </form>

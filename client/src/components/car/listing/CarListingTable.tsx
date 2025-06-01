@@ -1,7 +1,7 @@
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Loader2, Car } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { AdminCarListing } from "@shared/schema";
+import { AdminCarListing, AdminCarListingAction } from "@shared/schema";
 import { CarListingRows } from "./CarListingRows";
 import { NoListingsFound } from "../../listings/NoListingFound";
 
@@ -11,7 +11,7 @@ interface ListingsTableProps {
   resetFilters: () => void;
   handleViewListing: (listing: AdminCarListing) => void;
   handleEditListing: (listing: AdminCarListing) => void;
-  handleAction: (listing: AdminCarListing, action: 'publish' | 'edit' |'approve' | 'reject' | 'feature' | 'delete' | 'sold') => void;
+  handleAction: (listing: AdminCarListing, action: AdminCarListingAction) => void;
   getStatusBadge: (status: string) => React.ReactNode;
 }
 

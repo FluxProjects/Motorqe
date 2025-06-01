@@ -107,20 +107,24 @@ export const useListingFormHandler = (onSuccess?: () => void) => {
       return res;
     },
 
-    onSuccess: () => {
+    onSuccess: (variables) => {
       console.log("🎉 Mutation succeeded, handling redirection");
-      const role = user?.roleId ? roleMapping[user.roleId] : "BUYER";
+      const role = user?.roleId ? roleMapping[user.roleId] : "DEALER";
       console.log("👤 User role:", role);
 
       if (role === "SELLER") {
         navigate("/seller-dashboard/listings");
       } else if (role === "ADMIN" || role === "SUPER_ADMIN") {
         navigate("/admin/listings");
-      } else if (role === "DEALER" || role === "GARAGE") {
+      } else if (role === "DEALER") {
         navigate("/showroom-dashboard/listings");
       }
 
       console.log("✅ Redirect complete");
+      toast({
+        title: "Success",
+        description: variables.listing ? "Listing updated" : "Listing created",
+      });
       onSuccess?.();
     },
 

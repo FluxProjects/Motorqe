@@ -350,6 +350,12 @@ const Header = ({ openAuthModal }: HeaderProps) => {
             {t("common.browseShowrooms")}
           </Link>
           <Link
+            href="/browse-garages"
+            className="block px-3 py-2 rounded-md text-base font-medium text-neutral-900 hover:bg-neutral-100"
+          >
+            {t("common.browsegarages")}
+          </Link>
+          <Link
             href="/browse-services"
             className="block px-3 py-2 rounded-md text-base font-medium text-neutral-900 hover:bg-neutral-100"
           >

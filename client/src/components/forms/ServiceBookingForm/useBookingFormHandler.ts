@@ -71,7 +71,7 @@ export const useServiceBookingFormHandler = (onSuccess?: () => void) => {
       } else if (role === "DEALER" || role === "GARAGE") {
         navigate("/showroom-dashboard/bookings");
       } else {
-        navigate("/my-bookings");
+        navigate("/bookings");
       }
 
       toast({

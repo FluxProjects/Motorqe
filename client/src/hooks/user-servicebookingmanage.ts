@@ -67,26 +67,30 @@ export const useServiceBookingManage = () => {
 
       const res = await fetch(`/api/service-bookings?${searchParams.toString()}`);
       if (!res.ok) throw new Error("Failed to fetch bookings");
+
+      console.log("bookings:", res);
       
       const bookings = await res.json();
+
+      console.log("bookings:", bookings);
       
       // Fetch related service and user data
-      const enrichedBookings = await Promise.all(
-        bookings.map(async (booking: any) => {
-          const [service, customer] = await Promise.all([
-            fetch(`/api/showroom/services/${booking.service_id}`).then(res => res.ok ? res.json() : null),
-            fetch(`/api/users/${booking.user_id}`).then(res => res.ok ? res.json() : null),
-          ]);
+      // const enrichedBookings = await Promise.all(
+      //   bookings.map(async (booking: any) => {
+      //     const [service, customer] = await Promise.all([
+      //       fetch(`/api/showroom/services/${booking.service_id}`).then(res => res.ok ? res.json() : null),
+      //       fetch(`/api/users/${booking.user_id}`).then(res => res.ok ? res.json() : null),
+      //     ]);
           
-          return {
-            ...booking,
-            service,
-            user: customer,
-          };
-        })
-      );
+      //     return {
+      //       ...booking,
+      //       service,
+      //       user: customer,
+      //     };
+      //   })
+      // );
 
-      return enrichedBookings;
+      return bookings;
     },
   });
 

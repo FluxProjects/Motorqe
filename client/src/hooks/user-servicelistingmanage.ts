@@ -3,11 +3,10 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { AdminServiceListing, ServiceListingAction } from "@shared/schema";
+import { AdminServiceListing, ServiceListingAction, ServicePromotionPackage } from "@shared/schema";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { Permission, roleMapping } from "@shared/permissions";
+import { hasPermission, Permission, roleMapping } from "@shared/permissions";
 import { useAuth } from "@/contexts/AuthContext";
-import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
 
 export const useServiceListingManage = () => {
   const { user } = useAuth();
@@ -15,10 +14,28 @@ export const useServiceListingManage = () => {
   const { toast } = useToast();
 
   // State management
+  const [currentTab, setCurrentTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [formDialogOpen, setFormDialogOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [currentService, setCurrentService] = useState<AdminServiceListing | null>(null);
+  
+
+   const handleEditService = (service: AdminServiceListing) => {
+    setCurrentService(service);
+    setIsEditing(true);
+    setFormDialogOpen(true);
+  };
+
+  const handleCreateService = () => {
+    console.log("create listing clicked");
+        setCurrentService(null);
+        setIsEditing(false);
+        setFormDialogOpen(true);
+         console.log("create service clicked - after state updates", { 
+        formDialogOpen, 
+        isEditing 
+    });
+  };
 
   const [filters, setFilters] = useState({
     status: "all",
@@ -26,12 +43,28 @@ export const useServiceListingManage = () => {
     isFeatured: null,
     priceRange: { from: "", to: "" },
     showroomId: null, // Changed from user?.id to null to allow selection
+    serviceId: null,
   });
 
+  const [currentService, setCurrentService] = useState<AdminServiceListing | null>(null);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [actionDialogOpen, setActionDialogOpen] = useState(false);
-  const [actionType, setActionType] = useState<ServiceListingAction>("feature");
+  const [actionType, setActionType] = useState<ServiceListingAction>("approve");
+  const [actionReason, setActionReason] = useState("");
   const [actionInProgress, setActionInProgress] = useState(false);
+
+  const {
+          data: promotionPackages = [],
+          isLoading: isLoadingPackages
+      } = useQuery<ServicePromotionPackage[]>({
+          queryKey: ['promotion-packages'],
+          queryFn: async () => {
+              const res = await fetch('/api/promotion-packages/services');
+              if (!res.ok) throw new Error('Failed to fetch packages');
+              return res.json();
+          }
+      });
+
 
   // Data fetching
   const {
@@ -46,20 +79,18 @@ export const useServiceListingManage = () => {
       const roleName = roleMapping[user?.roleId ?? 1];
 
       if (!roleName) {
-          console.warn(`No role mapping found for role ID: ${user?.roleId}`);
-          return false;
+        console.warn(`No role mapping found for role ID: ${user?.roleId}`);
+        return [];
       }
 
       // For sellers and showrooms, only fetch their own listings
-      if (roleName === "SELLER" || roleName === "DEALER" || roleName === "GARAGE") {
-          console.log("User Id is this:", user?.id);
-          searchParams.append("user_id", user?.id);
-          
+      if (roleName === "SELLER" || roleName === "GARAGE") {
+        searchParams.append("user_id", user?.id);
       }
 
       if (searchQuery) searchParams.append("search", searchQuery);
-      if (filters.isActive !== null) {
-        searchParams.append("is_active", String(filters.isActive));
+      if (filters.status !== null) {
+        searchParams.append("status", String(filters.status));
       }
       if (filters.isFeatured !== null) {
         searchParams.append("is_featured", String(filters.isFeatured));
@@ -74,31 +105,116 @@ export const useServiceListingManage = () => {
         searchParams.append("showroom_id", filters.showroomId);
       }
 
-      const res = await fetch(`/api/showroom/services?${searchParams.toString()}`);
-      if (!res.ok) throw new Error("Failed to fetch services");
-      
-      const services = await res.json(); // ✅ Parse JSON here
-    console.log("services in useQuery:", services);
+      if (filters.serviceId) {
+        searchParams.append("service_id", filters.serviceId);
+      }
 
-    return services; 
-      
-      // Fetch related service and showroom data
-      // const enrichedServices = await Promise.all(
-      //   services.map(async (service: any) => {
-      //     const [carService, showroom] = await Promise.all([
-      //       fetch(`/api/car-services/${service.service_id}`).then(res => res.ok ? res.json() : null),
-      //       fetch(`/api/showrooms/${service.showroom_id}`).then(res => res.ok ? res.json() : null),
-      //     ]);
-          
-      //     return {
-      //       ...service,
-      //       service: carService,
-      //       showroom,
-      //     };
-      //   })
-      // );
+      const finalUrl = `/api/showroom/services?${searchParams.toString()}`;
+      console.log("[DEBUG] Final API URL:", finalUrl);
 
-      // return enrichedServices;
+      // Fetch all service listings
+      const res = await fetch(finalUrl);
+
+      if (!res.ok) {
+        console.error("[ERROR] Failed to fetch listings. Status:", res.status);
+        const errorText = await res.text();
+        console.error("[ERROR] Response text:", errorText);
+        throw new Error("Failed to fetch listings");
+      }
+
+      const services = await res.json();
+      console.log("[DEBUG] Raw listings from API:", services);
+
+      if (!services || services.length === 0) {
+        console.warn("[WARNING] No services returned from API");
+        return [];
+      }
+
+      const uniqueShowroomIds = [...new Set(services.map((service: any) => service.showroom_id))];
+      const uniqueServiceIds = [...new Set(services.map((service: any) => service.service_id))];
+
+      console.log("[DEBUG] Unique IDs to fetch:", {
+        uniqueShowroomIds,
+        uniqueServiceIds
+      });
+
+      // First fetch showrooms and services
+      const [showrooms, serviceDetails] = await Promise.all([
+        Promise.all(
+          uniqueShowroomIds.map(async (id) => {
+            try {
+              const res = await fetch(`/api/showrooms/${id}`);
+              if (!res.ok) return null;
+              return await res.json();
+            } catch (error) {
+              console.error(`Error fetching showroom ${id}:`, error);
+              return null;
+            }
+          })
+        ),
+        Promise.all(
+          uniqueServiceIds.map(async (id) => {
+            try {
+              const res = await fetch(`/api/services/${id}`);
+              if (!res.ok) {
+                console.error(`[ERROR] Service fetch failed for ID: ${id}`, res.status);
+                return null;
+              }
+              const data = await res.json();
+              console.log(`[DEBUG] Fetched service ${id}:`, data);
+              return data;
+            } catch (error) {
+              console.error(`[ERROR] Exception while fetching service ${id}:`, error);
+              return null;
+            }
+          })
+        )
+      ]);
+
+      // Extract unique user IDs from showrooms
+      const uniqueUserIds = [...new Set(
+        showrooms
+          .filter(showroom => showroom?.user_id)
+          .map(showroom => showroom.user_id)
+      )];
+
+      // Fetch users data in parallel
+      const users = await Promise.all(
+        uniqueUserIds.map(async (userId) => {
+          try {
+            const res = await fetch(`/api/users/${userId}`);
+            if (!res.ok) return null;
+            return await res.json();
+          } catch (error) {
+            console.error(`Error fetching user ${userId}:`, error);
+            return null;
+          }
+        })
+      );
+
+      // Create a map of user ID to user data for quick lookup
+      const usersMap = new Map(
+        users.filter(user => user).map(user => [user.id, user])
+      );
+
+      // Enrich services with showroom, service, and user data
+      const enrichedServices = services.map((service: any) => {
+        const showroom = showrooms.find(s => s?.id === service?.showroom_id);
+        const services = serviceDetails.find(s => Number(s?.id) === Number(service.service_id));
+        const user = showroom?.user_id ? usersMap.get(showroom.user_id) : null;
+
+        return {
+          ...service,
+          serviceData: services,
+          showroom: showroom,
+          user: user,
+
+        };
+      });
+
+      console.log("Enriched Services", enrichedServices);
+
+      return enrichedServices;
     },
   });
 
@@ -119,48 +235,132 @@ export const useServiceListingManage = () => {
     mutationFn: async ({
       id,
       action,
+      reason,
+      featured,
     }: {
       id: number;
       action: string;
+      reason?: string;
+      featured?: boolean;
     }) => {
       setActionInProgress(true);
 
-      const endpointMap: Record<string, string> = {
-        feature: "feature",
-        activate: "activate",
-        deactivate: "deactivate",
-        delete: "",
-      };
+      console.log("inside perform action");
 
-      if (!endpointMap[action]) {
-        throw new Error("Invalid service action");
+      const roleName = roleMapping[user?.roleId];
+      const isListingOwner = currentService?.user?.id === user?.id;
+
+      console.log("Performing action:", { id, action });
+
+      // Allow listing owner to publish if listing is in draft and user is not a buyer
+      if (action === "publish" && currentService?.status === "draft") {
+        if (isListingOwner && roleName !== "BUYER") {
+          await apiRequest("PUT", `/api/showroom/services/${id}/actions`, {
+            action: "pending",
+            reason,
+            featured,
+          });
+          return action;
+        }
       }
 
-      const method = action === "delete" ? "DELETE" : "PUT";
-      const endpoint = action === "delete" 
-        ? `/api/showroom/services/${id}`
-        : `/api/showroom/services/${id}/${endpointMap[action]}`;
+      // Admin/mod roles can forcefully publish listing (set to active)
+      if (action === "publish") {
+        if (
+          roleName === "SUPER_ADMIN" ||
+          roleName === "ADMIN" ||
+          roleName === "MODERATOR" ||
+          roleName === "SENIOR_MODERATOR"
+        ) {
+          await apiRequest("PUT", `/api/showroom/services/${id}/actions`, {
+            action: "active",
+            reason,
+            featured,
+          });
+          return action;
+        }
+        throw new Error("Unauthorized to publish listing");
+      }
 
-      const response = await apiRequest(method, endpoint);
+      // Approve or reject
+      if (action === "approve" || action === "reject") {
+        if (
+          roleName === "SUPER_ADMIN" ||
+          roleName === "ADMIN" ||
+          roleName === "MODERATOR" ||
+          roleName === "SENIOR_MODERATOR"
+        ) {
+          await apiRequest("PUT", `/api/showroom/services/${id}/actions`, {
+            action,
+            reason,
+            featured,
+          });
+          return action;
+        }
+        throw new Error("Unauthorized to approve/reject listings");
+      }
 
-      return { action, response };
+      // Feature
+      if (action === "feature") {
+          console.log("🔍 Feature action check");
+          console.log("roleName:", roleName);
+          console.log("roleName === 'SUPER_ADMIN':", roleName === "SUPER_ADMIN");
+          console.log("roleName === 'ADMIN':", roleName === "ADMIN");
+          if (
+              roleName === "SUPER_ADMIN" ||
+              roleName === "ADMIN"
+          ) {
+              console.log("role is satisfied", roleName);
+              await apiRequest("PUT", `/api/showroom/services/${id}/actions`, {
+                  action,
+                  reason,
+                  featured,
+              });
+              return action;
+          }
+          throw new Error("Unauthorized to feature listings");
+      }
+
+      // Delete
+      if (action === "delete") {
+          if (
+              roleName === "SUPER_ADMIN" ||
+              roleName === "ADMIN" ||
+              (roleName === "SELLER" && hasPermission(roleName, Permission.MANAGE_OWN_SERVICES)) ||
+              (roleName.startsWith("GARAGE") && hasPermission(roleName, Permission.MANAGE_SHOWROOM_SERVICES))
+          ) {
+              await apiRequest("DELETE", `/api/showroom/services/${id}`, {});
+              return action;
+          }
+          throw new Error("Unauthorized to delete listing");
+      }
+
+      // If no condition matched
+      throw new Error("Unsupported action or insufficient permissions");
     },
-    onSuccess: ({ action }) => {
+    onSuccess: ({ returnedAction }) => {
       let message = "";
-      switch (action) {
+
+      switch (returnedAction) {
+        case "publish":
+          message = t("admin.listingPublished");
+          break;
+        case "approve":
+          message = t("admin.listingApproved");
+          break;
+        case "reject":
+          message = t("admin.listingRejected");
+          break;
         case "feature":
-          message = t("services.serviceFeatured");
-          break;
-        case "activate":
-          message = t("services.serviceActivated");
-          break;
-        case "deactivate":
-          message = t("services.serviceDeactivated");
+          message = t("admin.listingFeatured");
           break;
         case "delete":
-          message = t("services.serviceDeleted");
+          message = t("admin.listingDeleted");
           break;
+        default:
+          message = t("admin.actionSuccess");
       }
+
 
       toast({
         title: t("common.success"),
@@ -196,6 +396,7 @@ export const useServiceListingManage = () => {
       isFeatured: null,
       priceRange: { from: "", to: "" },
       showroomId: null, // Reset to null instead of user?.showroomId
+      serviceId: null,
     });
     refetch();
   };
@@ -205,19 +406,8 @@ export const useServiceListingManage = () => {
     setViewDialogOpen(true);
   };
 
-  const handleEditService = (service: AdminServiceListing) => {
-    setCurrentService(service);
-    setIsEditing(true);
-    setFormDialogOpen(true);
-  };
-
-  const handleCreateService = () => {
-    setCurrentService(null);
-    setIsEditing(false);
-    setFormDialogOpen(true);
-  };
-
   const handleAction = (service: AdminServiceListing, action: ServiceListingAction) => {
+    console.log("Action triggered:", action, "for listing:", service.id);
     setCurrentService(service);
     setActionType(action);
     setActionDialogOpen(true);
@@ -225,14 +415,53 @@ export const useServiceListingManage = () => {
 
   const confirmAction = () => {
     if (!currentService) return;
-    performAction.mutate({
-      id: currentService.id,
-      action: actionType,
-    });
+
+    console.log("ABOUT TO MUTATE", { id: currentService.id, action: actionType, reason: actionReason });
+   
+      switch (actionType) {
+            case "publish":
+                performAction.mutate({
+                    id: currentService.id,
+                    action: "publish", // Correct action type for publish
+                    reason: actionReason,
+                });
+                break;
+            case "approve":
+                performAction.mutate({
+                    id: currentService.id,
+                    action: "approve", // Correct action type for approve
+                    reason: actionReason,
+                });
+                break;
+            case "reject":
+                performAction.mutate({
+                    id: currentService.id,
+                    action: "reject",
+                    reason: actionReason,
+                });
+                break;
+            case "feature":
+                performAction.mutate({
+                    id: currentService.id,
+                    action: "feature",
+                    featured: true,
+                });
+                break;
+            case "delete":
+                performAction.mutate({
+                    id: currentService.id,
+                    action: "delete",
+                });
+                break;
+        }
   };
+
+   const getStatusBadge = StatusBadge;
 
   return {
     // State
+    currentTab,
+    setCurrentTab,
     searchQuery,
     setSearchQuery,
     filters,
@@ -242,16 +471,21 @@ export const useServiceListingManage = () => {
     actionDialogOpen,
     setActionDialogOpen,
     currentService,
-    formDialogOpen,
-    setFormDialogOpen,
-    isEditing,
+    setCurrentService,
     actionType,
+    setActionType,
+    actionReason,
+    setActionReason,
     actionInProgress,
+    setFormDialogOpen,
+    formDialogOpen,
 
     // Data
     services,
-    isLoading,
     userShowrooms, // Added user's showrooms to the return value
+    promotionPackages,
+    isLoading,
+    isEditing,
 
     // Functions
     handleSearch,
@@ -261,6 +495,7 @@ export const useServiceListingManage = () => {
     handleCreateService,
     handleAction,
     confirmAction,
+    getStatusBadge,
     refetch,
   };
 };

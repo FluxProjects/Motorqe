@@ -1,8 +1,9 @@
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
-import {CarCategory, PromotionPackage, StepProps } from "@shared/schema";
-import { Button } from "@/components/ui/button";
+import { ServicePromotionPackage, ServiceStepProps } from "@shared/schema";
+import { formatAvailability } from "@/lib/utils";
 
 export function ReviewStep({
   data,
@@ -10,210 +11,139 @@ export function ReviewStep({
   nextStep,
   prevStep,
   handleSubmit,
-}: StepProps) {
+}: ServiceStepProps) {
   const { t } = useTranslation();
   const formData = data;
 
-  const { data: categories = [] } = useQuery<CarCategory[]>({
-      queryKey: ["car-categories"],
-      queryFn: () => fetch("/api/car-categories").then((res) => res.json()),
-    });
+  console.log("formData", formData);
 
-  const { data: makes = [] } = useQuery({
-    queryKey: ["car-makes"],
-    queryFn: () => fetch("/api/car-makes").then((res) => res.json()),
-  });
+  const availability = formData.availability ? JSON.parse(formData.availability) : null;
 
-  const { data: models = [] } = useQuery({
-    queryKey: ["car-models", formData.specifications?.makeId],
+  const { data: garage } = useQuery({
+    queryKey: ["showroom", formData.basicInfo?.showroomId],
     queryFn: () =>
-      fetch(`/api/car-makes/${formData.specifications?.makeId}/models`).then(
-        (res) => res.json()
+      fetch(`/api/garages/${formData.basicInfo?.showroomId}`).then((res) =>
+        res.json()
       ),
-    enabled: !!formData.specifications?.makeId,
+    enabled: !!formData.basicInfo?.showroomId,
   });
 
-  const { data: features = [] } = useQuery({
-    queryKey: ["car-features"],
-    queryFn: () => fetch("/api/car-features").then((res) => res.json()),
+  const { data: carservice } = useQuery({
+    queryKey: ["car-service", formData.basicInfo?.serviceId],
+    queryFn: () =>
+      fetch(`/api/services/${formData.basicInfo?.serviceId}`).then((res) =>
+        res.json()
+      ),
+    enabled: !!formData.basicInfo?.serviceId,
   });
-  
-  const { data: promotionPackage } = useQuery<PromotionPackage>({
-    queryKey: ['promotion-package', formData.package?.packageId],
+
+  const { data: promotionPackage } = useQuery<ServicePromotionPackage>({
+    queryKey: ["promotion-package", formData.package?.packageId],
     queryFn: async () => {
-      const response = await fetch(`/api/promotion-packages/${formData.package?.packageId}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch package');
-      }
+      const response = await fetch(`/api/promotion-packages/services/${formData.package?.packageId}`);
+      if (!response.ok) throw new Error("Failed to fetch package");
       return response.json();
     },
     enabled: !!formData.package?.packageId,
   });
 
-  const selectedCategory = categories.find(
-    (m: any) => String(m.id) === formData.specifications?.categoryId
-  );
+  console.log("car service",carservice, "garaage", garage, "promotion package", promotionPackage);
 
-  const selectedMake = makes.find(
-    (m: any) => String(m.id) === formData.specifications?.makeId
-  );
-  const selectedModel = models.find(
-    (m: any) => String(m.id) === formData.specifications?.modelId
-  );
   
-  const selectedFeatures = features.filter((f) =>
-    (formData.features as string[]).includes(String(f.id))
-  );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Basic Info */}
-      <div className="space-y-4">
-        <h3 className="font-medium">{t("listing.basicInfo")}</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="space-y-4 p-6 bg-white rounded-lg shadow">
+        <h3 className="text-lg font-semibold">{t("services.basicInfo")}</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <Label>{t("listing.title")}</Label>
-            <p className="font-medium">{formData.basicInfo?.title || t("listing.notSpecified")}</p>
-          </div>
-          <div>
-            <Label>{t("listing.price")}</Label>
-            <p className="font-medium">
-              {formData.basicInfo?.price ? `${formData.basicInfo?.price} ${t("listing.currency")}` : t("listing.notSpecified")}
+            <Label className="text-gray-500">{t("services.serviceType")}</Label>
+            <p className="font-medium mt-1">
+              {carservice?.service.name || t("services.notSpecified")}
             </p>
           </div>
-          <div className="md:col-span-2">
-            <Label>{t("listing.description")}</Label>
-            <p className="whitespace-pre-line">
-              {formData.basicInfo?.description || t("listing.noDescription")}
+          <div>
+            <Label className="text-gray-500">{t("services.showroom")}</Label>
+            <p className="font-medium mt-1">
+              {garage?.name || t("services.notSpecified")}
+            </p>
+          </div>
+          <div>
+            <Label className="text-gray-500">{t("services.price")}</Label>
+            <p className="font-medium mt-1">
+              {formData.basicInfo.price} {formData.basicInfo.currency || "QAR"}
             </p>
           </div>
         </div>
-      </div>
-
-      {/* Specifications */}
-      <div className="space-y-4">
-        <h3 className="font-medium">{t("listing.specifications")}</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-            <Label>{t("listing.category")}</Label>
-            <p>{selectedCategory?.name || t("listing.notSpecified")}</p>
-          </div>
-          <div>
-            <Label>{t("listing.make")}</Label>
-            <p>{selectedMake?.name || t("listing.notSpecified")}</p>
-          </div>
-          <div>
-            <Label>{t("listing.model")}</Label>
-            <p>{selectedModel?.name || t("listing.notSpecified")}</p>
-          </div>
-          <div>
-            <Label>{t("listing.year")}</Label>
-            <p>{formData.specifications?.year || t("listing.notSpecified")}</p>
-          </div>
-          <div>
-            <Label>{t("listing.mileage")}</Label>
-            <p>{formData.specifications?.mileage ? `${formData.specifications.mileage} km` : t("listing.notSpecified")}</p>
-          </div>
-          <div>
-            <Label>{t("listing.fuelType")}</Label>
-            <p>{formData.specifications?.fuelType || t("listing.notSpecified")}</p>
-          </div>
-          <div>
-            <Label>{t("listing.transmission")}</Label>
-            <p>{formData.specifications?.transmission || t("listing.notSpecified")}</p>
-          </div>
-          <div>
-            <Label>{t("listing.color")}</Label>
-            <p>{formData.specifications?.color || t("listing.notSpecified")}</p>
-          </div>
+        
+        <div className="mt-4">
+          <Label className="text-gray-500">{t("services.description")} (English)</Label>
+          <p className="mt-1 whitespace-pre-line bg-gray-50 p-3 rounded">
+            {formData.basicInfo?.description || t("services.noDescription")}
+          </p>
+        </div>
+        
+        <div className="mt-4">
+          <Label className="text-gray-500">{t("services.description")} (Arabic)</Label>
+          <p className="mt-1 whitespace-pre-line bg-gray-50 p-3 rounded text-right" dir="rtl">
+            {formData.basicInfo?.descriptionAr || t("services.noDescription")}
+          </p>
         </div>
       </div>
 
-      {/* Features */}
-      <div className="space-y-4">
-        <h3 className="font-medium">{t("listing.features")}</h3>
-        {selectedFeatures && selectedFeatures.length > 0 ? (
-          <div className="flex flex-wrap gap-2">
-            {selectedFeatures.map((feature: any) => (
-              <span
-                key={feature.id}
-                className="bg-muted px-3 py-1 rounded-full text-sm"
-              >
-                {feature.name}
-              </span>
-            ))}
+      {/* Settings */}
+      <div className="space-y-4 p-6 bg-white rounded-lg shadow">
+        <h3 className="text-lg font-semibold">{t("services.availability")}</h3>
+        
+        <div className="mt-4">
+          <Label className="text-gray-500">{t("services.availability")}</Label>
+          <div className="mt-2">
+            {formatAvailability(availability)}
           </div>
-        ) : (
-          <p>{t("listing.noFeaturesSelected")}</p>
-        )}
+        </div>
       </div>
 
       {/* Promotion Package */}
       {promotionPackage && (
-        <div className="space-y-4">
-          <h3 className="font-medium">{t("listing.promotionPackage")}</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-4 p-6 bg-white rounded-lg shadow">
+          <h3 className="text-lg font-semibold">{t("services.promotionPackage")}</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
-              <Label>{t("listing.packageName")}</Label>
-              <p>{promotionPackage.name || t("listing.notSpecified")}</p>
+              <Label className="text-gray-500">{t("services.packageName")}</Label>
+              <p className="font-medium mt-1">{promotionPackage.name}</p>
             </div>
             <div>
-              <Label>{t("listing.packageDuration")}</Label>
-              <p>{promotionPackage.duration_days ? `${promotionPackage.duration_days} ${t("listing.days")}` : t("listing.notSpecified")}</p>
+              <Label className="text-gray-500">{t("services.packageDuration")}</Label>
+              <p className="mt-1">
+                {promotionPackage.duration_days
+                  ? `${promotionPackage.duration_days} ${t("services.days")}`
+                  : t("services.notSpecified")}
+              </p>
             </div>
             <div>
-              <Label>{t("listing.packagePrice")}</Label>
-              <p>{promotionPackage.price ? `${promotionPackage.price} ${promotionPackage.currency}` : t("listing.notSpecified")}</p>
+              <Label className="text-gray-500">{t("services.packagePrice")}</Label>
+              <p className="mt-1">
+                {promotionPackage.price
+                  ? `${promotionPackage.price} ${promotionPackage.currency}`
+                  : t("services.notSpecified")}
+              </p>
             </div>
-            
           </div>
         </div>
       )}
 
-      {/* Media (Images) */}
-      <div className="space-y-4">
-        <h3 className="font-medium">{t("listing.images")}</h3>
-        {(formData.media?.length ?? 0) > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {formData.media?.map((mediaItem, index) => (
-              <div key={index}>
-                {typeof mediaItem === "string" ? (
-                  <img
-                    src={mediaItem}
-                    alt={`Preview ${index + 1}`}
-                    className="rounded-md aspect-square object-cover"
-                  />
-                ) : (
-                  <div className="flex justify-center items-center text-gray-500">
-                    <span>{t("listing.file")} {index + 1}</span>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p>{t("listing.noImages")}</p>
-        )}
-      </div>
-
       {/* Review Action Buttons */}
-       <div className="flex justify-between pt-4">
+      <div className="flex justify-between pt-6">
         <Button variant="outline" type="button" onClick={prevStep}>
-          {t("listing.back")}
+          {t("services.back")}
         </Button>
         <div className="flex gap-2">
-          <Button 
-            variant="outline" 
-            type="button" 
-            onClick={() => handleSubmit('draft')}
-          >
-            {t("listing.saveAsDraft")}
+          <Button variant="outline" type="button" onClick={() => handleSubmit?.("draft")}>
+            {t("services.saveAsDraft")}
           </Button>
-          <Button 
-            type="button" 
-            onClick={() => handleSubmit('publish')}
-          >
-            {t("listing.publishListing")}
+          <Button type="button" onClick={() => handleSubmit?.("publish")}>
+            {t("services.publishListing")}
           </Button>
         </div>
       </div>

@@ -1,4 +1,4 @@
-import { UseMutateFunction, useMutation } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation } from "wouter";
 import { ServiceListingFormData, AdminServiceListing } from "@shared/schema";
@@ -23,27 +23,51 @@ export const useServiceListingFormHandler = (onSuccess?: () => void) => {
     unknown
   >({
     mutationFn: async ({ formData, service }) => {
-      console.log("Starting service form submission");
-      console.log("Form data:", formData);
-      console.log("Existing service:", service);
+      console.log("➡️ Mutation started");
+      console.log("📦 Received formData:", formData);
+      console.log("🆔 service:", service);
+
+      let endDate = new Date();
+      if (formData.package?.durationDays) {
+        const durationDays = Number(formData.package?.durationDays);
+         console.log("Duration Days", durationDays);
+        if (!isNaN(durationDays)) {
+          endDate.setDate(endDate.getDate() + durationDays);
+        }
+      } else if (service?.end_date) {
+        // Use existing end date if editing and no new duration specified
+        endDate = new Date(service?.end_date);
+      }
+
 
       const payload = {
-        showroomId: formData.showroomId || user?.showroomId,
-        serviceId: formData.serviceId,
-        price: formData.price,
-        currency: formData.currency,
-        description: formData.description,
-        descriptionAr: formData.descriptionAr,
-        isFeatured: formData.isFeatured || false,
-        isActive: formData.isActive !== false, // Default to true
+        showroomId: formData.basicInfo.showroomId?.toString(),
+        serviceId: formData.basicInfo.serviceId?.toString(),
+        price: formData.basicInfo.price,
+        currency: formData.basicInfo.currency,
+        description: formData.basicInfo.description,
+        descriptionAr: formData.basicInfo.descriptionAr,
+        availability: formData.availability,
+        is_featured: formData.isFeatured || false,
+        is_active: formData.isActive !== false, // Default to true
+
+        user_id: user?.id,
+        package_id: formData.package?.packageId
+          ? Number(formData.package.packageId)
+          : service?.package_id, // Fallback to existing package
+        start_date: service?.start_date
+          ? new Date(service.start_date).toISOString()
+          : new Date().toISOString(),
+        end_date: endDate.toISOString(),
+        status: formData?.status,
       };
 
-      console.log("Constructed payload:", payload);
+      console.log("🛠 Constructed payload:", payload);
 
       const method = service ? "PUT" : "POST";
-        const url = service 
-            ? `/api/showroom/services/${service.id}`
-            : "/api/showroom/services";
+      const url = service ? `/api/showroom/services/${service.id}` : "/api/showroom/services";
+        
+        console.log(`🌐 Sending ${method} request to ${url}`);
 
         const res = await fetch(url, {
             method,
@@ -51,24 +75,31 @@ export const useServiceListingFormHandler = (onSuccess?: () => void) => {
             body: JSON.stringify(payload),
         });
 
+        console.log("📥 Response status:", res.status);
+
         if (!res.ok) {
             const errorData = await res.json().catch(() => ({}));
             throw new Error(errorData.message || "Failed to save service");
         }
 
-      return res.json();
+      console.log("✅ Mutation successful");
+
+      return res;
     },
 
-    onSuccess: (data, variables) => {
+    onSuccess: (variables) => {
       console.log("Service saved successfully");
-      const role = user?.roleId ? roleMapping[user.roleId] : "DEALER";
+      const role = user?.roleId ? roleMapping[user.roleId] : "GARAGE";
       
-      if (role === "ADMIN" || role === "SUPER_ADMIN") {
-        navigate("/admin/services");
-      } else {
-        navigate("/showroom-dashboard/services");
+       if (role === "SELLER") {
+        navigate("/seller-dashboard/servicelistings");
+       } else if (role === "ADMIN" || role === "SUPER_ADMIN") {
+        navigate("/admin/servicelistings");
+      } else if ( role === "GARAGE") {
+        navigate("/showroom-dashboard/servicelistings");
       }
 
+      console.log("✅ Redirect complete");
       toast({
         title: "Success",
         description: variables.service ? "Service updated" : "Service created",
@@ -77,7 +108,7 @@ export const useServiceListingFormHandler = (onSuccess?: () => void) => {
     },
 
     onError: (error: Error) => {
-      console.error("Service save failed:", error);
+      console.error("🔥 Mutation failed:", error);
       toast({
         title: "Error",
         description: error.message,
