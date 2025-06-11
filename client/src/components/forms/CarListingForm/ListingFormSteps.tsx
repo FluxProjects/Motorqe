@@ -27,15 +27,15 @@ export const ListingFormSteps = ({
 }: Props) => {
   switch (step) {
     case 0:
-      return <BasicInfoStep data={data} updateData={updateData} nextStep={nextStep} prevStep={prevStep} />;
-    case 1:
-      return <SpecsStep data={data} updateData={updateData} nextStep={nextStep} prevStep={prevStep} />;
-    case 2:
-      return <FeaturesStep listingId={listing?.id} data={data} updateData={updateData} nextStep={nextStep} prevStep={prevStep} />;
-    case 3:
-      return <MediaStep data={data} updateData={updateData} nextStep={nextStep} prevStep={prevStep} />;
-    case 4:
       return <PricingStep data={data} updateData={updateData} nextStep={nextStep} prevStep={prevStep} />;
+    case 1:
+      return <BasicInfoStep data={data} updateData={updateData} nextStep={nextStep} prevStep={prevStep} />;
+    case 2:
+      return <SpecsStep data={data} updateData={updateData} nextStep={nextStep} prevStep={prevStep} />;
+    case 3:
+      return <FeaturesStep listingId={listing?.id} data={data} updateData={updateData} nextStep={nextStep} prevStep={prevStep} />;
+    case 4:
+      return <MediaStep data={data} updateData={updateData} nextStep={nextStep} prevStep={prevStep} />;
     case 5:
       return <ReviewStep data={data} updateData={updateData} prevStep={prevStep} nextStep={nextStep} handleSubmit={handleSubmit} />;
     default:

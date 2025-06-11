@@ -137,6 +137,12 @@ export const ShowroomServiceStorage = {
                             console.log(`Added Status filter: status = ${value}`);
                             paramIndex++;
                             break;
+                        case 'is_active':
+                            whereClauses.push(`cl.is_active = $${paramIndex}`);
+                            values.push(value);
+                            console.log(`Added is_active filter: is_active = ${value}`);
+                            paramIndex++;
+                            break;
                         case 'is_featured':
                             whereClauses.push(`cl.is_featured = $${paramIndex}`);
                             values.push(value);

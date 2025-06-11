@@ -49,7 +49,8 @@ export const users = pgTable("users", {
   // Status and verification
   status: text("status").default("inactive").notNull().$type<
     "inactive" | "active" | "suspended" | "removed"
-  >(),                                            // Account status
+  >(),     
+  suspensionReason: text("suspension_reason"),                                       // Account status
   isEmailVerified: boolean("is_email_verified").default(false),
   verificationToken: text("verification_token"),
   passwordResetToken: text("password_reset_token"),
@@ -88,6 +89,7 @@ export const insertUserSchema = createInsertSchema(users, {
   // Role and status
   roleId: true,
   status: true,
+  suspensionReason: true,
 
   // Notification preferences
   emailNotifications: true,
@@ -148,6 +150,7 @@ export const showrooms = pgTable("showrooms", {
   timing: text("timing"),
   phone: text("phone"),                            // Contact phone number
   logo: text("logo"),
+  images: text("images").array(),
   isFeatured: boolean('is_featured').default(false),
   isGarage: boolean('is_garage').default(false),
 });
@@ -166,6 +169,7 @@ export const insertShowroomSchema = createInsertSchema(showrooms).pick({
   timing: true,
   phone: true,
   logo: true,
+  images: true,
   isFeatured: true,
   isGarage: true,
 });
@@ -621,6 +625,7 @@ export const staticContent = pgTable("static_content", {
   author: integer("user_id").references(() => users.id).notNull(), // Owner user ID
   status: text('status').default("draft").notNull().$type<"draft" | "published">(),
   fullWidth: boolean('full_width').default(false),
+  placement: text('placement').notNull().$type<"header" | "footer" | "both">(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(), // Last update timestamp
 });
@@ -633,11 +638,128 @@ export const insertStaticContentSchema = createInsertSchema(staticContent).pick(
   contentAr: true,
   author: true,
   status: true,
+  placement: true,
   fullWidth: true,
 });
 
 export type InsertStaticContent = z.infer<typeof insertStaticContentSchema>;
 export type StaticContent = typeof staticContent.$inferSelect;
+
+// =============================================
+// HERO SLIDERS TABLE
+// Stores hero sliders for home and garage pages
+// =============================================
+export const heroSliders = pgTable("hero_sliders", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),                 // Slider title in English
+  titleAr: text("title_ar"),                      // Slider title in Arabic
+  subtitle: text("subtitle"),                     // Slider subtitle in English
+  subtitleAr: text("subtitle_ar"),                // Slider subtitle in Arabic
+  buttonText: text("button_text"),                // Button text in English
+  buttonTextAr: text("button_text_ar"),           // Button text in Arabic
+  buttonUrl: text("button_url"),                  // Button link URL
+  imageUrl: text("image_url").notNull(),          // Slider image URL
+  type: text("slide_type").notNull().$type<"home" | "garage">(), // Slider type
+  isActive: boolean("is_active").default(true),   // Active status
+  order: integer("slide_order").default(0),             // Display order
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(), // Last update timestamp
+});
+
+export const insertHeroSliderSchema = createInsertSchema(heroSliders).pick({
+  title: true,
+  titleAr: true,
+  subtitle: true,
+  subtitleAr: true,
+  buttonText: true,
+  buttonTextAr: true,
+  buttonUrl: true,
+  imageUrl: true,
+  type: true,
+  isActive: true,
+  order: true,
+});
+
+export type InsertHeroSlider = z.infer<typeof insertHeroSliderSchema>;
+export type HeroSlider = typeof heroSliders.$inferSelect;
+
+// =============================================
+// BLOG POSTS TABLE
+// Stores blog articles and news
+// =============================================
+export const blogPosts = pgTable("blog_posts", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),                 // Post title in English
+  titleAr: text("title_ar"),                      // Post title in Arabic
+  slug: text("slug").notNull().unique(),          // URL-friendly slug
+  excerpt: text("excerpt"),                       // Short description in English
+  excerptAr: text("excerpt_ar"),                  // Short description in Arabic
+  content: text("content").notNull(),             // Main content in English
+  contentAr: text("content_ar"),                  // Main content in Arabic
+  featuredImage: text("featured_image"),          // Featured image URL
+  authorId: integer("author_id").references(() => users.id).notNull(), // Author user ID
+  authorName: text("author_name").notNull(),      // Author display name
+  status: text("status").default("draft").notNull().$type<"draft" | "published">(),
+  publishedAt: timestamp("published_at").defaultNow(), // Publication date
+  metaTitle: text("meta_title"),                  // SEO meta title
+  metaDescription: text("meta_description"),      // SEO meta description
+  tags: text("tags").array(),                     // Post tags/categories
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(), // Last update timestamp
+});
+
+export const insertBlogPostSchema = createInsertSchema(blogPosts).pick({
+  title: true,
+  titleAr: true,
+  slug: true,
+  excerpt: true,
+  excerptAr: true,
+  content: true,
+  contentAr: true,
+  featuredImage: true,
+  authorId: true,
+  authorName: true,
+  status: true,
+  publishedAt: true,
+  metaTitle: true,
+  metaDescription: true,
+  tags: true,
+});
+
+export type InsertBlogPost = z.infer<typeof insertBlogPostSchema>;
+export type BlogPost = typeof blogPosts.$inferSelect;
+
+// =============================================
+// BANNER ADS TABLE
+// Stores website banner advertisements
+// =============================================
+export const bannerAds = pgTable("banner_ads", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),                 // Banner title in English
+  titleAr: text("title_ar"),                      // Banner title in Arabic
+  imageUrl: text("image_url").notNull(),          // Path to banner image
+  link: text("link"),                             // URL the banner links to
+  position: text("position").notNull().$type<"top" | "middle" | "bottom" | "sidebar">(),
+  isActive: boolean("is_active").default(true),   // Whether banner is active
+  startDate: timestamp("start_date").notNull(),   // When banner should start showing
+  endDate: timestamp("end_date").notNull(),       // When banner should stop showing
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(), // Last update timestamp
+});
+
+export const insertBannerAdSchema = createInsertSchema(bannerAds).pick({
+  title: true,
+  titleAr: true,
+  imageUrl: true,
+  link: true,
+  position: true,
+  isActive: true,
+  startDate: true,
+  endDate: true,
+});
+
+export type InsertBannerAd = z.infer<typeof insertBannerAdSchema>;
+export type BannerAd = typeof bannerAds.$inferSelect;
 
 // =============================================
 // SETTINGS TABLE
@@ -648,7 +770,10 @@ export const settings = pgTable("settings", {
 
   // General Settings
   logo: text("logo"),                             // Application logo URL
-  favicon: text("favicon"),                       // Favicon URL
+  footerLogo: text("footer_logo"),                // Application Footer Logo URL
+  bankLogo: text("bank_logo"),
+  bankUrl: text("bank_url"),
+  favicon: text("favicon"),                         // Favicon URL
   siteName: text("site_name").default("CarMarket"), // Site name in English
   siteNameAr: text("site_name_ar").default("سوق السيارات"), // Site name in Arabic
   siteDescription: text("site_description"),      // Site description in English
@@ -774,7 +899,10 @@ export const insertSettingsSchema = createInsertSchema(settings).extend({
   integrationsConfig: integrationsConfigSchema,
 }).pick({
   logo: true,
+  footerLogo: true,
   favicon: true,
+  bankLogo: true,
+  bankUrl: true,
   siteName: true,
   siteNameAr: true,
   siteDescription: true,
@@ -803,7 +931,7 @@ export type EmailConfig = z.infer<typeof emailConfigSchema>;
 export type SmsConfig = z.infer<typeof smsConfigSchema>;
 export type GoogleMapsConfig = z.infer<typeof googleMapsConfigSchema>;
 export type IntegrationConfig = z.infer<typeof integrationsConfigSchema>;
-export type Setting = typeof settings.$inferSelect;s
+export type Setting = typeof settings.$inferSelect;
 // =============================================
 // SUBSCRIPTION PLANS TABLE
 // Stores available subscription plans for users
@@ -1047,6 +1175,42 @@ export const insertServicePromotionSchema = createInsertSchema(servicePromotions
 export type InsertServicePromotion = z.infer<typeof insertServicePromotionSchema>;
 export type ServicePromotion = typeof servicePromotions.$inferSelect;
 
+// =============================================
+// CAR_INSPECTIONS TABLE
+// Stores user-submitted requests for car inspections
+// =============================================
+export const carInspections = pgTable("car_inspections", {
+  id: serial("id").primaryKey(),                           // Unique inspection ID
+  userId: integer("user_id").notNull(),                    // Foreign key to user
+  fullName: text("full_name").notNull(),                   // User's full name
+  email: text("email").notNull(),                          // Contact email
+  phone: text("phone").notNull(),                          // Contact phone number
+  carMake: text("car_make").notNull(),                     // Make of the car (e.g., Toyota)
+  carModel: text("car_model").notNull(),                   // Model of the car (e.g., Corolla)
+  carYear: integer("car_year").notNull(),                  // Year of manufacture
+  price: integer("price").notNull(), // Inspection price
+  status: text("status").default("pending").notNull().$type<'pending' | 'approved' | 'rejected'>(), // Inspection status
+  additionalNotes: text("additional_notes"),               // Optional additional notes
+  createdAt: timestamp("created_at").defaultNow(),         // Timestamp of inspection request
+});
+
+export const insertCarInspectionSchema = createInsertSchema(carInspections).pick({
+  userId: true,
+  fullName: true,
+  email: true,
+  phone: true,
+  carMake: true,
+  carModel: true,
+  carYear: true,
+  price: true,
+  status: true,
+  additionalNotes: true,
+});
+
+export type InsertCarInspection = z.infer<typeof insertCarInspectionSchema>;
+export type CarInspection = typeof carInspections.$inferSelect;
+
+
 export type CarListingWithFeatures = CarListing & {
   features: CarFeature[];
 };
@@ -1154,10 +1318,11 @@ export interface AdminCarListingFilters {
 }
 
 export interface CarListingFilters {
+  search?: string;
   // Price and year
   minPrice?: string;
   maxPrice?: string;
-  year?: number[];
+  year?: string;
   // Vehicle make/model/category
   make: string;
   model: string;
@@ -1346,11 +1511,11 @@ export interface AdminServiceBooking {
   serviceId: number;
   userId: number;
   showroomId?: number;
-  scheduledAt: string;
+  scheduledAt: Date;
   status: ServiceBookingStatus;
   notes?: string;
   price: number;
-  currency: string;
+  currency?: string;
   createdAt: string;
   updatedAt?: string;
   
@@ -1422,11 +1587,12 @@ export type ServiceListingFormAction = 'draft' | 'publish';
 export type ServiceListingStatus = 'draft' | 'active' | 'pending' | 'reject' | 'sold';
 
 export interface AdminServiceListingFilters {
-  isActive: boolean | null;
-  isFeatured: boolean | null;
+  isActive: boolean | undefined;
+  isFeatured: boolean | undefined;
   priceRange?: { from: string; to: string };
   showroomId?: number;
   serviceId?: number;
+  user_id?: number;
   searchQuery?: string;
   dateRangePreset?: string; // Add this
   dateRange?: { from: string; to: string }; // Add this
@@ -1506,3 +1672,12 @@ recentListings: any[];
 recentReports: any[];
 cmsOverview: any[];
 };
+
+export type ServiceBookingFormProps = {
+  service?: ShowroomService;
+  services?: ShowroomService[]; // new prop for multiple services
+  showroomId?: number;
+  userId?: number;
+  onSuccess?: () => void;
+  isOpen?: boolean;
+}

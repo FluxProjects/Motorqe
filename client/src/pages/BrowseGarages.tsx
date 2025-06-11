@@ -7,18 +7,22 @@ import { apiRequest } from "@/lib/queryClient";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { CarMake } from "@shared/schema";
-import { ShowroomCard } from "@/components/showroom/ShowroomCard";
 import { Wrench } from "lucide-react";
 import { GarageCard } from "@/components/showroom/GarageCard";
 
 
-
 const BrowseGarages = () => {
+ const [searchParams, setSearchParams] = useState<URLSearchParams>();
   const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedMake, setSelectedMake] = useState("all");
   const [selectedService, setSelectedService] = useState("all");
-  const [selectedTab, setSelectedTab] = useState("all");
+  const [selectedTab, setSelectedTab] = useState(() => {
+    // Determine initial tab based on parameters
+    if (searchParams?.get('make_id')) return 'makes';
+    if (searchParams?.get('service_id')) return 'services';
+    return 'all';
+  });
 
   const { data: showrooms, isLoading } = useQuery({
     queryKey: ["/api/garages"],
@@ -100,32 +104,75 @@ const BrowseGarages = () => {
 
   console.log("showroomsWithServices", showroomsWithServices);
   const filteredShowrooms = showroomsWithServices?.filter((showroom: any) => {
-    const matchesSearch =
-      showroom.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      showroom.nameAr?.toLowerCase().includes(searchTerm.toLowerCase());
+  const matchesSearch =
+    searchTerm === '' ||
+    showroom.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    showroom.nameAr?.toLowerCase().includes(searchTerm.toLowerCase());
 
-    // Filter by make
-    const matchesMake =
-      selectedTab !== "makes" ||
-      selectedMake === "all" ||
-      (showroomMakes &&
-        showroomMakes.some(
-          (sm: any) =>
-            sm.showroom_id === showroom.id &&
-            sm.make_id.toString() === selectedMake
-        ));
+  // Filter by make - works with URL parameter
+  const matchesMake =
+    selectedMake === 'all' ||
+    (showroomMakes &&
+      showroomMakes.some(
+        (sm: any) =>
+          sm.showroom_id === showroom.id &&
+          sm.make_id.toString() === selectedMake
+      ));
 
-    // Filter by service
-    const matchesService =
-      selectedTab !== "services" ||
-      selectedService === "all" ||
-      (showroom.services &&
-        showroom.services.some(
-          (service: any) => service.id.toString() === selectedService
-        ));
+  // Filter by service - works with URL parameter
+  const matchesService =
+    selectedService === 'all' ||
+    (showroom.services &&
+      showroom.services.some(
+        (service: any) => service.id.toString() === selectedService
+      ));
 
-    return matchesSearch && matchesMake && matchesService;
-  });
+  // Apply filters based on active tab
+  if (selectedTab === 'makes') {
+    return matchesSearch && matchesMake;
+  } else if (selectedTab === 'services') {
+    return matchesSearch && matchesService;
+  }
+  return matchesSearch; // For 'all' tab
+});
+
+// Helper function to update URL
+  const updateUrlParams = (params: Record<string, string>) => {
+    const newParams = new URLSearchParams(searchParams?.toString());
+    Object.entries(params).forEach(([key, value]) => {
+      if (value && value !== 'all') {
+        newParams.append(key, value);
+      } else {
+        newParams.delete(key);
+      }
+    });
+
+    // Update URL without navigating
+      const newUrl = `${window.location.pathname}?${newParams.toString()}`;
+      window.history.pushState({ path: newUrl }, "", newUrl);
+
+      // Update searchParams state
+      setSearchParams(newParams);
+   
+  };
+
+// Update handlers to also update URL
+  const handleSearchChange = (term: string) => {
+    setSearchTerm(term);
+    updateUrlParams({ search: term });
+  };
+
+  const handleMakeChange = (makeId: string) => {
+    setSelectedMake(makeId);
+    setSelectedTab('makes');
+    updateUrlParams({ make: makeId, service: '' });
+  };
+
+  const handleServiceChange = (serviceId: string) => {
+    setSelectedService(serviceId);
+    setSelectedTab('services');
+    updateUrlParams({ service: serviceId, make: '' });
+  };
 
   const renderGarages = () =>
     isLoading ? (
@@ -138,7 +185,7 @@ const BrowseGarages = () => {
       ))
     ) : (
       <div className="col-span-full text-center py-12">
-        <p className="text-slate-500">{t("showroom.noShowroomsFound")}</p>
+        <p className="text-slate-500">{t("garage.noGarageFound")}</p>
       </div>
     );
 
@@ -171,7 +218,7 @@ const BrowseGarages = () => {
                         : "text-blue-900"
                     }`}
                   >
-                    {t("showroom.allGarages")}
+                    {t("garage.allGarages")}
                   </TabsTrigger>
                   <TabsTrigger
                     value="makes"
@@ -200,7 +247,7 @@ const BrowseGarages = () => {
                 placeholder={t("garage.searchPlaceholder")}
                 className="max-w-md"
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => handleSearchChange(e.target.value)}
               />
             </div>
 
@@ -214,7 +261,7 @@ const BrowseGarages = () => {
             <TabsContent value="makes">
               <div className="flex flex-wrap gap-2 mb-6">
                 <Badge
-                  onClick={() => setSelectedMake("all")}
+                   onClick={() => handleMakeChange("all")}
                   className={`cursor-pointer ${
                     selectedMake === "all"
                       ? "bg-blue-900 text-white"
@@ -229,14 +276,7 @@ const BrowseGarages = () => {
                     key={make.id}
                     role="button"
                     tabIndex={0}
-                    onClick={() => {
-                      setSelectedMake(
-                        selectedMake === make.id.toString()
-                          ? "all"
-                          : make.id.toString()
-                      );
-                      setSelectedService("all");
-                    }}
+                    onClick={() => handleMakeChange(make.id.toString())}
                     className={`cursor-pointer select-none flex items-center gap-2 ${
                       selectedMake === make.id.toString()
                         ? "bg-blue-900 text-white"
@@ -261,7 +301,7 @@ const BrowseGarages = () => {
             <TabsContent value="services">
               <div className="flex flex-wrap gap-2 mb-6">
                 <Badge
-                  onClick={() => setSelectedService("all")}
+                 onClick={() => handleServiceChange("all")}
                   className={`cursor-pointer ${
                     selectedService === "all"
                       ? "bg-blue-900 text-white"
@@ -274,14 +314,7 @@ const BrowseGarages = () => {
                 {services?.map((service: any) => (
                   <Badge
                     key={service.id}
-                    onClick={() => {
-                      setSelectedService(
-                        selectedService === service.id.toString()
-                          ? "all"
-                          : service.id.toString()
-                      );
-                      setSelectedMake("all");
-                    }}
+                    onClick={() => handleServiceChange(service.id.toString())}
                     className={`cursor-pointer flex items-center gap-1 ${
                       selectedService === service.id.toString()
                         ? "bg-blue-900 text-white"

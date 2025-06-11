@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
-import { CarSearchForm, CarCard, CarListItem } from "@/components/car";
+import { CarCard, CarListItem } from "@/components/car";
 import { LayoutGrid, List } from "lucide-react";
 import {
   Select,
@@ -43,18 +43,23 @@ import {
   User,
   CarModel,
   CarEngineCapacity,
+  BannerAd,
 } from "@shared/schema";
 import { fetchModelsByMake } from "@/lib/utils";
 import { MultiSelect } from "@/components/ui/multiselect";
+import { useBannerAds } from "@/hooks/use-bannerAds";
 
 const BrowseCars = () => {
   const { t } = useTranslation();
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid"); // Default to grid view
-  const [searchParams, setSearchParams] = useState<URLSearchParams>();
+  const [searchParams, setSearchParams] = useState<URLSearchParams>(
+    () => new URLSearchParams(window.location.search)
+  );
   const [filters, setFilters] = useState<CarListingFilters>({
+    search: searchParams?.get("search") || "",
     minPrice: "all",
     maxPrice: "all",
-    year: [1900, new Date().getFullYear()],
+    year: "all",
 
     make: "all",
     model: "all",
@@ -80,9 +85,9 @@ const BrowseCars = () => {
     isFeatured: "all",
     isImported: "all",
 
-    ownerType:[],
-    hasWarranty: 'all',
-    hasInsurance: 'all',
+    ownerType: [],
+    hasWarranty: "all",
+    hasInsurance: "all",
 
     sort: "newest",
     page: 1,
@@ -129,27 +134,26 @@ const BrowseCars = () => {
     }
 
     if (params.has("minMile")) {
-  const minMileValue = params.get("minMile") || "";
-  setFilters((prev) => ({
-    ...prev,
-    milesRange: {
-      from: minMileValue,
-      to: prev.milesRange?.to ?? undefined,
-    },
-  }));
-}
+      const minMileValue = params.get("minMile") || "";
+      setFilters((prev) => ({
+        ...prev,
+        milesRange: {
+          from: minMileValue,
+          to: prev.milesRange?.to ?? undefined,
+        },
+      }));
+    }
 
-if (params.has("maxMile")) {
-  const maxMileValue = params.get("maxMile") || "";
-  setFilters((prev) => ({
-    ...prev,
-    milesRange: {
-      from: prev.milesRange?.from ?? '0',
-      to: maxMileValue,
-    },
-  }));
-}
-
+    if (params.has("maxMile")) {
+      const maxMileValue = params.get("maxMile") || "";
+      setFilters((prev) => ({
+        ...prev,
+        milesRange: {
+          from: prev.milesRange?.from ?? "0",
+          to: maxMileValue,
+        },
+      }));
+    }
 
     if (params.has("fuel_type")) {
       const fuelTypes = params.getAll("fuel_type");
@@ -189,7 +193,7 @@ if (params.has("maxMile")) {
       const interiorColor = params.getAll("interior_color");
       setFilters((prev) => ({ ...prev, interiorColor: interiorColor }));
     }
-     if (params.has("interiorColor")) {
+    if (params.has("interiorColor")) {
       const interiorColor = params.getAll("interiorColor");
       setFilters((prev) => ({ ...prev, interiorColor: interiorColor }));
     }
@@ -243,7 +247,7 @@ if (params.has("maxMile")) {
         }));
       }
     }
-     if (params.has("isImported")) {
+    if (params.has("isImported")) {
       const val = params.get("isImported");
       if (val === "true" || val === "false" || val === "all") {
         setFilters((prev) => ({
@@ -253,19 +257,15 @@ if (params.has("maxMile")) {
       }
     }
 
-
     // Handle sort
     if (params.has("sort")) {
       setFilters((prev) => ({ ...prev, sort: params.get("sort")! }));
     }
     if (params.has("page"))
       setFilters((prev) => ({
-      ...prev,
-      page: parseInt(params.get("page") || "1"),
-    }));
-
-
-    
+        ...prev,
+        page: parseInt(params.get("page") || "1"),
+      }));
   }, []);
 
   // Fetch available makes for filter
@@ -336,6 +336,32 @@ if (params.has("maxMile")) {
     },
   });
 
+  const { data: bannerAds = [], isLoadingBannerAds, refetch } = useBannerAds();
+
+  // Filter banners
+  const activeTopBanners = bannerAds.find(
+    (b: BannerAd) => b.is_active && b.position === "top"
+  );
+  const activeMiddleBanners = bannerAds.filter(
+    (b: BannerAd) => b.is_active && b.position === "middle"
+  );
+  const activeBottomBanners = bannerAds.find(
+    (b: BannerAd) => b.is_active && b.position === "bottom"
+  );
+
+  // Helper to render banner
+  const renderBanner = (banner: BannerAd, key: string) => (
+    <div key={key} className="col-span-1 md:col-span-2 lg:col-span-3">
+      <a href={banner?.link} target="_blank" rel="noopener noreferrer">
+        <img
+          src={banner?.image_url}
+          alt={`Ad banner ${banner?.id}`}
+          className="w-full max-h-[350px] object-cover rounded-3xl shadow-sm"
+        />
+      </a>
+    </div>
+  );
+
   const filterCars = (
     allCars: CarListing[],
     filters: CarListingFilters
@@ -343,9 +369,26 @@ if (params.has("maxMile")) {
     return allCars.filter((car) => {
       console.log("Evaluating car:", car);
 
+      if (filters.search) {
+        const searchTerm = filters.search.toLowerCase();
+        const searchFields = [
+          car.title?.toLowerCase(),
+          car.description?.toLowerCase(),
+        ].filter(Boolean); // Remove undefined/null values
+
+        if (!searchFields.some((field) => field?.includes(searchTerm))) {
+          console.log(`Filtered out by search: ${filters.search}`);
+          return false;
+        }
+      }
+
       // Price Filter
-      const minPrice = filters?.minPrice === "all" ? 0 : parseFloat(filters?.minPrice || "0");
-      const maxPrice = filters?.maxPrice === "all" ? Infinity : parseFloat(filters?.maxPrice || "0");
+      const minPrice =
+        filters?.minPrice === "all" ? 0 : parseFloat(filters?.minPrice || "0");
+      const maxPrice =
+        filters?.maxPrice === "all"
+          ? Infinity
+          : parseFloat(filters?.maxPrice || "0");
       const carPrice = car.price;
 
       if (isNaN(carPrice)) {
@@ -361,13 +404,16 @@ if (params.has("maxMile")) {
       }
 
       // Year Filter
-      if (filters?.year && car.year < filters?.year[0] || filters?.year && car.year > filters?.year[1]) {
+      if (
+        (filters?.year && car.year < filters?.year[0]) ||
+        (filters?.year && car.year > filters?.year[1])
+      ) {
         console.log(
           `Filtered out by year: ${car.year} not in ${filters?.year[0]}-${filters?.year[1]}`
         );
         return false;
       }
-      
+
       // Make Filter
       if (filters?.make && filters?.make !== "all") {
         if (car.make_id !== Number(filters?.make)) {
@@ -379,7 +425,11 @@ if (params.has("maxMile")) {
       }
 
       // Model Filter
-      if (filters?.model && filters?.model !== "all" && car.model_id !== Number(filters?.model)) {
+      if (
+        filters?.model &&
+        filters?.model !== "all" &&
+        car.model_id !== Number(filters?.model)
+      ) {
         console.log(
           `Filtered out by model: car.modelId=${car.model_id}, filter=${filters?.model}`
         );
@@ -397,12 +447,23 @@ if (params.has("maxMile")) {
       }
 
       // Mileage Filter
-      const minMile = filters?.milesRange?.from === "all" ? 0 : parseFloat(filters?.milesRange?.from || "0");
-      const maxMile = filters?.milesRange?.to === "all" ? Infinity: parseFloat(filters?.milesRange?.to || "0");
+      const minMile =
+        filters?.milesRange?.from === "all"
+          ? 0
+          : parseFloat(filters?.milesRange?.from || "0");
+      const maxMile =
+        filters?.milesRange?.to === "all"
+          ? Infinity
+          : parseFloat(filters?.milesRange?.to || "0");
       const carMile = car.mileage;
 
       if (isNaN(carMile)) {
-        console.warn("Invalid car mileage:", car.mileage, "for car ID:", car.id);
+        console.warn(
+          "Invalid car mileage:",
+          car.mileage,
+          "for car ID:",
+          car.id
+        );
         return false;
       }
 
@@ -414,33 +475,60 @@ if (params.has("maxMile")) {
       }
 
       // Fuel Type Filter
-      if (filters.fuelType && filters.fuelType.length > 0 && !filters.fuelType.includes(car.fuel_type)) {
+      if (
+        filters.fuelType &&
+        filters.fuelType.length > 0 &&
+        !filters.fuelType.includes(car.fuel_type)
+      ) {
         return false;
       }
 
       // Transmission Filter
-      if (filters.transmission && filters.transmission.length > 0 && !filters.transmission.includes(car.transmission)) {
+      if (
+        filters.transmission &&
+        filters.transmission.length > 0 &&
+        !filters.transmission.includes(car.transmission)
+      ) {
         return false;
       }
 
       // Engine Capacity Filter
-     if (filters.engineCapacity && filters.engineCapacity.length > 0 && !filters.engineCapacity.includes(car.engineCapacityId)) {
+      if (
+        filters.engineCapacity &&
+        filters.engineCapacity.length > 0 &&
+        !filters.engineCapacity.includes(car.engineCapacityId)
+      ) {
         return false;
       }
       // Cylinder Count Filter
-      if (filters?.cylinderCount && filters.cylinderCount.length > 0 && car?.cylinder_count && !filters.cylinderCount.includes(car.cylinder_count)) {
+      if (
+        filters?.cylinderCount &&
+        filters.cylinderCount.length > 0 &&
+        car?.cylinder_count &&
+        !filters.cylinderCount.includes(car.cylinder_count)
+      ) {
         console.log(`Filtered out by Cylinder Count: ${car.cylinder_count}`);
         return false;
       }
 
       // Color Filter
-      if (filters?.color && filters?.color.length > 0 && car?.color && !filters.color.includes(car.color)) {
+      if (
+        filters?.color &&
+        filters?.color.length > 0 &&
+        car?.color &&
+        !filters.color.includes(car.color)
+      ) {
         console.log(`Filtered out by Color: ${car.color}`);
         return false;
       }
 
       // Interior Color Filter
-      if (filters?.interiorColor && filters?.interiorColor.length > 0 && car?.interior_color && !filters.interiorColor.includes(car.interior_color)) {
+      if (
+        filters?.interiorColor &&
+        filters?.interiorColor.length > 0 &&
+        car?.interior_color &&
+        !filters.interiorColor.includes(car.interior_color)
+      ) {
         console.log(`Filtered out by Interior Color: ${car.interior_color}`);
         return false;
       }
@@ -449,50 +537,74 @@ if (params.has("maxMile")) {
       if (filters?.tinted !== undefined && filters?.tinted !== "all") {
         const filterValue = filters?.tinted === "true";
         if (car.tinted !== filterValue) {
-          console.log(`Filtered out by tinted: car.tinted=${car.tinted}, filter=${filters?.tinted}`);
+          console.log(
+            `Filtered out by tinted: car.tinted=${car.tinted}, filter=${filters?.tinted}`
+          );
           return false;
         }
       }
 
-
       // Condition Filter
-      if (filters?.condition && filters?.condition !== "all" && car?.condition) {
+      if (
+        filters?.condition &&
+        filters?.condition !== "all" &&
+        car?.condition
+      ) {
         if (car.condition !== filters?.condition) {
           console.log(
             `Filtered out by condition: car.condition_id=${car.condition}, filter=${filters?.condition}`
           );
           return false;
         }
-      }   
-      
+      }
+
       // Location Filter
-      if (filters?.location && filters?.location.length > 0 && car?.location && !filters?.location.includes(car.location)) {
+      if (
+        filters?.location &&
+        filters?.location.length > 0 &&
+        car?.location &&
+        !filters?.location.includes(car.location)
+      ) {
         console.log(`Filtered out by location: ${car.location}`);
         return false;
       }
 
       // Featured Filter
-      if (filters.isFeatured !== "all" && car.is_featured !== (filters.isFeatured === "true")) {
+      if (
+        filters.isFeatured !== "all" &&
+        car.is_featured !== (filters.isFeatured === "true")
+      ) {
         return false;
       }
 
       // Imported Filter
-      if (filters.isImported !== "all" && car.is_imported !== (filters.isImported === "true")) {
+      if (
+        filters.isImported !== "all" &&
+        car.is_imported !== (filters.isImported === "true")
+      ) {
         return false;
       }
 
       // Owner Type Filter
-      if (filters?.ownerType && filters?.ownerType.length > 0 && car.owner_type) {
+      if (
+        filters?.ownerType &&
+        filters?.ownerType.length > 0 &&
+        car.owner_type
+      ) {
         if (car.owner_type !== filters?.ownerType) {
           console.log(
             `Filtered out by condition: car.owner_type=${car.owner_type}, filter=${filters?.ownerType}`
           );
           return false;
         }
-      } 
+      }
 
       // Has Warranty Filter
-      if (typeof filters?.hasWarranty !== undefined && filters?.hasWarranty !== "all" && car?.has_warranty) {
+      if (
+        typeof filters?.hasWarranty !== undefined &&
+        filters?.hasWarranty !== "all" &&
+        car?.has_warranty
+      ) {
         const filterValue = filters?.hasWarranty === "true";
         if (car.has_warranty !== filterValue) {
           console.log(
@@ -503,7 +615,11 @@ if (params.has("maxMile")) {
       }
 
       // Has Insurance Filter
-      if (typeof filters?.hasInsurance !== undefined && filters?.hasInsurance !== "all" && car?.has_insurance) {
+      if (
+        typeof filters?.hasInsurance !== undefined &&
+        filters?.hasInsurance !== "all" &&
+        car?.has_insurance
+      ) {
         const filterValue = filters?.hasInsurance === "true";
         if (car.has_insurance !== filterValue) {
           console.log(
@@ -528,27 +644,38 @@ if (params.has("maxMile")) {
       // Update URL with new filters
       const params = new URLSearchParams();
 
+      // Add search term if it exists
+      if (updatedFilters.search) params.append("search", updatedFilters.search);
+
       // Add all filters to URL params
-      if (updatedFilters.minPrice) params.append("minPrice", updatedFilters.minPrice);
-      if (updatedFilters.maxPrice) params.append("maxPrice", updatedFilters.maxPrice);
+      if (updatedFilters.minPrice)
+        params.append("minPrice", updatedFilters.minPrice);
+      if (updatedFilters.maxPrice)
+        params.append("maxPrice", updatedFilters.maxPrice);
       if (updatedFilters.year) {
-        params.append("minYear", updatedFilters.year[0].toString());
-        params.append("maxYear", updatedFilters.year[1].toString());
+        params.append("minYear", updatedFilters.year);
+        params.append("maxYear", updatedFilters.year);
       }
 
       if (updatedFilters.make) params.append("make", updatedFilters.make);
       if (updatedFilters.model) params.append("model", updatedFilters.model);
-      if (updatedFilters.category) params.append("category", updatedFilters.category);
-      
-      if (updatedFilters.milesRange?.from) params.append("minMile", updatedFilters.milesRange?.from);
-      if (updatedFilters.milesRange?.to) params.append("maxMile", updatedFilters.milesRange?.to);
+      if (updatedFilters.category)
+        params.append("category", updatedFilters.category);
+
+      if (updatedFilters.milesRange?.from)
+        params.append("minMile", updatedFilters.milesRange?.from);
+      if (updatedFilters.milesRange?.to)
+        params.append("maxMile", updatedFilters.milesRange?.to);
 
       if (updatedFilters.fuelType && updatedFilters.fuelType.length > 0) {
         updatedFilters.fuelType.forEach((type) => {
           params.append("fuelType", type);
         });
       }
-      if (updatedFilters.transmission && updatedFilters.transmission.length > 0) {
+      if (
+        updatedFilters.transmission &&
+        updatedFilters.transmission.length > 0
+      ) {
         updatedFilters.transmission.forEach((type) => {
           params.append("transmission", type);
         });
@@ -558,27 +685,33 @@ if (params.has("maxMile")) {
           params.append("color", type);
         });
       }
-     if (updatedFilters.interiorColor && updatedFilters.interiorColor.length > 0) {
+      if (
+        updatedFilters.interiorColor &&
+        updatedFilters.interiorColor.length > 0
+      ) {
         updatedFilters.interiorColor.forEach((type) => {
           params.append("interior_Color", type);
         });
       }
       if (updatedFilters.tinted) params.append("tinted", updatedFilters.tinted);
 
-      if (updatedFilters.condition) params.append("condition", updatedFilters.condition);
+      if (updatedFilters.condition)
+        params.append("condition", updatedFilters.condition);
       if (updatedFilters.location) {
         updatedFilters.location.forEach((type: string) => {
           params.append("location", type);
         });
       }
 
-       if (updatedFilters.ownerType && updatedFilters.ownerType.length > 0) {
+      if (updatedFilters.ownerType && updatedFilters.ownerType.length > 0) {
         updatedFilters.ownerType.forEach((type) => {
           params.append("owner_type", type);
         });
       }
-      if (updatedFilters.isFeatured) params.append("is_featured", updatedFilters.isFeatured);
-      if (updatedFilters.isImported) params.append("isImported", updatedFilters.isImported);
+      if (updatedFilters.isFeatured)
+        params.append("is_featured", updatedFilters.isFeatured);
+      if (updatedFilters.isImported)
+        params.append("isImported", updatedFilters.isImported);
 
       // Sort
       if (updatedFilters.sort) params.append("sort", updatedFilters.sort);
@@ -598,7 +731,7 @@ if (params.has("maxMile")) {
     setFilters({
       minPrice: "all",
       maxPrice: "all",
-      year: [1900, new Date().getFullYear()],
+      year: "all",
 
       make: "all",
       model: "all",
@@ -624,9 +757,9 @@ if (params.has("maxMile")) {
       isFeatured: "all",
       isImported: "all",
 
-      ownerType:[],
-      hasWarranty: 'all',
-      hasInsurance: 'all',
+      ownerType: [],
+      hasWarranty: "all",
+      hasInsurance: "all",
 
       sort: "newest",
       page: 1,
@@ -693,6 +826,12 @@ if (params.has("maxMile")) {
     filters.page * filters.limit
   );
 
+  const currentYear = new Date().getFullYear();
+  const years = Array.from(
+    { length: currentYear - 1989 },
+    (_, i) => currentYear - i
+  );
+
   return (
     <div className="bg-white min-h-screen py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -703,9 +842,9 @@ if (params.has("maxMile")) {
           <div className="w-40 h-1 bg-orange-500 mx-auto rounded-full" />
         </div>
 
-        <div className="md:flex md:gap-6">
+        <div className="">
           {/* Filters sidebar - desktop */}
-          <div className=" hidden md:block w-64 flex-shrink-0">
+          <div className="hidden md:block md:flex-1">
             <div className="bg-neutral-50 border-2 border-orange-500 border-solid rounded-lg shadow p-4 sticky top-24">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-semibold">{t("common.filters")}</h2>
@@ -719,296 +858,122 @@ if (params.has("maxMile")) {
                 </Button>
               </div>
 
-              {/* Condition Filter */}
-              <div className="mb-4">
-                <Label className="block text-sm font-medium mb-1">
-                  {t("car.condition")}
-                </Label>
-                <Select
-                  value={filters.condition}
-                  onValueChange={(value) => updateFilters({ condition: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={t("car.allConditions")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">
-                      {t("car.allConditions")}
-                    </SelectItem>
-                    <SelectItem value="new">{t("car.new")}</SelectItem>
-                    <SelectItem value="used">{t("car.used")}</SelectItem>
-                    <SelectItem value="scrap">{t("car.scrap")}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                {/* Make Filter */}
+                <div>
+                  <Label className="block text-sm font-medium mb-1">
+                    {t("car.make")}
+                  </Label>
+                  <Select
+                    value={filters.make}
+                    onValueChange={(value) => updateFilters({ make: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={t("car.allMakes")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{t("car.allMakes")}</SelectItem>
+                      {makes?.map((make: CarMake) => (
+                        <SelectItem key={make.id} value={make.id.toString()}>
+                          {make.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              {/* Make filter */}
-              <div className="mb-4">
-                <Label className="block text-sm font-medium mb-1">
-                  {t("car.make")}
-                </Label>
-                <Select
-                  value={filters.make}
-                  onValueChange={(value) => updateFilters({ make: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={t("car.allMakes")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">{t("car.allMakes")}</SelectItem>
-                    {makes?.map((make: CarMake) => (
-                      <SelectItem key={make.id} value={make.id.toString()}>
-                        {make.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                {/* Model Filter */}
+                <div>
+                  <Label className="block text-sm font-medium mb-1">
+                    {t("car.model")}
+                  </Label>
+                  <Select
+                    value={filters.model}
+                    onValueChange={(value) => updateFilters({ model: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={t("car.allModels")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{t("car.allModels")}</SelectItem>
+                      {models?.map((model: CarModel) => (
+                        <SelectItem key={model.id} value={model.id.toString()}>
+                          {model.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              {/* Model filter */}
-              <div className="mb-4">
-                <Label className="block text-sm font-medium mb-1">
-                  {t("car.model")}
-                </Label>
-                <Select
-                  value={filters.model}
-                  onValueChange={(value) => updateFilters({ model: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={t("car.allModels")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">{t("car.allModels")}</SelectItem>
-                    {models?.map((model: CarModel) => (
-                      <SelectItem key={model.id} value={model.id.toString()}>
-                        {model.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Category filter */}
-              <div className="mb-4">
-                <Label className="block text-sm font-medium mb-1">
-                  {t("common.category")}
-                </Label>
-                <Select
-                  value={filters.category}
-                  onValueChange={(value) => updateFilters({ category: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={t("car.allCategories")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">
-                      {t("car.allCategories")}
-                    </SelectItem>
-                    {categories?.map((category: CarCategory) => (
-                      <SelectItem
-                        key={category.id}
-                        value={category.id.toString()}
-                      >
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Imported Filter */}
-              <div className="mb-4">
-                <Label className="block text-sm font-medium mb-1">
-                  {t("car.imported")}
-                </Label>
-                <Select
-                  value={filters.isImported ?? "all"}
-                  onValueChange={(value) =>
-                    updateFilters({ is_imported: value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={t("car.allImports")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">{t("car.allImports")}</SelectItem>
-                    <SelectItem value="true">
-                      {t("common.isImported")}
-                    </SelectItem>
-                    <SelectItem value="false">{t("common.local")}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Year Range */}
-              <div className="mb-4">
-                <Label className="block text-sm font-medium mb-1">
-                  {t("car.year")}
-                </Label>
-                <div className="mt-2">
-                  <Slider
-                    value={filters.year}
-                    min={1990}
-                    max={new Date().getFullYear()}
-                    step={1}
-                    onValueChange={(value) => updateFilters({ year: value })}
-                  />
-                  <div className="flex justify-between mt-1 text-sm text-neutral-500">
-                    <span>{filters.year ? filters.year[0] : 1990}</span>
-                    <span>
-                      {filters.year
-                        ? filters.year[1]
-                        : new Date().getFullYear()}
-                    </span>
+                {/* Year Filter */}
+                <div>
+                  <Label className="block text-sm font-medium mb-1">
+                    {t("car.year")}
+                  </Label>
+                  <div className="mt-2">
+                    <Select
+                      value={filters.year?.toString() ?? ""}
+                      onValueChange={(value) =>
+                        updateFilters({ year: parseInt(value) })
+                      }
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder={t("car.allYears")} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">{t("car.allYears")}</SelectItem>
+                        {years.map((year) => (
+                          <SelectItem key={year} value={year.toString()}>
+                            {year}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
-              </div>
 
-              {/* Price Range */}
-              <div className="mb-4">
-                <Label className="block text-sm font-medium mb-1">
-                  {t("common.price")}
-                </Label>
-                <div className="grid grid-cols-2 gap-2">
+                {/* Condition Filter */}
+                <div>
+                  <Label className="block text-sm font-medium mb-1">
+                    {t("car.condition")}
+                  </Label>
                   <Select
-                    value={filters.minPrice}
+                    value={filters.condition}
                     onValueChange={(value) =>
-                      updateFilters({ minPrice: value })
+                      updateFilters({ condition: value })
                     }
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder={t("car.minPrice")} />
+                      <SelectValue placeholder={t("car.allConditions")} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">{t("car.noMin")}</SelectItem>
-                      <SelectItem value="5000">$5,000</SelectItem>
-                      <SelectItem value="10000">$10,000</SelectItem>
-                      <SelectItem value="20000">$20,000</SelectItem>
-                      <SelectItem value="30000">$30,000</SelectItem>
-                      <SelectItem value="50000">$50,000</SelectItem>
-                    </SelectContent>
-                  </Select>
-
-                  <Select
-                    value={filters.maxPrice}
-                    onValueChange={(value) =>
-                      updateFilters({ maxPrice: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={t("car.maxPrice")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">{t("car.noMax")}</SelectItem>
-                      <SelectItem value="10000">$10,000</SelectItem>
-                      <SelectItem value="20000">$20,000</SelectItem>
-                      <SelectItem value="30000">$30,000</SelectItem>
-                      <SelectItem value="50000">$50,000</SelectItem>
-                      <SelectItem value="100000">$100,000</SelectItem>
-                      <SelectItem value="200000">$200,000</SelectItem>
+                      <SelectItem value="all">
+                        {t("car.allConditions")}
+                      </SelectItem>
+                      <SelectItem value="new">{t("car.new")}</SelectItem>
+                      <SelectItem value="used">{t("car.used")}</SelectItem>
+                      <SelectItem value="scrap">{t("car.scrap")}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
 
-              {/* Fuel Type */}
-              <div className="mb-4">
-                <Label className="block text-sm font-medium mb-1">
-                  {t("car.fuel_type")}
-                </Label>
-                <MultiSelect
-                  options={[
-                    { value: "gasoline", label: t("car.gasoline") },
-                    { value: "diesel", label: t("car.diesel") },
-                    { value: "electric", label: t("car.electric") },
-                    { value: "hybrid", label: t("car.hybrid") },
-                  ]}
-                  selected={filters.fuelType}
-                  onChange={(value) => updateFilters({ fuelType: value })}
-                  placeholder={t("car.selectFuelTypes")}
-                />
+                {/* Owner Type Filter */}
+                <div>
+                  <Label className="block text-sm font-medium mb-1">
+                    {t("car.ownerType")}
+                  </Label>
+                  <MultiSelect
+                    options={[
+                      { value: "first", label: t("car.first") },
+                      { value: "second", label: t("car.second") },
+                      { value: "third", label: t("car.third") },
+                    ]}
+                    selected={filters.ownerType}
+                    onChange={(value) => updateFilters({ ownerType: value })}
+                    placeholder={t("car.selectOwnerTypes")}
+                  />
+                </div>
               </div>
-
-              {/* Transmission */}
-              <div className="mb-4">
-                <Label className="block text-sm font-medium mb-1">
-                  {t("car.transmission")}
-                </Label>
-                <MultiSelect
-                  options={[
-                    { value: "automatic", label: t("car.automatic") },
-                    { value: "manual", label: t("car.manual") },
-                  ]}
-                  selected={filters.transmission}
-                  onChange={(value) => updateFilters({ transmission: value })}
-                  placeholder={t("car.selectTransmissions")}
-                />
-              </div>
-
-              {/* Engine Capacity */}
-              <div className="mb-4">
-                <Label className="block text-sm font-medium mb-1">
-                  {t("car.engineCapacity")}
-                </Label>
-                <MultiSelect
-                  options={engineCapacityOptions}
-                  selected={filters.engineCapacity}
-                  onChange={(value) => updateFilters({ engineCapacity: value })}
-                  placeholder={t("car.selectEngineCapacities")}
-                />
-              </div>
-
-              {/* Color */}
-              <div className="mb-4">
-                <Label className="block text-sm font-medium mb-1">
-                  {t("car.color")}
-                </Label>
-                <MultiSelect
-                  options={[
-                    { value: "black", label: t("car.black") },
-                    { value: "beige", label: t("car.beige") },
-                    { value: "brown", label: t("car.brown") },
-                    { value: "gray", label: t("car.gray") },
-                  ]}
-                  selected={filters.color}
-                  onChange={(value) => updateFilters({ color: value })}
-                  placeholder={t("car.selectColors")}
-                />
-              </div>
-
-              <div className="mb-4">
-                <Label className="block text-sm font-medium mb-1">
-                  {t("car.interiorcolor")}
-                </Label>
-                <MultiSelect
-                  options={[
-                    { value: "black", label: t("car.black") },
-                    { value: "white", label: t("car.white") },
-                    // Add other colors
-                  ]}
-                  selected={filters.interiorColor}
-                  onChange={(value) => updateFilters({ interiorColor: value })}
-                  placeholder={t("car.selectColors")}
-                />
-              </div>
-
-              {/* Owner Type */}
-              <div className="mb-4">
-                <Label className="block text-sm font-medium mb-1">
-                  {t("car.ownerType")}
-                </Label>
-                <MultiSelect
-                  options={[
-                    { value: "first", label: t("car.first") },
-                    { value: "second", label: t("car.second") },
-                    { value: "third", label: t("car.third") },
-                  ]}
-                  selected={filters.ownerType}
-                  onChange={(value) => updateFilters({ ownerType: value })}
-                  placeholder={t("car.selectOwnerTypes")}
-                />
-              </div>
-
             </div>
           </div>
 
@@ -1142,28 +1107,108 @@ if (params.has("maxMile")) {
               </div>
             ) : viewMode === "grid" ? (
               // Grid view
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {paginatedCars.map((car) => {
-                  const carWithSeller = carsWithSeller.find(
-                    (c) => c.id === car.id
-                  );
-                  return carWithSeller ? (
-                    <CarCard key={car.id} car={carWithSeller} />
-                  ) : null;
-                })}
-              </div>
+              <>
+                {/* Top Banner */}
+                {activeTopBanners &&
+                  renderBanner(activeTopBanners, `top-${activeTopBanners.id}`)}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-7 mb-7">
+                  {paginatedCars.flatMap((car, index) => {
+                    const carWithSeller = carsWithSeller.find(
+                      (c) => c.id === car.id
+                    );
+                    const elements = [];
+
+                    if (carWithSeller) {
+                      elements.push(
+                        <CarCard key={`car-${car.id}`} car={carWithSeller} />
+                      );
+                    }
+
+                    // After every 2 items (not rows, unless you control row count)
+                    if ((index + 1) % 3 === 0) {
+                      const bannerIndex =
+                        Math.floor(index / 2) % activeMiddleBanners.length;
+                      const banner = activeMiddleBanners[bannerIndex];
+                      if (banner) {
+                        elements.push(
+                          renderBanner(banner, `middle-${banner.id}-${index}`)
+                        );
+                      }
+                    }
+
+                    return elements;
+                  })}
+                </div>
+
+                {/* Bottom Banner */}
+                {activeBottomBanners &&
+                  renderBanner(
+                    activeBottomBanners,
+                    `bottom-${activeBottomBanners.id}`
+                  )}
+              </>
             ) : (
-              // List view
-              <div className="space-y-4">
-                {paginatedCars.map((car) => {
-                  const carWithSeller = carsWithSeller.find(
-                    (c) => c.id === car.id
-                  );
-                  return carWithSeller ? (
-                    <CarListItem key={car.id} car={carWithSeller} />
-                  ) : null;
-                })}
-              </div>
+              <>
+                {/* Top Banner */}
+                {activeTopBanners &&
+                  renderBanner(activeTopBanners, `top-${activeTopBanners.id}`)}
+
+                <div className="w-full mt-7 mb-7 space-y-6">
+                  {paginatedCars.flatMap((car, index) => {
+                    const carWithSeller = carsWithSeller.find(
+                      (c) => c.id === car.id
+                    );
+                    const elements: JSX.Element[] = [];
+
+                    if (carWithSeller) {
+                      elements.push(
+                        <CarListItem
+                          key={`car-${car.id}`}
+                          car={carWithSeller}
+                        />
+                      );
+                    }
+
+                    // After every 3 items
+                    if ((index + 1) % 3 === 0) {
+                      const bannerIndex =
+                        Math.floor(index / 3) % activeMiddleBanners.length;
+                      const banner = activeMiddleBanners[bannerIndex];
+                      if (banner) {
+                        elements.push(
+                          <div
+                            key={`middle-${banner.id}-${index}`}
+                            className="w-full"
+                          >
+                            <a
+                              href={banner.link_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="block"
+                            >
+                              <img
+                                src={banner.image_url}
+                                alt={`Ad banner ${banner.id}`}
+                                className="w-full max-h-[350px] object-cover rounded-xl shadow-sm"
+                              />
+                            </a>
+                          </div>
+                        );
+                      }
+                    }
+
+                    return elements;
+                  })}
+                </div>
+
+                {/* Bottom Banner */}
+                {activeBottomBanners &&
+                  renderBanner(
+                    activeBottomBanners,
+                    `bottom-${activeBottomBanners.id}`
+                  )}
+              </>
             )}
 
             {/* Pagination */}
@@ -1229,7 +1274,7 @@ if (params.has("maxMile")) {
       {/* Mobile filters drawer */}
       {filtersOpen && (
         <div className="md:hidden fixed inset-0 bg-black bg-opacity-50 z-50">
-          <div className="bg-white h-full w-full md:w-80 p-4 ml-auto flex flex-col animate-in slide-in-from-right">
+          <div className="bg-white h-full w-full p-4 ml-auto flex flex-col animate-in slide-in-from-right">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-semibold">{t("common.filters")}</h2>
               <Button
@@ -1362,241 +1407,6 @@ if (params.has("maxMile")) {
                   </SelectContent>
                 </Select>
               </div>
-
-              {/* Year Range */}
-              <div className="mb-4">
-                <Label className="block text-sm font-medium mb-1">
-                  {t("car.year")}
-                </Label>
-                <div className="mt-2">
-                  <Slider
-                    value={filters.year}
-                    min={1990}
-                    max={new Date().getFullYear()}
-                    step={1}
-                    onValueChange={(value) => updateFilters({ year: value })}
-                  />
-                  <div className="flex justify-between mt-1 text-sm text-neutral-500">
-                    <span>{filters.year[0]}</span>
-                    <span>{filters.year[1]}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Price Range */}
-              <div className="mb-4">
-                <Label className="block text-sm font-medium mb-1">
-                  {t("common.price")}
-                </Label>
-                <div className="grid grid-cols-2 gap-2">
-                  <Select
-                    value={filters.minPrice}
-                    onValueChange={(value) =>
-                      updateFilters({ minPrice: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={t("car.minPrice")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">{t("car.noMin")}</SelectItem>
-                      <SelectItem value="5000">$5,000</SelectItem>
-                      <SelectItem value="10000">$10,000</SelectItem>
-                      <SelectItem value="20000">$20,000</SelectItem>
-                      <SelectItem value="30000">$30,000</SelectItem>
-                      <SelectItem value="50000">$50,000</SelectItem>
-                    </SelectContent>
-                  </Select>
-
-                  <Select
-                    value={filters.maxPrice}
-                    onValueChange={(value) =>
-                      updateFilters({ maxPrice: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={t("car.maxPrice")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">{t("car.noMax")}</SelectItem>
-                      <SelectItem value="10000">$10,000</SelectItem>
-                      <SelectItem value="20000">$20,000</SelectItem>
-                      <SelectItem value="30000">$30,000</SelectItem>
-                      <SelectItem value="50000">$50,000</SelectItem>
-                      <SelectItem value="100000">$100,000</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {/* Fuel Type */}
-              <div className="mb-4">
-                <Label className="block text-sm font-medium mb-1">
-                  {t("car.fuel_type")}
-                </Label>
-                <div className="space-y-2 mt-1">
-                  <div className="flex items-center">
-                    <Checkbox
-                      id="gasoline-mobile"
-                      checked={filters.fuel_type.includes("gasoline")}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          updateFilters({
-                            fuel_type: [...filters.fuel_type, "gasoline"],
-                          });
-                        } else {
-                          updateFilters({
-                            fuel_type: filters.fuel_type.filter(
-                              (t: string) => t !== "gasoline"
-                            ),
-                          });
-                        }
-                      }}
-                    />
-                    <Label htmlFor="gasoline-mobile" className="ml-2">
-                      {t("car.gasoline")}
-                    </Label>
-                  </div>
-                  <div className="flex items-center">
-                    <Checkbox
-                      id="diesel-mobile"
-                      checked={filters.fuel_type.includes("diesel")}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          updateFilters({
-                            fuel_type: [...filters.fuel_type, "diesel"],
-                          });
-                        } else {
-                          updateFilters({
-                            fuel_type: filters.fuel_type.filter(
-                              (t: string) => t !== "diesel"
-                            ),
-                          });
-                        }
-                      }}
-                    />
-                    <Label htmlFor="diesel-mobile" className="ml-2">
-                      {t("car.diesel")}
-                    </Label>
-                  </div>
-                  <div className="flex items-center">
-                    <Checkbox
-                      id="electric-mobile"
-                      checked={filters.fuel_type.includes("electric")}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          updateFilters({
-                            fuel_type: [...filters.fuel_type, "electric"],
-                          });
-                        } else {
-                          updateFilters({
-                            fuel_type: filters.fuel_type.filter(
-                              (t: string) => t !== "electric"
-                            ),
-                          });
-                        }
-                      }}
-                    />
-                    <Label htmlFor="electric-mobile" className="ml-2">
-                      {t("car.electric")}
-                    </Label>
-                  </div>
-                  <div className="flex items-center">
-                    <Checkbox
-                      id="hybrid-mobile"
-                      checked={filters.fuel_type.includes("hybrid")}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          updateFilters({
-                            fuel_type: [...filters.fuel_type, "hybrid"],
-                          });
-                        } else {
-                          updateFilters({
-                            fuel_type: filters.fuel_type.filter(
-                              (t: string) => t !== "hybrid"
-                            ),
-                          });
-                        }
-                      }}
-                    />
-                    <Label htmlFor="hybrid-mobile" className="ml-2">
-                      {t("car.hybrid")}
-                    </Label>
-                  </div>
-                </div>
-              </div>
-
-              {/* Transmission */}
-              <div className="mb-4">
-                <Label className="block text-sm font-medium mb-1">
-                  {t("car.transmission")}
-                </Label>
-                <div className="space-y-2 mt-1">
-                  <div className="flex items-center">
-                    <Checkbox
-                      id="automatic-mobile"
-                      checked={filters.transmission.includes("automatic")}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          updateFilters({
-                            transmission: [
-                              ...filters.transmission,
-                              "automatic",
-                            ],
-                          });
-                        } else {
-                          updateFilters({
-                            transmission: filters.transmission.filter(
-                              (t: string) => t !== "automatic"
-                            ),
-                          });
-                        }
-                      }}
-                    />
-                    <Label htmlFor="automatic-mobile" className="ml-2">
-                      {t("car.automatic")}
-                    </Label>
-                  </div>
-                  <div className="flex items-center">
-                    <Checkbox
-                      id="manual-mobile"
-                      checked={filters.transmission.includes("manual")}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          updateFilters({
-                            transmission: [...filters.transmission, "manual"],
-                          });
-                        } else {
-                          updateFilters({
-                            transmission: filters.transmission.filter(
-                              (t: string) => t !== "manual"
-                            ),
-                          });
-                        }
-                      }}
-                    />
-                    <Label htmlFor="manual-mobile" className="ml-2">
-                      {t("car.manual")}
-                    </Label>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex mt-6 gap-2">
-              <Button
-                variant="outline"
-                className="flex-1"
-                onClick={() => {
-                  resetFilters();
-                  setFiltersOpen(false);
-                }}
-              >
-                {t("common.reset")}
-              </Button>
-              <Button className="flex-1" onClick={() => setFiltersOpen(false)}>
-                {t("common.apply")} ({totalCars})
-              </Button>
             </div>
           </div>
         </div>

@@ -1,14 +1,10 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import i18n from "@/lib/i18n";
+import i18n, { resources } from "@/lib/i18n";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import {
   Dialog,
   DialogContent,
@@ -16,34 +12,20 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from "@/components/ui/carousel";
 import {
   Heart,
   Share,
   Flag,
   MapPin,
-  Calendar,
-  DollarSign,
   MessageSquare,
   Loader2,
   AlertTriangle,
   ArrowLeft,
-  Check,
-  Wrench,
-  Clock,
-  Car,
   Phone,
-  ChevronRight,
-  Navigation,
   MessageCircle,
+  Navigation,
+  Clock,
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -60,48 +42,25 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
+  CarListing,
+  User,
+  Showroom,
+  ShowroomMake,
+  showroomMakes,
+  serviceBookings,
+} from "@shared/schema";
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calendar as CalendarIcon } from "lucide-react";
-import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { format } from "date-fns";
-import { cn, formatAvailability, isOpenNow } from "@/lib/utils";
-import { Showroom, ShowroomService } from "@shared/schema";
-
-// Types for our data
-
-
-interface ShowroomMake {
-  id: number;
-  showroomId: number;
-  makeId: number;
-  make: {
-    id: number;
-    name: string;
-    nameAr: string;
-  };
-}
-
-// Booking form schema
-const bookingSchema = z.object({
-  serviceId: z.number().min(1, "Service is required"),
-  date: z.date({
-    required_error: "A date is required.",
-  }),
-  time: z.string().min(1, "Time is required"),
-  notes: z.string().max(500, "Notes cannot exceed 500 characters").optional(),
-});
-
-type BookingValues = z.infer<typeof bookingSchema>;
+import { ServiceBookingForm } from "@/components/services/ServiceBookingForm";
+import { formatAvailability, isOpenNow } from "@/lib/utils";
+import { CarImages } from "@/components/car/CarImages";
+import { CarListingDetail } from "@/components/car/CarListingDetail";
+import { SimilarShowrooms } from "@/components/car/SimilarShowrooms";
 
 // Message form schema
 const messageSchema = z.object({
@@ -112,6 +71,21 @@ const messageSchema = z.object({
 });
 
 type MessageValues = z.infer<typeof messageSchema>;
+
+// Report form schema
+const reportSchema = z.object({
+  reason: z.string().min(1, "Please select a reason"),
+  details: z
+    .string()
+    .min(10, "Details must be at least 10 characters")
+    .max(500, "Details cannot exceed 500 characters"),
+});
+
+type ReportValues = z.infer<typeof reportSchema>;
+
+type CarListingWithShowroom = CarListing & {
+  showroom?: Showroom; // optional if it’s not always present
+};
 
 const GarageDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -124,21 +98,17 @@ const GarageDetails = () => {
     "login" | "register" | "forget-password" | null
   >(null);
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
-  const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
-  const [selectedService, setSelectedService] =
-    useState<ShowroomService | null>(null);
+  const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
+  const [selectedServiceIds, setSelectedServiceIds] = useState<number[]>([]);
+  const [selectedServices, setSelectedServices] = useState<[]>([]);
+  const [selectedTab, setSelectedTab] = useState("description");
 
-  // Booking form
-  const bookingForm = useForm<BookingValues>({
-    resolver: zodResolver(bookingSchema),
-    defaultValues: {
-      serviceId: 0,
-      date: new Date(),
-      time: "",
-      notes: "",
-    },
-  });
+  const toggleService = (id: number) => {
+    setSelectedServiceIds((prev) =>
+      prev.includes(id) ? prev.filter((sid) => sid !== id) : [...prev, id]
+    );
+  };
 
   // Message form
   const messageForm = useForm<MessageValues>({
@@ -148,7 +118,15 @@ const GarageDetails = () => {
     },
   });
 
-  // Fetch showroom details
+  // Report form
+  const reportForm = useForm<ReportValues>({
+    resolver: zodResolver(reportSchema),
+    defaultValues: {
+      reason: "",
+      details: "",
+    },
+  });
+
   const {
     data: showroom,
     isLoading: isLoadingShowroom,
@@ -157,13 +135,12 @@ const GarageDetails = () => {
     queryKey: [`/api/garages/${id}`],
   });
 
-  // Fetch showroom services
-  const { data: services = [], isLoading: isLoadingServices } = useQuery<
-    ShowroomService[]
-  >({
-    queryKey: [`/api/showrooms/${id}/services`],
-    enabled: !!id,
-  });
+  // Fetch showroom car listings
+  const { data: listingServices = [], isLoading: isLoadingCarServices } =
+    useQuery<any[]>({
+      queryKey: [`/api/showrooms/${id}/services`],
+      enabled: !!id,
+    });
 
   // Fetch showroom makes (brands they service)
   const { data: makes = [], isLoading: isLoadingMakes } = useQuery<
@@ -173,60 +150,48 @@ const GarageDetails = () => {
     enabled: !!id,
   });
 
-  // Fetch favorite status if logged in
-  const { data: favoriteData } = useQuery<any>({
-    queryKey: ["/api/favorites/showrooms/check", id],
-    enabled: isAuthenticated && !!id,
+  console.log("user data in car detail", user);
+
+  const {
+    data: sellerData,
+    error,
+    isLoading,
+  } = useQuery<User>({
+    queryKey: ["/api/users", showroom?.user_id],
+    queryFn: async () => {
+      console.log("Car User ID:", showroom?.user_id);
+
+      try {
+        const res = await fetch(`/api/users/${showroom?.user_id}`);
+        console.log("Response received:", res);
+
+        const data = await res.json();
+        console.log("Fetched seller data:", data);
+        return data;
+      } catch (err) {
+        console.error("Error in query function:", err);
+        throw err;
+      }
+    },
+    enabled: !!showroom?.user_id, // Only fetch when car data is available
   });
 
-  // Set favorite status when data is loaded
-  useEffect(() => {
-    if (favoriteData) {
-      setIsFavorited(favoriteData.isFavorited);
-    }
-  }, [favoriteData]);
+  console.log("Query Status:", {
+    isLoading,
+    error,
+    sellerData,
+  });
 
-  // Set selected service when booking dialog opens
-  useEffect(() => {
-    if (bookingDialogOpen && selectedService) {
-      bookingForm.setValue("serviceId", selectedService.id);
-    }
-  }, [bookingDialogOpen, selectedService]);
-
-  const handleFavoriteToggle = async () => {
-    if (!isAuthenticated) {
-      setAuthModal("login");
-      return;
-    }
-
-    try {
-      if (isFavorited) {
-        await apiRequest("DELETE", `/api/favorites/showrooms/${id}`, {});
-        setIsFavorited(false);
-        toast({
-          title: t("showroom.removedFromFavorites"),
-          description: t("showroom.removedFromFavoritesDesc"),
-        });
-      } else {
-        await apiRequest("POST", "/api/favorites/showrooms", {
-          showroomId: parseInt(id),
-        });
-        setIsFavorited(true);
-        toast({
-          title: t("showroom.addedToFavorites"),
-          description: t("showroom.addedToFavoritesDesc"),
-        });
-      }
-    } catch (error) {
-      toast({
-        title: t("common.error"),
-        description: t("showroom.favoriteError"),
-        variant: "destructive",
-      });
-    }
+  const handleBooking = () => {
+    const selected = listingServices.filter((service) =>
+      selectedServiceIds.includes(service.id)
+    );
+    setSelectedServices(selected);
+    console.log("Booking services:", selected); // log the correct filtered array
+    setBookingDialogOpen(true); // Open dialog with selected services
   };
 
-  const handleContactShowroom = (values: MessageValues) => {
+  const handleContactSeller = (values: MessageValues) => {
     if (!isAuthenticated) {
       setContactDialogOpen(false);
       setAuthModal("login");
@@ -234,71 +199,90 @@ const GarageDetails = () => {
     }
 
     apiRequest("POST", "/api/messages", {
-      receiverId: showroom!.userId,
-      showroomId: parseInt(id),
+      receiverId: showroom!.user_id,
       content: values.message,
     })
       .then(() => {
         toast({
-          title: t("common.messageSent"),
-          description: t("showroom.messageSentDesc"),
+          title: "Message sent",
+          description: "Your message has been sent to the seller",
         });
         messageForm.reset();
         setContactDialogOpen(false);
       })
       .catch((error) => {
         toast({
-          title: t("common.error"),
-          description: error.message || t("showroom.messageError"),
+          title: "Message failed",
+          description:
+            error.message || "There was a problem sending your message",
           variant: "destructive",
         });
       });
   };
 
-  const handleBookService = (values: BookingValues) => {
+  const handleReportListing = (values: ReportValues) => {
     if (!isAuthenticated) {
-      setBookingDialogOpen(false);
+      setReportDialogOpen(false);
       setAuthModal("login");
       return;
     }
 
-    apiRequest("POST", "/api/service-bookings", {
-      userId: user?.id,
-      serviceId: values.serviceId,
-      showroomId: parseInt(id),
-      scheduledAt: new Date(
-        `${format(values.date, "yyyy-MM-dd")}T${values.time}`
-      ).toISOString(),
-      status: "pending",
-      notes: values.notes,
+    apiRequest("POST", "/api/reports", {
+      carId: parseInt(id),
+      reason: values.reason,
+      details: values.details,
     })
       .then(() => {
         toast({
-          title: t("showroom.bookingSuccess"),
-          description: t("showroom.bookingSuccessDesc"),
+          title: "Report submitted",
+          description:
+            "Thank you for reporting this listing. Our team will review it.",
         });
-        bookingForm.reset();
-        setBookingDialogOpen(false);
-        setSelectedService(null);
+        reportForm.reset();
+        setReportDialogOpen(false);
       })
       .catch((error) => {
         toast({
-          title: t("common.error"),
-          description: error.message || t("showroom.bookingError"),
+          title: "Report failed",
+          description:
+            error.message || "There was a problem submitting your report",
           variant: "destructive",
         });
       });
   };
 
-  const formatPrice = (price: number, currency = "QAR") => {
-    return new Intl.NumberFormat(i18n.language, {
-      style: "currency",
-      currency,
-      minimumFractionDigits: 0,
-    }).format(price);
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString(language === "ar" ? "ar-EG" : "en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
   };
 
+  const handleLocationMap = (showroomAddress: string) => {
+    const encodedAddress = encodeURIComponent(showroomAddress);
+    window.open(`https://maps.google.com/?q=${encodedAddress}`, "_blank");
+  };
 
+  const handleGetDirection = (showroomAddress: string) => {
+    const encodedAddress = encodeURIComponent(showroomAddress);
+    window.open(
+      `https://maps.google.com/maps/dir//${encodedAddress}`,
+      "_blank"
+    );
+  };
+
+  const handleCall = (phone: string) => {
+    window.open(`tel:${phone}`);
+  };
+
+  const handleWhatsApp = (phone: string, carTitle: string) => {
+    const encodedMessage = encodeURIComponent(
+      `Hi, I'm interested in the ${carTitle}`
+    );
+    window.open(`https://wa.me/${phone}?text=${encodedMessage}`);
+  };
 
   if (isLoadingShowroom) {
     return (
@@ -319,11 +303,11 @@ const GarageDetails = () => {
           <h1 className="text-2xl font-bold text-neutral-900 mb-2">
             {t("common.error")}
           </h1>
-          <p className="text-neutral-600 mb-6">{t("showroom.notFound")}</p>
-          <Link href="/browse-showrooms">
-            <Button variant="ghost" className="flex items-center text-blue-900">
+          <p className="text-neutral-600 mb-6">{t("common.garageNotFound")}</p>
+          <Link href="/home-garages">
+            <Button>
               <ArrowLeft className="mr-2" size={16} />
-              {t("showroom.backToShowrooms")}
+              {t("common.backToBrowse")}
             </Button>
           </Link>
         </div>
@@ -331,55 +315,32 @@ const GarageDetails = () => {
     );
   }
 
-  // Format and prepare showroom data
-  const name =
+  // Format and prepare car data
+  const title =
     language === "ar" && showroom.nameAr ? showroom.nameAr : showroom.name;
-  const address =
-    language === "ar" && showroom.addressAr
-      ? showroom.addressAr
-      : showroom.address;
   const description =
-    language === "ar" && showroom?.descriptionAr
-      ? showroom?.descriptionAr
-      : showroom?.description;
+    language === "ar" && showroom.descriptionAr
+      ? showroom.descriptionAr
+      : showroom.description;
 
   return (
-    <div className="bg-white pb-16">
-      {/* Hero section with showroom images */}
-      <div className="bg-white py-6 mb-8">
+    <div className="bg-white-100 pb-16">
+      <div className="bg-white py-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Back button and actions */}
           <div className="flex justify-between items-center mb-6">
-            <Link href="/browse-showrooms">
+            <Link href="/browse">
               <Button
                 variant="ghost"
                 className="flex items-center text-blue-900"
               >
                 <ArrowLeft size={16} className="mr-1" />
-                {t("showroom.backToShowrooms")}
+                {t("common.backToBrowse")}
               </Button>
             </Link>
 
+            {/* Action Buttons */}
             <div className="flex items-center space-x-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className={
-                  isFavorited
-                    ? "rounded-full hover:text-red-500 hover:border-red-500 bg-red-500 text-white"
-                    : "rounded-full text-red-500 border-red-500 hover:bg-red-500 hover:text-white"
-                }
-                onClick={handleFavoriteToggle}
-              >
-                <Heart
-                  className="w-4 h-4"
-                  fill={isFavorited ? "currentColor" : "none"}
-                />
-                {isFavorited
-                  ? t("common.removeFromFavorites")
-                  : t("common.addToFavorites")}
-              </Button>
-
               <Button
                 variant="outline"
                 size="sm"
@@ -404,6 +365,7 @@ const GarageDetails = () => {
                 <Share size={16} className="mr-1" />
                 {t("common.share")}
               </Button>
+
               <Button
                 variant="default"
                 size="sm"
@@ -416,316 +378,243 @@ const GarageDetails = () => {
             </div>
           </div>
 
-          {/* Showroom header */}
-          <div className="flex flex-col md:flex-row gap-6 items-start mb-8">
-            <Avatar className="h-24 w-24 md:h-32 md:w-32 rounded-lg">
-              <AvatarImage src={showroom.logo} alt={name} />
-              <AvatarFallback>{name.charAt(0).toUpperCase()}</AvatarFallback>
-            </Avatar>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* Images (3/4 width on md and above) */}
+            <div className="md:col-span-3">
+              <CarImages images={showroom?.images} title={showroom.name} />
+              <CarListingDetail
+                vehicleDescription={
+                  showroom?.description ?? "No Description Available"
+                }
+                vehicleDescriptionAr={
+                  showroom?.descriptionAr ?? "لا يوجد وصف متاح"
+                }
+              />
 
-            <div className="flex-1">
-              <div className="flex flex-col md:flex-row md:justify-between gap-4">
-                <div>
-                  <h1 className="text-2xl md:text-3xl font-bold text-neutral-900">
-                    {name}{" "}
-                    {showroom.is_main_branch && (
-                      <Badge className="ml-3 bg-orange-500">
-                        {t("showroom.mainBranch")}
-                      </Badge>
-                    )}
-                  </h1>
+              {/* Safety Features */}
+              <div className="mb-4 bg-gray-50 rounded-lg p-4"></div>
 
-                  {/* Makes they service */}
-                  {makes.length > 0 && (
-                    <div className="mt-4">
-                      <h3 className="text-sm font-medium text-neutral-500 mb-2">
-                        {t("showroom.specializesIn")}
-                      </h3>
-                      <div className="flex flex-wrap gap-2">
-                        {makes.map((make) => (
-                          <div
-                            key={make.id}
-                            className="flex items-center gap-2 border rounded-full px-3 py-1 text-sm text-neutral-700 bg-white shadow-sm"
-                          >
-                            {make.make?.image && (
-                              <img
-                                src={make.make.image}
-                                alt={make.make?.name}
-                                className="w-5 h-5 object-contain"
-                              />
-                            )}
-                            <span>
-                              {language === "ar" && make.make?.nameAr
-                                ? make.make.nameAr
-                                : make.make?.name}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
+              {/* Map */}
+              <div className="mb-4">
+                <div className="bg-gray-200 rounded-lg h-80 relative overflow-hidden">
+                  <iframe
+                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d57912.294236227725!2d51.441241299999996!3d25.276987!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3e45c534ffdce87f%3A0x44d2e5e5d107b7a7!2sDoha%2C%20Qatar!5e0!3m2!1sen!2sus!4v1694789123456!5m2!1sen!2sus"
+                    width="100%"
+                    height="100%"
+                    style={{ border: 0 }}
+                    allowFullScreen
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                    className="rounded-lg"
+                  ></iframe>
                 </div>
+              </div>
+            </div>
 
-                <div className="flex flex-col items-end w-[250px]">
-                  {showroom.phone && (
-                    <a href={`tel:${showroom.phone}`} className="w-full">
-                      <Button className="mt-2 w-full rounded-full bg-blue-900 text-white">
-                        <Phone size={16} className="mr-1" />
-                        {t("showroom.callShowroom")}
+            {/* Car Summary (1/4 width on md and above) */}
+            <div className="md:col-span-1">
+              <div className="bg-white rounded-lg p-4 shadow-sm border top-24">
+                <h2 className="text-xl font-bold text-gray-900 mb-2">
+                  {showroom.name}
+                </h2>
+
+                <div className="w-full flex items-center justify-between mb-6">
+                  <div className="w-full text-3xl text-blue-900">
+                    {[
+                      ...new Map(
+                        listingServices
+                          .filter(
+                            (service) =>
+                              service.status === "active" &&
+                              service.is_active === "true"
+                          )
+                          .map((service) => [service.name, service]) // Key by service.name
+                      ).values(),
+                    ].map((service) => (
+                      <label
+                        key={service.id}
+                        className="flex items-center justify-between p-4 cursor-pointer hover:shadow"
+                      >
+                        <div>
+                          <div className="text-sm">{service.name}</div>
+                        </div>
+                        <div className="text-sm text-orange-500">
+                          ${service.price}
+                          <input
+                            type="checkbox"
+                            checked={selectedServiceIds.includes(service.id)}
+                            onChange={() => toggleService(service.id)}
+                            className="form-checkbox h-4 w-4 ml-3 text-blue-600"
+                          />
+                        </div>
+                      </label>
+                    ))}
+
+                    <div className="mt-4 space-y-2">
+                      <Button
+                        onClick={handleBooking}
+                        disabled={selectedServiceIds.length === 0}
+                        className="w-full rounded-full bg-orange-500 text-white flex items-center justify-center gap-2 disabled:bg-gray-300"
+                      >
+                        Book Now
                       </Button>
-                    </a>
-                  )}
-                  <Button
-                    className="mt-2 w-full rounded-full bg-orange-500"
-                    onClick={() => setContactDialogOpen(true)}
-                  >
-                    <MessageSquare size={16} className="mr-1" />
-                    {t("showroom.messageShowroom")}
-                  </Button>
-                  {showroom.phone && (
-                    <a
-                      href={`https://wa.me/${showroom.phone.replace(/\D/g, "")}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full"
-                    >
-                      <Button className="mt-2 w-full rounded-full bg-green-600 text-white hover:bg-green-700">
-                        <MessageCircle size={16} className="mr-1" />
-                        {t("showroom.chatOnWhatsApp")}
+
+                      <Button
+                        size="sm"
+                        className="w-full rounded-full bg-blue-900 text-white flex items-center justify-center gap-2"
+                        onClick={() =>
+                          handleCall(showroom?.phone || sellerData?.phone)
+                        }
+                      >
+                        <Phone size={16} />
+                        {showroom?.phone || sellerData?.phone}
                       </Button>
-                    </a>
-                  )}
+
+                      <Button
+                        size="sm"
+                        className="w-full rounded-full bg-green-500 text-white flex items-center justify-center gap-2"
+                        onClick={() =>
+                          handleWhatsApp(
+                            showroom?.phone ?? sellerData?.phone,
+                            service?.name
+                          )
+                        }
+                      >
+                        <MessageCircle size={16} />
+                        WhatsApp
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              
-            </div>
-          </div>
-
-          {/* Showroom banner image carousel */}
-          {showroom.logo && (
-            <Carousel className="w-full mb-8">
-              <CarouselContent>
-                <CarouselItem>
-                  <div className="aspect-[16/4] rounded-lg overflow-hidden">
-                    <img
-                      src={showroom.logo}
-                      alt={name}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                </CarouselItem>
-              </CarouselContent>
-              <CarouselPrevious className="left-2" />
-              <CarouselNext className="right-2" />
-            </Carousel>
-          )}
-        </div>
-      </div>
-
-      {/* Content section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="md:col-span-2">
-            {/* Showroom details tabs */}
-            <Card className="border-transparent shadow-none">
-              <CardContent className="p-0">
-                {isLoadingServices ? (
-                      <div className="flex justify-center py-8">
-                        <Loader2 className="h-8 w-8 text-primary animate-spin" />
-                      </div>
-                    ) : services.length > 0 ? (
-                      <div className="space-y-6">
-                        {services.map((service) => (
-                          <Card
-                            key={service.id}
-                            className="rounded-2xl border-2 border-blue-900"
-                          >
-                            <CardContent className="p-6">
-                              <div className="flex flex-col md:flex-row md:items-center gap-6">
-                                {service?.image && (
-                                  <div className="w-24 h-24 flex-shrink-0 bg-neutral-100 rounded-lg overflow-hidden">
-                                    <img
-                                      src={service.image}
-                                      alt={
-                                        language === "ar" && service.description
-                                          ? service.descriptionAr
-                                          : service.description
-                                      }
-                                      className="w-full h-full object-cover"
-                                    />
-                                  </div>
-                                )}
-
-                                <div className="flex-1">
-                                  <div className="flex justify-between items-start">
-                                    <h3 className="text-lg font-semibold">
-                                      {language === "ar" && service.nameAr
-                                        ? service.nameAr
-                                        : service.name}
-                                    </h3>
-                                    <span className="text-lg font-bold text-primary">
-                                      {formatPrice(
-                                        service.price,
-                                        service.currency
-                                      )}
-                                    </span>
-                                  </div>
-
-                                  <p className="text-neutral-600 mt-2">
-                                    {language === "ar" && service?.descriptionAr
-                                      ? service?.descriptionAr
-                                      : service?.description ||
-                                        t("showroom.noServiceDescription")}
-                                  </p>
-
-                                  <div className="mt-4 flex justify-end">
-                                    <Button
-                                      size="sm"
-                                      className="rounded-full bg-orange-500 hover:bg-orange-700"
-                                      onClick={() => {
-                                        setSelectedService(service);
-                                        setBookingDialogOpen(true);
-                                      }}
-                                    >
-                                      <Wrench size={16} className="mr-1" />
-                                      {t("showroom.bookService")}
-                                    </Button>
-                                  </div>
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-8 text-neutral-500">
-                        {t("showroom.noServices")}
-                      </div>
-                    )}
-              </CardContent>
-            </Card>
-          </div>
-
-          <div>
-            {/* Showroom card */}
-            <Card className="sticky bg-neutral-50 rounded-2xl border-orange-500 border-2">
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  {t("showroom.about")} {showroom.name || showroom.nameAr}
-                </CardTitle>
-                <div className="max-w-none">
-                  <p>{showroom.description}</p>
-                </div>
-              </CardHeader>
-
-              <CardContent className="p-6 pt-0">
-                
-              <Separator className="my-4" />
-                <div className="mt-4 grid grid-cols-1 md:grid-cols-1 gap-4">
-                  {showroom?.timing && (
-  <div className="mt-4 p-3 border rounded-lg">
-    <div className="flex items-center justify-between mb-2">
-      <div className="flex items-center">
-        <Clock className="h-4 w-4 text-gray-500 mr-2" />
-        <span className="text-sm">
-          Timings (24h format) •{" "}
-          <span className={isOpenNow(showroom.timing) ? "text-green-600" : "text-red-600"}>
-            {isOpenNow(showroom.timing) ? "Open now" : "Closed now"}
-          </span>
-        </span>
-      </div>
-      <span className="text-xs text-green-600">▼</span>
-    </div>
-
-    <div className="space-y-1 text-xs">
-      {(() => {
-        try {
-          const availability = typeof showroom.timing === "string"
-            ? JSON.parse(showroom.timing)
-            : showroom.timing;
-          return formatAvailability(availability) || t("services.unknownAvailability");
-        } catch (e) {
-          return t("services.unknownAvailability");
-        }
-      })()}
-    </div>
-  </div>
-)}
-
-                </div>
-
-                <Separator className="my-4" />
-
-                {showroom.address && (
-                  <div className="mt-4">
-                     <h3 className="text-lg font-semibold mb-4">
-                      {t("showroom.businessAddress")}
-                    </h3>
-                    <p className="text-sm text-gray-700">{showroom.address}</p>
-
-                    {/* Location & Directions Buttons */}
-                    <div className="mt-4 flex justify-center gap-2 items-center">
-                      {showroom.location &&
-                        (() => {
-                          const [lat, lng] = showroom.location
-                            .split(",")
-                            .map(Number);
-                          const mapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
-                          const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
-
-                          return (
-                            <>
-                              <a
-                                href={mapsUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center justify-center rounded-full bg-orange-500 text-white px-3 py-1 text-sm min-w-[120px]"
-                              >
-                                <MapPin size={16} className="mr-1" />
-                                Location Map
-                              </a>
-                              <a
-                                href={directionsUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center justify-center rounded-full bg-orange-500 text-white px-3 py-1 text-sm min-w-[120px]"
-                              >
-                                <Navigation size={16} className="mr-1" />
-                                Get Directions
-                              </a>
-                            </>
-                          );
-                        })()}
+              {/* Seller info card */}
+              {!!sellerData && (
+                <div className="bg-white rounded-lg p-4 mt-4 shadow-sm border mb-4">
+                  <div className="text-center mb-4">
+                    <div className="text-orange-500 hover:underline cursor-pointer text-sm">
+                      {showroom.name}
                     </div>
                   </div>
-                  
-                )}
-              </CardContent>
-            </Card>
+
+                  {(showroom?.address || showroom?.addressAr) && (
+                    <div className="flex space-x-2 mb-4">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1 rounded-full bg-orange-500 text-white"
+                        onClick={() =>
+                          handleLocationMap(
+                            showroom?.address || showroom?.addressAr
+                          )
+                        }
+                      >
+                        <MapPin className="h-3 w-3 mr-1" /> Location Map
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1 rounded-full bg-orange-500 text-white"
+                        onClick={() =>
+                          handleGetDirection(
+                            showroom?.address || showroom?.address_ar
+                          )
+                        }
+                      >
+                        <Navigation className="h-3 w-3 mr-1" /> Get Direction
+                      </Button>
+                    </div>
+                  )}
+
+                  <div className="space-y-2 text-sm">
+                    {showroom?.address || showroom?.addressAr ? (
+                      <div>
+                        <span className="text-gray-600">Street:</span>{" "}
+                        {showroom.address || showroom.addressAr}
+                      </div>
+                    ) : null}
+
+                    {sellerData?.location ? (
+                      <div>
+                        <span className="text-gray-600">City:</span>{" "}
+                        {sellerData?.location}
+                      </div>
+                    ) : null}
+                  </div>
+
+                  {showroom?.timing && (
+                    <div className="mt-4 p-3 border rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center">
+                          <Clock className="h-4 w-4 text-gray-500 mr-2" />
+                          <span className="text-sm">
+                            Timings (24h format) •{" "}
+                            <span
+                              className={
+                                isOpenNow(showroom.timing)
+                                  ? "text-green-600"
+                                  : "text-red-600"
+                              }
+                            >
+                              {isOpenNow(showroom.timing)
+                                ? "Open now"
+                                : "Closed now"}
+                            </span>
+                          </span>
+                        </div>
+                        <span className="text-xs text-green-600">▼</span>
+                      </div>
+
+                      <div className="space-y-1 text-xs">
+                        {(() => {
+                          try {
+                            const availability =
+                              typeof showroom?.timing === "string"
+                                ? JSON.parse(showroom?.timing)
+                                : showroom?.timing;
+                            console.log("showroom availability", availability);
+                            return (
+                              formatAvailability(availability) ||
+                              t("services.unknownAvailability")
+                            );
+                          } catch (e) {
+                            return t("services.unknownAvailability");
+                          }
+                        })()}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Contact Showroom Dialog */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Similar Cars */}
+        <SimilarShowrooms showroomId={showroom.id} />
+      </div>
+
+      {/* Contact Seller Dialog */}
       <Dialog open={contactDialogOpen} onOpenChange={setContactDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>{t("showroom.contactShowroom")}</DialogTitle>
-            <DialogDescription>
-              {t("showroom.contactShowroomDesc")}
-            </DialogDescription>
+            <DialogTitle>{t("car.contactSeller")}</DialogTitle>
+            <DialogDescription>{t("car.contactSellerDesc")}</DialogDescription>
           </DialogHeader>
 
           <Form {...messageForm}>
             <form
-              onSubmit={messageForm.handleSubmit(handleContactShowroom)}
+              onSubmit={messageForm.handleSubmit(handleContactSeller)}
               className="space-y-4"
             >
               <div className="bg-neutral-50 p-3 rounded-md text-sm mb-4">
                 <p className="font-medium">
-                  {t("showroom.regarding")}: {name}
+                  {t("car.regarding")}: {title}
+                </p>
+                <p className="text-primary font-medium mt-1">
+                  ${showroom.service}
                 </p>
               </div>
 
@@ -736,7 +625,7 @@ const GarageDetails = () => {
                   <FormItem>
                     <FormControl>
                       <Textarea
-                        placeholder={t("showroom.writeYourMessage")}
+                        placeholder={t("car.writeYourMessage")}
                         className="min-h-[120px]"
                         {...field}
                       />
@@ -753,7 +642,7 @@ const GarageDetails = () => {
                   ) : (
                     <MessageSquare size={16} className="mr-1" />
                   )}
-                  {t("showroom.sendMessage")}
+                  {t("car.sendMessage")}
                 </Button>
               </DialogFooter>
             </form>
@@ -761,127 +650,71 @@ const GarageDetails = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Book Service Dialog */}
-      <Dialog open={bookingDialogOpen} onOpenChange={setBookingDialogOpen}>
+      {/* Report Listing Dialog */}
+      <Dialog open={reportDialogOpen} onOpenChange={setReportDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>{t("showroom.bookService")}</DialogTitle>
+            <DialogTitle>{t("common.reportListing")}</DialogTitle>
             <DialogDescription>
-              {selectedService && (
-                <div className="mt-2">
-                  <p className="font-medium">
-                    {language === "ar" && selectedService.service?.nameAr
-                      ? selectedService.service?.nameAr
-                      : selectedService.service?.name}
-                  </p>
-                  <p className="text-primary font-medium">
-                    {formatPrice(
-                      selectedService?.price,
-                      selectedService?.currency
-                    )}
-                  </p>
-                </div>
-              )}
+              {t("common.reportListingDesc")}
             </DialogDescription>
           </DialogHeader>
 
-          <Form {...bookingForm}>
+          <Form {...reportForm}>
             <form
-              onSubmit={bookingForm.handleSubmit(handleBookService)}
+              onSubmit={reportForm.handleSubmit(handleReportListing)}
               className="space-y-4"
             >
-              <input type="hidden" {...bookingForm.register("serviceId")} />
-
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={bookingForm.control}
-                  name="date"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant={"outline"}
-                              className={cn(
-                                "w-full pl-3 text-left font-normal",
-                                !field.value && "text-muted-foreground"
-                              )}
-                            >
-                              {field.value ? (
-                                format(field.value, "PPP")
-                              ) : (
-                                <span>{t("showroom.selectDate")}</span>
-                              )}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <CalendarComponent
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                            disabled={(date) =>
-                              date < new Date() ||
-                              date >
-                                new Date(
-                                  new Date().setDate(new Date().getDate() + 30)
-                                )
-                            }
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={bookingForm.control}
-                  name="time"
-                  render={({ field }) => (
-                    <FormItem>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue
-                              placeholder={t("showroom.selectTime")}
-                            />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="08:00">8:00 AM</SelectItem>
-                          <SelectItem value="09:00">9:00 AM</SelectItem>
-                          <SelectItem value="10:00">10:00 AM</SelectItem>
-                          <SelectItem value="11:00">11:00 AM</SelectItem>
-                          <SelectItem value="12:00">12:00 PM</SelectItem>
-                          <SelectItem value="13:00">1:00 PM</SelectItem>
-                          <SelectItem value="14:00">2:00 PM</SelectItem>
-                          <SelectItem value="15:00">3:00 PM</SelectItem>
-                          <SelectItem value="16:00">4:00 PM</SelectItem>
-                          <SelectItem value="17:00">5:00 PM</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+              <div className="bg-neutral-50 p-3 rounded-md text-sm mb-4">
+                <p className="font-medium">
+                  {t("common.reporting")}: {title}
+                </p>
               </div>
 
               <FormField
-                control={bookingForm.control}
-                name="notes"
+                control={reportForm.control}
+                name="reason"
+                render={({ field }) => (
+                  <FormItem>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={t("common.selectReason")} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="fraud">
+                          {t("common.reportReasonFraud")}
+                        </SelectItem>
+                        <SelectItem value="inappropriate">
+                          {t("common.reportReasonInappropriate")}
+                        </SelectItem>
+                        <SelectItem value="duplicate">
+                          {t("common.reportReasonDuplicate")}
+                        </SelectItem>
+                        <SelectItem value="misrepresentation">
+                          {t("common.reportReasonMisrepresentation")}
+                        </SelectItem>
+                        <SelectItem value="other">
+                          {t("common.reportReasonOther")}
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={reportForm.control}
+                name="details"
                 render={({ field }) => (
                   <FormItem>
                     <FormControl>
                       <Textarea
-                        placeholder={t("showroom.specialInstructions")}
-                        className="min-h-[100px]"
+                        placeholder={t("common.reportDetails")}
+                        className="min-h-[120px]"
                         {...field}
                       />
                     </FormControl>
@@ -891,17 +724,36 @@ const GarageDetails = () => {
               />
 
               <DialogFooter>
-                <Button type="submit" className="w-full">
-                  {bookingForm.formState.isSubmitting ? (
+                <Button type="submit" variant="destructive" className="w-full">
+                  {reportForm.formState.isSubmitting ? (
                     <Loader2 className="h-4 w-4 animate-spin mr-2" />
                   ) : (
-                    <Wrench size={16} className="mr-1" />
+                    <Flag size={16} className="mr-1" />
                   )}
-                  {t("showroom.confirmBooking")}
+                  {t("common.submitReport")}
                 </Button>
               </DialogFooter>
             </form>
           </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Booking Dialog */}
+      <Dialog open={bookingDialogOpen} onOpenChange={setBookingDialogOpen}>
+        <DialogContent className="max-w-3xl overflow-y-auto max-h-[90vh] space-y-8">
+          <DialogTitle>Confirm Bookings</DialogTitle>
+          <DialogDescription>
+            Please confirm your service selections and choose a date/time.
+          </DialogDescription>
+          <ServiceBookingForm
+            services={selectedServices}
+            userId={user?.id?.toString()}
+            showroomId={id}
+            isOpen={bookingDialogOpen}
+            onSuccess={() => {
+    setBookingDialogOpen(false); // ✅ Close dialog
+  }}
+          />
         </DialogContent>
       </Dialog>
 

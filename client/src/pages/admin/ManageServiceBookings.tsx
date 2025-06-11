@@ -61,7 +61,7 @@ const ManageServiceBookings = () => {
           <div className="md:flex">
             {/* Admin Sidebar */}
             <div className="hidden md:block">
-              <DashboardSidebar type={roleMapping[user.roleId] || "ADMIN"} />
+              <DashboardSidebar type={roleMapping[user?.roleId] || "ADMIN"} />
             </div>
 
             {/* Main Content */}
@@ -90,16 +90,6 @@ const ManageServiceBookings = () => {
                       {t("common.refresh")}
                     </Button>
 
-                    <PermissionGuard permission={Permission.CREATE_BOOKINGS}>
-                      <Button
-                        variant="default"
-                        className="bg-green-600 hover:bg-green-700"
-                        onClick={handleCreateBooking}
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        {t("bookings.createBooking")}
-                      </Button>
-                    </PermissionGuard>
                   </div>
                 </div>
 

@@ -13,9 +13,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import logoFooter from "@/assets/logo-white.png";
 import { usePagesByPlacement } from "@/hooks/use-pagesbyplacement";
-import { useQuery } from "@tanstack/react-query";
+import { useSettings } from "@/hooks/use-settings";
 
 const Footer = () => {
   const { t } = useTranslation();
@@ -23,12 +22,8 @@ const Footer = () => {
   const direction = language === "ar" ? "rtl" : "ltr";
   const { pages } = usePagesByPlacement("footer");
 
-    const { data: settingsData = [], isLoading } = useQuery({
-      queryKey: ["general-settings"],
-      queryFn: () => fetch("/api/settings").then((res) => res.json()),
-    });
+ const { data: settingsData = [], isLoading } = useSettings();
 
-    console.log("settingsData", settingsData);
 
   return (
   
@@ -51,7 +46,7 @@ const Footer = () => {
                 direction === "rtl" ? "flex-row-reverse" : ""
               }`}
             >
-              <img src={settingsData?.logo} alt="Logo" className="h-20" />
+              <img src={settingsData?.footer_logo} alt="Logo" className="h-20" />
             </div>
             <p className="text-white mb-6">{settingsData?.site_description}</p>
             <div className="flex gap-4 mb-6">
@@ -119,6 +114,9 @@ const Footer = () => {
     <li>
       <Link href="/browse">{t("common.browseCars")}</Link>
     </li>
+      <li>
+      <Link href="/home-garages">{t("common.browseGarages")}</Link>
+    </li>
     <li>
       <Link href="/sell-car">{t("common.sellCar")}</Link>
     </li>
@@ -131,6 +129,9 @@ const Footer = () => {
         </Link>
       </li>
     ))}
+    <li>
+      <Link href="/blogs">{t("common.news")}</Link>
+    </li>
   </ul>
 </div>
 

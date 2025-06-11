@@ -28,6 +28,10 @@ import { ITransactionStorage, TransactionStorage } from "./storage/transactions"
 import { IUserRoleSwitchStorage, UserRoleSwitchStorage } from "./storage/userRolesSwitch";
 import { CarEngineCapacityStorage, ICarEngineCapacityStorage } from "./storage/carEngineCapacity";
 import { IStatStorage, StatStorage } from "./storage/stats";
+import { CarInspectionStorage, ICarInspectionStorage } from "./storage/carInspection";
+import { ISliderStorage, SliderStorage } from "./storage/sliders";
+import { BlogPostStorage, IBlogPostStorage } from "./storage/blogPosts";
+import { BannerAdsStorage, IBannerAdsStorage } from "./storage/bannerAds";
 
 export interface IStorage 
 extends
@@ -60,7 +64,11 @@ ITransactionStorage,
 IUserRoleSwitchStorage,
 IUserStorage,
 IUserSubscriptionStorage,
-IStatStorage
+IStatStorage,
+ICarInspectionStorage,
+ISliderStorage,
+IBlogPostStorage,
+IBannerAdsStorage
 { }
 
 
@@ -95,5 +103,9 @@ export const storage: IStorage = {
 ...UserRoleSwitchStorage,
 ...UserStorage,
 ...UserSubscriptionStorage,
-...StatStorage
+...StatStorage,
+...CarInspectionStorage,
+...SliderStorage,
+...BlogPostStorage,
+...BannerAdsStorage
 };

@@ -74,10 +74,11 @@ const ManageUsers = () => {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState({
-  role: "all", 
-  status: "all",
-  sortBy: "newest",
-});
+    role: "all",
+    status: "all",
+    isEmailVerified: "all",
+    sortBy: "newest",
+  });
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [actionDialogOpen, setActionDialogOpen] = useState(false);
@@ -91,6 +92,7 @@ const ManageUsers = () => {
     email: "",
     role: "",
     isEmailVerified: false,
+    status: "",
   });
   const [actionInProgress, setActionInProgress] = useState(false);
 
@@ -114,6 +116,13 @@ const ManageUsers = () => {
 
       if (filters.status && filters.status !== "all") {
         searchParams.append("status", filters.status);
+      }
+
+      if (filters.isEmailVerified && filters.isEmailVerified !== "all") {
+        searchParams.append(
+          "isEmailVerified", 
+          filters.isEmailVerified === "verified" ? "true" : "false"
+        );
       }
 
       if (filters.sortBy) {
@@ -142,11 +151,11 @@ const ManageUsers = () => {
       setActionInProgress(true);
 
       if (action === "delete") {
-        await apiRequest("DELETE", `/api/admin/users/${userId}`, {});
+        await apiRequest("DELETE", `/api/users/${userId}`, {});
         return;
       }
 
-      await apiRequest("PATCH", `/api/admin/users/${userId}`, {
+      await apiRequest("PUT", `/api/users/${userId}/actions`, {
         action,
         reason,
         role,
@@ -195,11 +204,7 @@ const ManageUsers = () => {
   const updateUser = useMutation({
     mutationFn: async (userData: any) => {
       setActionInProgress(true);
-      return await apiRequest(
-        "PATCH",
-        `/api/admin/users/${userData.id}`,
-        userData
-      );
+      return await apiRequest("PUT", `/api/users/${userData.id}`, userData);
     },
     onSuccess: () => {
       toast({
@@ -233,6 +238,7 @@ const ManageUsers = () => {
     setFilters({
       role: "",
       status: "all",
+      isEmailVerified: "all",
       sortBy: "newest",
     });
     refetch();
@@ -293,16 +299,13 @@ const ManageUsers = () => {
   };
 
   useEffect(() => {
-  // Debounce the refetch to avoid too many requests
-  const timer = setTimeout(() => {
-    refetch();
-  }, 300);
+    // Debounce the refetch to avoid too many requests
+    const timer = setTimeout(() => {
+      refetch();
+    }, 300);
 
-  return () => clearTimeout(timer);
-}, [filters, refetch]);
-
-
-
+    return () => clearTimeout(timer);
+  }, [filters, refetch]);
 
   return (
     <div className="min-h-screen bg-white py-8">
@@ -393,19 +396,60 @@ const ManageUsers = () => {
                           <SelectValue placeholder={t("admin.filterByRole")} />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="all">{t("admin.allRoles")}</SelectItem>
-                          <SelectItem value="ADMIN">{t("admin.admin")}</SelectItem>
-                          <SelectItem value="MODERATOR">{t("admin.moderator")}</SelectItem>
-                          <SelectItem value="SELLER">{t("admin.seller")}</SelectItem>
-                          <SelectItem value="DEALER">{t("admin.dealer")}</SelectItem>
-                          <SelectItem value="GARAGE">{t("admin.garage")}</SelectItem>
-                          <SelectItem value="BUYER">{t("admin.buyer")}</SelectItem>
+                          <SelectItem value="all">
+                            {t("admin.allRoles")}
+                          </SelectItem>
+                          <SelectItem value="BUYER">
+                            {t("admin.buyer")}
+                          </SelectItem>
+                          <SelectItem value="SELLER">
+                            {t("admin.seller")}
+                          </SelectItem>
+                          <SelectItem value="DEALER">
+                            {t("admin.dealer")}
+                          </SelectItem>
+                          <SelectItem value="GARAGE">
+                            {t("admin.garage")}
+                          </SelectItem>
+                          <SelectItem value="MODERATOR">
+                            {t("admin.moderator")}
+                          </SelectItem>
+                          <SelectItem value="ADMIN">
+                            {t("admin.admin")}
+                          </SelectItem>
                         </SelectContent>
                       </Select>
-                      </div>
-                      
-                      <div>
-                      {/* Status Filter */}
+                    </div>
+
+                    {/* Email Verification Filter */}
+                    <div>
+                      <Select
+                        value={filters.isEmailVerified}
+                        onValueChange={(value) => {
+                          setFilters({ ...filters, isEmailVerified: value });
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue
+                            placeholder={t("admin.filterByVerification")}
+                          />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">
+                            {t("admin.allVerifications")}
+                          </SelectItem>
+                          <SelectItem value="verified">
+                            {t("admin.verified")}
+                          </SelectItem>
+                          <SelectItem value="unverified">
+                            {t("admin.unverified")}
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Account Status Filter */}
+                    <div>
                       <Select
                         value={filters.status}
                         onValueChange={(value) => {
@@ -413,13 +457,26 @@ const ManageUsers = () => {
                         }}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder={t("admin.filterByStatus")} />
+                          <SelectValue
+                            placeholder={t("admin.filterByStatus")}
+                          />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="all">{t("admin.allStatuses")}</SelectItem>
-                          <SelectItem value="verified">{t("admin.verified")}</SelectItem>
-                          <SelectItem value="suspended">{t("admin.suspended")}</SelectItem>
-                          <SelectItem value="unverified">{t("admin.unverified")}</SelectItem>
+                          <SelectItem value="all">
+                            {t("admin.allStatuses")}
+                          </SelectItem>
+                          <SelectItem value="active">
+                            {t("admin.active")}
+                          </SelectItem>
+                          <SelectItem value="inactive">
+                            {t("admin.inactive")}
+                          </SelectItem>
+                          <SelectItem value="suspended">
+                            {t("admin.suspended")}
+                          </SelectItem>
+                          <SelectItem value="removed">
+                            {t("admin.removed")}
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -482,6 +539,9 @@ const ManageUsers = () => {
                             {t("admin.verificationStatus")}
                           </TableHead>
                           <TableHead className="text-gray-800 font-semibold">
+                            {t("admin.status")}
+                          </TableHead>
+                          <TableHead className="text-gray-800 font-semibold">
                             {t("admin.joinedOn")}
                           </TableHead>
                           <TableHead className="text-gray-800 font-semibold">
@@ -524,6 +584,28 @@ const ManageUsers = () => {
                                 </Badge>
                               )}
                             </TableCell>
+                            <TableCell>
+                              {user.status === "active" && (
+                                <Badge className="bg-green-100 text-green-800 hover:text-white">
+                                  {t("admin.active")}
+                                </Badge>
+                              )}
+                              {user.status === "inactive" && (
+                                <Badge className="bg-gray-100 text-gray-800 hover:text-white">
+                                  {t("admin.inactive")}
+                                </Badge>
+                              )}
+                              {user.status === "suspended" && (
+                                <Badge className="bg-red-100 text-red-800 hover:text-white">
+                                  {t("admin.suspended")}
+                                </Badge>
+                              )}
+                              {user.status === "removed" && (
+                                <Badge className="bg-zinc-100 text-zinc-800 hover:text-white">
+                                  {t("admin.removed")}
+                                </Badge>
+                              )}
+                            </TableCell>
                             <TableCell className="text-sm">
                               {new Date(user.created_at).toLocaleDateString()}
                             </TableCell>
@@ -558,25 +640,31 @@ const ManageUsers = () => {
                                   </DropdownMenuItem>
 
                                   {/* In the dropdown menu */}
-                                  {!user.isSuspended && user.role !== "ADMIN" && (
-                                    <DropdownMenuItem
-                                      className="hover:bg-gray-100"
-                                      onClick={() => handleAction(user, "ban")}
-                                    >
-                                      <Ban className="mr-2 h-4 w-4 text-amber-500" />
-                                      {t("admin.suspendUser")}
-                                    </DropdownMenuItem>
-                                  )}
+                                  {!user.isSuspended &&
+                                    user.role !== "ADMIN" && (
+                                      <DropdownMenuItem
+                                        className="hover:bg-gray-100"
+                                        onClick={() =>
+                                          handleAction(user, "ban")
+                                        }
+                                      >
+                                        <Ban className="mr-2 h-4 w-4 text-amber-500" />
+                                        {t("admin.suspendUser")}
+                                      </DropdownMenuItem>
+                                    )}
 
-                                  {user.role !== "ADMIN" && user.role !== "MODERATOR" && (
-                                    <DropdownMenuItem
-                                      className="hover:bg-gray-100"
-                                      onClick={() => handleAction(user, "promote")}
-                                    >
-                                      <Shield className="mr-2 h-4 w-4 text-blue-500" />
-                                      {t("admin.promoteToModerator")}
-                                    </DropdownMenuItem>
-                                  )}
+                                  {user.role !== "ADMIN" &&
+                                    user.role !== "MODERATOR" && (
+                                      <DropdownMenuItem
+                                        className="hover:bg-gray-100"
+                                        onClick={() =>
+                                          handleAction(user, "promote")
+                                        }
+                                      >
+                                        <Shield className="mr-2 h-4 w-4 text-blue-500" />
+                                        {t("admin.promoteToModerator")}
+                                      </DropdownMenuItem>
+                                    )}
                                   <DropdownMenuSeparator className="bg-gray-200" />
                                   <DropdownMenuItem
                                     className="text-red-400 hover:bg-gray-100 focus:bg-red-900/30"
@@ -909,7 +997,9 @@ const ManageUsers = () => {
                 <Input
                   id="username"
                   value={editedUser.username}
-                  onChange={(e) => setEditedUser({...editedUser, username: e.target.value})}
+                  onChange={(e) =>
+                    setEditedUser({ ...editedUser, username: e.target.value })
+                  }
                   className="col-span-3"
                 />
               </div>
@@ -920,7 +1010,9 @@ const ManageUsers = () => {
                 <Input
                   id="email"
                   value={editedUser.email}
-                  onChange={(e) => setEditedUser({...editedUser, email: e.target.value})}
+                  onChange={(e) =>
+                    setEditedUser({ ...editedUser, email: e.target.value })
+                  }
                   className="col-span-3"
                 />
               </div>
@@ -930,14 +1022,18 @@ const ManageUsers = () => {
                 </Label>
                 <Select
                   value={editedUser.role}
-                  onValueChange={(value) => setEditedUser({...editedUser, role: value})}
+                  onValueChange={(value) =>
+                    setEditedUser({ ...editedUser, role: value })
+                  }
                 >
                   <SelectTrigger className="col-span-3">
                     <SelectValue placeholder={t("admin.selectRole")} />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="ADMIN">{t("admin.admin")}</SelectItem>
-                    <SelectItem value="MODERATOR">{t("admin.moderator")}</SelectItem>
+                    <SelectItem value="MODERATOR">
+                      {t("admin.moderator")}
+                    </SelectItem>
                     <SelectItem value="SELLER">{t("admin.seller")}</SelectItem>
                     <SelectItem value="DEALER">{t("admin.dealer")}</SelectItem>
                     <SelectItem value="GARAGE">{t("admin.garage")}</SelectItem>
@@ -954,11 +1050,18 @@ const ManageUsers = () => {
                     type="checkbox"
                     id="verified"
                     checked={editedUser.isEmailVerified}
-                    onChange={(e) => setEditedUser({...editedUser, isEmailVerified: e.target.checked})}
+                    onChange={(e) =>
+                      setEditedUser({
+                        ...editedUser,
+                        isEmailVerified: e.target.checked,
+                      })
+                    }
                     className="mr-2 h-4 w-4"
                   />
                   <Label htmlFor="verified">
-                    {editedUser.isEmailVerified ? t("common.yes") : t("common.no")}
+                    {editedUser.isEmailVerified
+                      ? t("common.yes")
+                      : t("common.no")}
                   </Label>
                 </div>
               </div>
@@ -972,10 +1075,7 @@ const ManageUsers = () => {
               >
                 {t("common.cancel")}
               </Button>
-              <Button
-                onClick={handleUpdateUser}
-                disabled={actionInProgress}
-              >
+              <Button onClick={handleUpdateUser} disabled={actionInProgress}>
                 {actionInProgress ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 ) : (
@@ -1100,8 +1200,6 @@ const ManageUsers = () => {
           </DialogContent>
         </Dialog>
       )}
-
-      
     </div>
   );
 };

@@ -9,16 +9,16 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { RoleSpecificRoute } from "@/components/RoleSpecificRoute";
-import { LoginRedirect } from "./lib/auth/loginRedirect";
+import { LoginRedirect } from "@/lib/auth/loginRedirect";
 import { Permission, roleMapping } from "@shared/permissions";
 
 // 🧩 UI Components
-import Header from "./components/layout/Header";
-import Footer from "./components/layout/Footer";
+import Header from "@/components/layout/Header";
+import Footer from "@/components/layout/Footer";
 import { LoadingScreen } from "@/components/LoadingScreen";
-import { AuthForms } from "./components/forms/AuthForm/AuthForms";
+import { AuthForms } from "@/components/forms/AuthForm/AuthForms";
 import ManageMessages from "./pages/admin/ManageMessages";
-import ManageProfile from "./components/dashboard/ManageProfile";
+import ManageProfile from "./pages/admin/ManageProfile";
 
 // 📄 Static Pages
 import StaticPage from "./pages/StaticPage";
@@ -26,9 +26,11 @@ import NotFound from "./pages/not-found";
 
 // 🏠 Public Pages
 import Home from "./pages/Home";
+import GarageHome from "./pages/GarageHome";
 import BrowseCars from "./pages/BrowseCars";
 import CarDetails from "./pages/CarDetails";
 import SellCar from "./pages/SellCar";
+import SellService from "./pages/SellService";
 import BrowseShowrooms from "./pages/BrowseShowrooms";
 import BrowseGarages from "./pages/BrowseGarages";
 import BrowseServices from "./pages/BrowseServices";
@@ -36,6 +38,8 @@ import ShowroomDetails from "./pages/ShowroomDetails";
 import GarageDetails from "./pages/GarageDetails";
 import ServiceDetails from "./pages/ServiceDetail";
 import ShowroomServiceDetails from "./pages/ShowroomServiceDetail";
+import CompareCars from "./pages/CompareCars";
+import BlogPage from "./pages/BlogPage";
 import Login from "./pages/Login";
 
 // 👤 Buyer Pages
@@ -56,9 +60,14 @@ import AdminManageUsers from "./pages/admin/ManageUsers";
 import AdminManageSettings from "./pages/admin/ManageSettings";
 import AdminManageContent from "./pages/admin/ManageContent";
 import ManageListings from "./pages/admin/ManageListings";
+import ManageSliders from "./pages/admin/ManageSliders";
+import ManageBlogs from "./pages/admin/ManageBlogs";
+import ManageBannerAds from "./pages/admin/ManageBannerAds";
 import ManageServiceListings from "./pages/admin/ManageServiceListings";
 import ManageServiceBookings from "./pages/admin/ManageServiceBookings";
-import SellService from "./pages/SellService";
+import ManageCarInspections from "./pages/admin/ManageCarInspections";
+import ManagePromotionPackages from "./pages/admin/ManagePromtionPackages";
+
 
 
 function App() {
@@ -127,6 +136,7 @@ function functionStaticPage({ keyParam }: { keyParam: string }) {
             }}
           </Route>
           <Route path="/" component={Home} />
+          <Route path="/home-garages" component={GarageHome} />
           <Route path="/browse" component={BrowseCars} />
           <Route path="/browse-showrooms" component={BrowseShowrooms} />
           <Route path="/browse-garages" component={BrowseGarages} />
@@ -136,6 +146,8 @@ function functionStaticPage({ keyParam }: { keyParam: string }) {
           <Route path="/garages/:id" component={GarageDetails} />
           <Route path="/services/:id" component={ServiceDetails} />
           <Route path="/showroom-services/:id" component={ShowroomServiceDetails} />
+          <Route path="/compare" component={CompareCars} />
+          <Route path="/blogs" component={BlogPage} />
           <Route path="/login" component={LoginRedirect} />
 
           {/* ---------- Sell Car & Service--------------- */}
@@ -295,6 +307,21 @@ function functionStaticPage({ keyParam }: { keyParam: string }) {
               <AdminManageContent />
             </ProtectedRoute>
           </Route>
+          <Route path="/admin/sliders">
+            <ProtectedRoute permissions={[Permission.MANAGE_CONTENT]}>
+              <ManageSliders />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/admin/blogs">
+            <ProtectedRoute permissions={[Permission.MANAGE_CONTENT]}>
+              <ManageBlogs />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/admin/ads">
+            <ProtectedRoute permissions={[Permission.MANAGE_CONTENT]}>
+              <ManageBannerAds />
+            </ProtectedRoute>
+          </Route>
           <Route path="/admin/profile">
             <ProtectedRoute permissions={[Permission.MANAGE_ALL_USERS]}>
               <ManageProfile />
@@ -305,6 +332,18 @@ function functionStaticPage({ keyParam }: { keyParam: string }) {
               <ManageMessages />
             </ProtectedRoute>
           </Route>
+          <Route path="/admin/inspections">
+            <ProtectedRoute permissions={[Permission.MANAGE_PLATFORM_SETTINGS]}>
+              <ManageCarInspections />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/admin/promotions">
+            <ProtectedRoute permissions={[Permission.MANAGE_PLATFORM_SETTINGS]}>
+              <ManagePromotionPackages />
+            </ProtectedRoute>
+          </Route>
+
+
 
           {/* ---------- 404 - Not Found ---------- */}
           <Route component={NotFound} />

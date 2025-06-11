@@ -87,7 +87,8 @@ export function CarImages({ images, title }: ImageGalleryProps) {
       
       {/* Thumbnail Gallery */}
       <div className="grid grid-cols-7 gap-2 mb-3">
-        {images.slice(0, 7).map((image, index) => (
+        {(Array.isArray(images) ? images.slice(0, 7) : []).map((image, index) => (
+
           <img 
             key={index}
             src={image} 

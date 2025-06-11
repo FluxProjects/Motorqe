@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useSettings } from "@/hooks/use-settings";
+import { Link } from "wouter";
 
 interface LoanCalculatorProps {
   vehiclePrice: number;
@@ -12,11 +14,14 @@ export function CarLoanCalculator({ vehiclePrice }: LoanCalculatorProps) {
   );
   const [interestRate, setInterestRate] = useState(5.5);
   const [loanPeriod, setLoanPeriod] = useState(60);
+  const { data: settingsData = [], isLoadingSetting, refetch } = useSettings();
 
   // Real calculations
   const principal = carPrice - downPayment;
   const monthlyRate = interestRate / 100 / 12;
   const numPayments = loanPeriod;
+
+  const downPaymentPercentage = ((downPayment / carPrice) * 100).toFixed(0);
 
   const monthlyPayment =
     principal > 0 && monthlyRate > 0
@@ -26,8 +31,12 @@ export function CarLoanCalculator({ vehiclePrice }: LoanCalculatorProps) {
 
   const totalInterest = monthlyPayment * numPayments - principal;
   const totalAmount = principal + totalInterest;
+  const interestPercentage = ((totalInterest / totalAmount) * 100).toFixed(0);
+  const principalPercentage = ((principal / totalAmount) * 100).toFixed(0);
 
-  const downPaymentPercentage = (downPayment / carPrice) * 100;
+  const circumference = 2 * Math.PI * 60; // r=60, same as in your <circle>
+  const principalStroke = (principalPercentage / 100) * circumference;
+  const interestStroke = (interestPercentage / 100) * circumference;
 
   // Update down payment when car price changes
   const handleCarPriceChange = (newPrice: number) => {
@@ -164,22 +173,9 @@ export function CarLoanCalculator({ vehiclePrice }: LoanCalculatorProps) {
 
         {/* Center Column - Nationwide Building Society */}
         <div className="flex flex-col items-center justify-center bg-gray-100 rounded-lg p-6">
-
-          <div className="bg-blue-600 text-white px-4 py-2 rounded mb-2">
-            <div className="flex items-center">
-              <svg
-                className="w-6 h-6 mr-2"
-                fill="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L15 1H5C3.9 1 3 1.9 3 3V21C3 22.1 3.9 23 5 23H19C20.1 23 21 22.1 21 21V9Z" />
-              </svg>
-              <span className="font-semibold">Nationwide</span>
-            </div>
-          </div>
-          <div className="text-white bg-blue-600 px-3 py-1 rounded text-sm mb-4">
-            Building Society
-          </div>
+          <a href={settingsData?.bank_url} target="_blank" rel="noopener noreferrer">
+            <img src={settingsData?.bank_logo} alt={settingsData?.bank_logo} />
+          </a>
 
           <div className="text-center mb-4">
             <div className="text-gray-600 text-sm mb-2">Monthly Payments</div>
@@ -187,19 +183,11 @@ export function CarLoanCalculator({ vehiclePrice }: LoanCalculatorProps) {
               QR {Math.round(monthlyPayment).toLocaleString()}
             </div>
           </div>
-
-          <Button
-            className="bg-orange-500 text-white hover:bg-orange-600 rounded-full px-8"
-            onClick={() => {
-              alert("Redirecting to loan application...");
-              window.open(
-                "https://www.nationwide.co.uk/products/loans/car-loans/",
-                "_blank"
-              );
-            }}
-          >
-            Apply Now
-          </Button>
+          <a href={settingsData?.bank_url} target="_blank" rel="noopener noreferrer">
+            <Button className="bg-orange-500 text-white hover:bg-orange-600 rounded-full px-8">
+              Apply Now
+            </Button>
+          </a>
         </div>
 
         {/* Right Column - Break-up Chart */}
@@ -229,9 +217,8 @@ export function CarLoanCalculator({ vehiclePrice }: LoanCalculatorProps) {
                   stroke="#1e40af"
                   strokeWidth="12"
                   fill="none"
-                  strokeDasharray="377"
-                  strokeDashoffset="75"
-                  className="transition-all"
+                  strokeDasharray={`${principalStroke} ${circumference}`}
+                  strokeDashoffset="0"
                 ></circle>
                 {/* Interest amount (orange) */}
                 <circle
@@ -241,14 +228,15 @@ export function CarLoanCalculator({ vehiclePrice }: LoanCalculatorProps) {
                   stroke="#ea580c"
                   strokeWidth="12"
                   fill="none"
-                  strokeDasharray="377"
-                  strokeDashoffset="300"
-                  className="transition-all"
+                  strokeDasharray={`${interestStroke} ${circumference}`}
+                  strokeDashoffset={`-${principalStroke}`}
                 ></circle>
               </svg>
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-orange-500">20%</div>
+                  <div className="text-2xl font-bold text-orange-500">
+                    {downPaymentPercentage}%
+                  </div>
                   <div className="text-sm text-gray-600">Deposit</div>
                 </div>
               </div>
@@ -260,7 +248,9 @@ export function CarLoanCalculator({ vehiclePrice }: LoanCalculatorProps) {
             <div className="flex items-center justify-between">
               <div className="flex items-center">
                 <div className="w-4 h-3 bg-blue-600 mr-2"></div>
-                <span className="text-sm text-gray-600">Principal Amt</span>
+                <span className="text-sm text-gray-600">
+                  Principal Amt ({principalPercentage}%)
+                </span>
               </div>
               <span className="text-sm font-medium text-gray-900">
                 QR {Math.round(principal).toLocaleString()}
@@ -269,7 +259,9 @@ export function CarLoanCalculator({ vehiclePrice }: LoanCalculatorProps) {
             <div className="flex items-center justify-between">
               <div className="flex items-center">
                 <div className="w-4 h-3 bg-orange-500 mr-2"></div>
-                <span className="text-sm text-gray-600">Interest Amt</span>
+                <span className="text-sm text-orange-500">
+                  Interest Amt ({interestPercentage}%)
+                </span>
               </div>
               <span className="text-sm font-medium text-orange-500">
                 QR {Math.round(totalInterest).toLocaleString()}

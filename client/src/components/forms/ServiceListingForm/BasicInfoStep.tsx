@@ -14,6 +14,7 @@ import { useFormContext, Controller } from 'react-hook-form';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffect } from 'react';
+import { ArrowLeft } from 'lucide-react';
 
 interface BasicInfoFormData {
   basicInfo: {
@@ -26,7 +27,7 @@ interface BasicInfoFormData {
   };
 }
 
-export function BasicInfoStep({ data, updateData, nextStep }: ServiceStepProps) {
+export function BasicInfoStep({ data, updateData, nextStep, prevStep }: ServiceStepProps) {
   const {
     register,
     handleSubmit,
@@ -34,6 +35,7 @@ export function BasicInfoStep({ data, updateData, nextStep }: ServiceStepProps) 
     setValue,
     watch,
     control,
+
   } = useFormContext<BasicInfoFormData>();
 
   const { user } = useAuth();
@@ -192,6 +194,12 @@ export function BasicInfoStep({ data, updateData, nextStep }: ServiceStepProps) 
       <Input id="currency" type="hidden" {...register("basicInfo.currency")} />
 
       <div className="flex justify-end pt-4">
+         <Button 
+                className="bg-blue-900 flex items-center gap-2"
+                type="button" onClick={prevStep}>
+                  <ArrowLeft className="w-4 h-4" />
+                  Back
+                </Button>
         <Button type="submit" disabled={isSubmitting}>
           Next: Availability
         </Button>

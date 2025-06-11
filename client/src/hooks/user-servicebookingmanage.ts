@@ -4,8 +4,8 @@ import { useTranslation } from "react-i18next";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { ServiceBooking, ServiceBookingAction } from "@shared/schema";
-import { StatusBadge } from "@/components/ui/status-badge";
 import { useAuth } from "@/contexts/AuthContext";
+import { roleMapping } from "@shared/permissions";
 
 export const useServiceBookingManage = () => {
   const { user } = useAuth();
@@ -25,6 +25,7 @@ export const useServiceBookingManage = () => {
     dateRangePreset: "all",
     priceRange: { from: "", to: "" },
     user_id: user?.id,
+    customer_id: undefined,
   });
 
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
@@ -44,9 +45,26 @@ export const useServiceBookingManage = () => {
       const statusParam = currentTab !== "all" ? currentTab : filters.status;
       const searchParams = new URLSearchParams();
 
+      // Add role-based filtering
+      const roleName = roleMapping[user?.roleId ?? 1];
+
+      if (!roleName) {
+        console.warn(`No role mapping found for role ID: ${user?.roleId}`);
+        return [];
+      }
+
+      // For sellers and showrooms, only fetch their own listings
+      if ((roleName === "SELLER" || roleName === "GARAGE" ) && user?.id) {
+  searchParams.append("user_id", user.id.toString());
+}
+
       if (searchQuery) searchParams.append("search", searchQuery);
       if (statusParam && statusParam !== "all") {
         searchParams.append("status", statusParam);
+      }
+
+      if (filters.customer_id) {
+        searchParams.append("customer_id", filters.customer_id.toString());
       }
 
       // Date range
@@ -74,100 +92,157 @@ export const useServiceBookingManage = () => {
 
       console.log("bookings:", bookings);
       
-      // Fetch related service and user data
-      // const enrichedBookings = await Promise.all(
-      //   bookings.map(async (booking: any) => {
-      //     const [service, customer] = await Promise.all([
-      //       fetch(`/api/showroom/services/${booking.service_id}`).then(res => res.ok ? res.json() : null),
-      //       fetch(`/api/users/${booking.user_id}`).then(res => res.ok ? res.json() : null),
-      //     ]);
-          
-      //     return {
-      //       ...booking,
-      //       service,
-      //       user: customer,
-      //     };
-      //   })
-      // );
-
       return bookings;
     },
   });
 
-  // Mutation for booking actions
-  const performAction = useMutation({
-    mutationFn: async ({
-      id,
-      action,
-      reason,
-    }: {
-      id: number;
-      action: string;
-      reason?: string;
-    }) => {
-      setActionInProgress(true);
+  
+  // Mutation for booking actions with role-based logic and status handling
+const performAction = useMutation({
+  mutationFn: async ({
+    id,
+    action,
+    reason,
+  }: {
+    id: number;
+    action: string;
+    reason?: string;
+  }) => {
+    setActionInProgress(true);
 
-      const endpointMap: Record<string, string> = {
-        confirm: "confirm",
-        reschedule: "reschedule",
-        complete: "complete",
-        cancel: "cancel",
-        reject: "reject",
-      };
+    console.log("Performing booking action:", { id, action });
 
-      if (!endpointMap[action]) {
-        throw new Error("Invalid booking action");
+    const roleName = roleMapping[user?.roleId];
+  const isBookingOwner = currentBooking?.userId === user?.id;
+
+    // Define allowed actions and map to API endpoints if needed
+    const endpointMap: Record<string, string> = {
+      confirm: "confirm",
+      reschedule: "reschedule",
+      complete: "complete",
+      cancel: "cancel",
+      reject: "reject",
+      expire: "expire",
+    };
+
+    if (!endpointMap[action]) {
+      throw new Error("Invalid booking action");
+    }
+
+    // Example role-based authorization checks
+    // Only admins or booking owner can cancel or reschedule
+    if (action === "cancel" || action === "reschedule") {
+      if (
+        !(roleName === "SUPER_ADMIN" ||
+          roleName === "ADMIN" ||
+          (isBookingOwner && roleName !== "BUYER"))
+      ) {
+        throw new Error("Unauthorized to cancel or reschedule booking");
       }
+    }
 
-      const response = await apiRequest(
-        "PUT",
-        `/api/service-bookings/${id}/${endpointMap[action]}`,
-        { reason }
-      );
-
-      return { action, response };
-    },
-    onSuccess: ({ action }) => {
-      let message = "";
-      switch (action) {
-        case "confirm":
-          message = t("bookings.bookingConfirmed");
-          break;
-        case "reschedule":
-          message = t("bookings.bookingRescheduled");
-          break;
-        case "complete":
-          message = t("bookings.bookingCompleted");
-          break;
-        case "cancel":
-          message = t("bookings.bookingCancelled");
-          break;
-        case "reject":
-          message = t("bookings.bookingRejected");
-          break;
+    // Confirm action can be done by admins or booking owner
+    if (action === "confirm") {
+      if (
+        !(roleName === "SUPER_ADMIN" ||
+          roleName === "ADMIN" ||
+          (isBookingOwner && roleName !== "BUYER"))
+      ) {
+        throw new Error("Unauthorized to confirm booking");
       }
+    }
 
-      toast({
-        title: t("common.success"),
-        description: message,
-      });
+    // Complete action only by admin or assigned staff
+    if (action === "complete") {
+      if (
+        !(roleName === "SUPER_ADMIN" ||
+          roleName === "ADMIN" ||
+          roleName === "STAFF")
+      ) {
+        throw new Error("Unauthorized to complete booking");
+      }
+    }
 
-      setActionDialogOpen(false);
-      setCurrentBooking(null);
-      setActionReason("");
-      refetch();
-    },
-    onError: (error) => {
-      toast({
-        title: t("common.error"),
-        description: error instanceof Error ? error.message : t("bookings.actionFailed"),
-        variant: "destructive",
-      });
-    },
-    onSettled: () => {
-      setActionInProgress(false);
-    },
-  });
+    // Reject action only by admins/moderators
+    if (action === "reject") {
+      if (
+        !(
+          roleName === "SUPER_ADMIN" ||
+          roleName === "ADMIN" ||
+          roleName === "MODERATOR" ||
+          roleName === "SENIOR_MODERATOR"
+        )
+      ) {
+        throw new Error("Unauthorized to reject booking");
+      }
+    }
+
+    // Expire action only by admins
+    if (action === "expire") {
+      if (!(roleName === "SUPER_ADMIN" || roleName === "ADMIN")) {
+        throw new Error("Unauthorized to expire booking");
+      }
+    }
+
+    // Make the API call
+    const response = await apiRequest(
+      "PUT",
+      `/api/service-bookings/${id}/${endpointMap[action]}`,
+      { reason }
+    );
+
+    return { returnedAction: action, response };
+  },
+
+  onSuccess: ({ returnedAction }) => {
+    let message = "";
+    switch (returnedAction) {
+      case "confirm":
+        message = t("bookings.bookingConfirmed");
+        break;
+      case "reschedule":
+        message = t("bookings.bookingRescheduled");
+        break;
+      case "complete":
+        message = t("bookings.bookingCompleted");
+        break;
+      case "cancel":
+        message = t("bookings.bookingCancelled");
+        break;
+      case "reject":
+        message = t("bookings.bookingRejected");
+        break;
+      case "expire":
+        message = t("bookings.bookingExpired");
+        break;
+      default:
+        message = t("bookings.actionSuccess");
+    }
+
+    toast({
+      title: t("common.success"),
+      description: message,
+    });
+
+    setActionDialogOpen(false);
+    setCurrentBooking(null);
+    setActionReason("");
+    refetch();
+  },
+
+  onError: (error) => {
+    toast({
+      title: t("common.error"),
+      description:
+        error instanceof Error ? error.message : t("bookings.actionFailed"),
+      variant: "destructive",
+    });
+  },
+
+  onSettled: () => {
+    setActionInProgress(false);
+  },
+});
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -175,13 +250,16 @@ export const useServiceBookingManage = () => {
   };
 
   const resetFilters = () => {
+    const roleName = roleMapping[user?.roleId ?? 1];
+  const isRestrictedRole = roleName === "SELLER" || roleName === "GARAGE";
     setSearchQuery("");
     setFilters({
       status: "all",
       dateRange: { from: "", to: "" },
       dateRangePreset: "all",
       priceRange: { from: "", to: "" },
-      user_id: user?.id,
+      user_id: isRestrictedRole ? user?.id : undefined,
+    customer_id: undefined,
     });
     refetch();
   };

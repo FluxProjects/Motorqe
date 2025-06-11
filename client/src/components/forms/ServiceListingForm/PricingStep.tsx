@@ -113,14 +113,6 @@ export function PricingStep({
         />
       </div>
 
-      <div className="flex justify-between pt-4">
-        <Button variant="outline" type="button" onClick={prevStep}>
-          Back
-        </Button>
-        <Button type="submit" disabled={!formData.selectedPackageId}>
-          Next: Promotion
-        </Button>
-      </div>
     </form>
   );
 }

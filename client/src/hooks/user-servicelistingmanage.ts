@@ -3,24 +3,26 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { AdminServiceListing, ServiceListingAction, ServicePromotionPackage } from "@shared/schema";
+import { AdminServiceListing, AdminServiceListingFilters, ServiceListingAction, ServicePromotionPackage } from "@shared/schema";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { hasPermission, Permission, roleMapping } from "@shared/permissions";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 export const useServiceListingManage = () => {
   const { user } = useAuth();
   const { t } = useTranslation();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   // State management
   const [currentTab, setCurrentTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [formDialogOpen, setFormDialogOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  
 
-   const handleEditService = (service: AdminServiceListing) => {
+
+  const handleEditService = (service: AdminServiceListing) => {
     setCurrentService(service);
     setIsEditing(true);
     setFormDialogOpen(true);
@@ -28,22 +30,28 @@ export const useServiceListingManage = () => {
 
   const handleCreateService = () => {
     console.log("create listing clicked");
-        setCurrentService(null);
-        setIsEditing(false);
-        setFormDialogOpen(true);
-         console.log("create service clicked - after state updates", { 
-        formDialogOpen, 
-        isEditing 
+    setCurrentService(null);
+    setIsEditing(false);
+    setFormDialogOpen(true);
+    console.log("create service clicked - after state updates", {
+      formDialogOpen,
+      isEditing
     });
+
+    navigate("/sell-service"); 
   };
 
-  const [filters, setFilters] = useState({
+  const [filters, setFilters] = useState<AdminServiceListingFilters>({
     status: "all",
-    isActive: null,
-    isFeatured: null,
+    dateRange: { from: "", to: "" },
+    dateRangePreset: "all",
     priceRange: { from: "", to: "" },
-    showroomId: null, // Changed from user?.id to null to allow selection
-    serviceId: null,
+    user_id: user?.id,
+    isFeatured: undefined,
+    isActive: undefined,
+
+    showroomId: undefined,
+    serviceId: undefined
   });
 
   const [currentService, setCurrentService] = useState<AdminServiceListing | null>(null);
@@ -54,16 +62,16 @@ export const useServiceListingManage = () => {
   const [actionInProgress, setActionInProgress] = useState(false);
 
   const {
-          data: promotionPackages = [],
-          isLoading: isLoadingPackages
-      } = useQuery<ServicePromotionPackage[]>({
-          queryKey: ['promotion-packages'],
-          queryFn: async () => {
-              const res = await fetch('/api/promotion-packages/services');
-              if (!res.ok) throw new Error('Failed to fetch packages');
-              return res.json();
-          }
-      });
+    data: promotionPackages = [],
+    isLoading: isLoadingPackages
+  } = useQuery<ServicePromotionPackage[]>({
+    queryKey: ['promotion-packages'],
+    queryFn: async () => {
+      const res = await fetch('/api/promotion-packages/services');
+      if (!res.ok) throw new Error('Failed to fetch packages');
+      return res.json();
+    }
+  });
 
 
   // Data fetching
@@ -76,6 +84,7 @@ export const useServiceListingManage = () => {
     queryFn: async () => {
       const searchParams = new URLSearchParams();
 
+      // Add role-based filtering
       const roleName = roleMapping[user?.roleId ?? 1];
 
       if (!roleName) {
@@ -89,24 +98,33 @@ export const useServiceListingManage = () => {
       }
 
       if (searchQuery) searchParams.append("search", searchQuery);
-      if (filters.status !== null) {
-        searchParams.append("status", String(filters.status));
+
+      if (filters.status && filters.status !== "all") {
+        searchParams.append("status", filters.status);
       }
-      if (filters.isFeatured !== null) {
+      if (filters.isFeatured !== undefined) {
         searchParams.append("is_featured", String(filters.isFeatured));
       }
+      if (filters.isActive !== undefined) {
+        searchParams.append("is_active", String(filters.isActive));
+      }
       if (filters.priceRange?.from) {
-        searchParams.append("price_from", filters.priceRange.from);
+        searchParams.append("price_from", filters.priceRange.from.toString());
       }
       if (filters.priceRange?.to) {
-        searchParams.append("price_to", filters.priceRange.to);
+        searchParams.append("price_to", filters.priceRange.to.toString());
+      }
+      if (filters.dateRange?.from) {
+        searchParams.append("date_from", filters.dateRange.from.toString());
+      }
+      if (filters.dateRange?.to) {
+        searchParams.append("date_to", filters.dateRange.to.toString());
       }
       if (filters.showroomId) {
-        searchParams.append("showroom_id", filters.showroomId);
+        searchParams.append("showroom_id", filters.showroomId.toString());
       }
-
       if (filters.serviceId) {
-        searchParams.append("service_id", filters.serviceId);
+        searchParams.append("service_id", filters.serviceId.toString());
       }
 
       const finalUrl = `/api/showroom/services?${searchParams.toString()}`;
@@ -302,37 +320,37 @@ export const useServiceListingManage = () => {
 
       // Feature
       if (action === "feature") {
-          console.log("🔍 Feature action check");
-          console.log("roleName:", roleName);
-          console.log("roleName === 'SUPER_ADMIN':", roleName === "SUPER_ADMIN");
-          console.log("roleName === 'ADMIN':", roleName === "ADMIN");
-          if (
-              roleName === "SUPER_ADMIN" ||
-              roleName === "ADMIN"
-          ) {
-              console.log("role is satisfied", roleName);
-              await apiRequest("PUT", `/api/showroom/services/${id}/actions`, {
-                  action,
-                  reason,
-                  featured,
-              });
-              return action;
-          }
-          throw new Error("Unauthorized to feature listings");
+        console.log("🔍 Feature action check");
+        console.log("roleName:", roleName);
+        console.log("roleName === 'SUPER_ADMIN':", roleName === "SUPER_ADMIN");
+        console.log("roleName === 'ADMIN':", roleName === "ADMIN");
+        if (
+          roleName === "SUPER_ADMIN" ||
+          roleName === "ADMIN"
+        ) {
+          console.log("role is satisfied", roleName);
+          await apiRequest("PUT", `/api/showroom/services/${id}/actions`, {
+            action,
+            reason,
+            featured,
+          });
+          return action;
+        }
+        throw new Error("Unauthorized to feature listings");
       }
 
       // Delete
       if (action === "delete") {
-          if (
-              roleName === "SUPER_ADMIN" ||
-              roleName === "ADMIN" ||
-              (roleName === "SELLER" && hasPermission(roleName, Permission.MANAGE_OWN_SERVICES)) ||
-              (roleName.startsWith("GARAGE") && hasPermission(roleName, Permission.MANAGE_SHOWROOM_SERVICES))
-          ) {
-              await apiRequest("DELETE", `/api/showroom/services/${id}`, {});
-              return action;
-          }
-          throw new Error("Unauthorized to delete listing");
+        if (
+          roleName === "SUPER_ADMIN" ||
+          roleName === "ADMIN" ||
+          (roleName === "SELLER" && hasPermission(roleName, Permission.MANAGE_OWN_SERVICES)) ||
+          (roleName.startsWith("GARAGE") && hasPermission(roleName, Permission.MANAGE_SHOWROOM_SERVICES))
+        ) {
+          await apiRequest("DELETE", `/api/showroom/services/${id}`, {});
+          return action;
+        }
+        throw new Error("Unauthorized to delete listing");
       }
 
       // If no condition matched
@@ -392,11 +410,15 @@ export const useServiceListingManage = () => {
     setSearchQuery("");
     setFilters({
       status: "all",
-      isActive: null,
-      isFeatured: null,
+      dateRange: { from: "", to: "" },
+      dateRangePreset: "all",
       priceRange: { from: "", to: "" },
-      showroomId: null, // Reset to null instead of user?.showroomId
-      serviceId: null,
+      user_id: user?.id,
+      isFeatured: undefined,
+      isActive: undefined,
+      showroomId: undefined,
+      serviceId: undefined
+
     });
     refetch();
   };
@@ -408,55 +430,56 @@ export const useServiceListingManage = () => {
 
   const handleAction = (service: AdminServiceListing, action: ServiceListingAction) => {
     console.log("Action triggered:", action, "for listing:", service.id);
+    setActionDialogOpen(true);
     setCurrentService(service);
     setActionType(action);
-    setActionDialogOpen(true);
+    
   };
 
   const confirmAction = () => {
     if (!currentService) return;
 
     console.log("ABOUT TO MUTATE", { id: currentService.id, action: actionType, reason: actionReason });
-   
-      switch (actionType) {
-            case "publish":
-                performAction.mutate({
-                    id: currentService.id,
-                    action: "publish", // Correct action type for publish
-                    reason: actionReason,
-                });
-                break;
-            case "approve":
-                performAction.mutate({
-                    id: currentService.id,
-                    action: "approve", // Correct action type for approve
-                    reason: actionReason,
-                });
-                break;
-            case "reject":
-                performAction.mutate({
-                    id: currentService.id,
-                    action: "reject",
-                    reason: actionReason,
-                });
-                break;
-            case "feature":
-                performAction.mutate({
-                    id: currentService.id,
-                    action: "feature",
-                    featured: true,
-                });
-                break;
-            case "delete":
-                performAction.mutate({
-                    id: currentService.id,
-                    action: "delete",
-                });
-                break;
-        }
+
+    switch (actionType) {
+      case "publish":
+        performAction.mutate({
+          id: currentService.id,
+          action: "publish", // Correct action type for publish
+          reason: actionReason,
+        });
+        break;
+      case "approve":
+        performAction.mutate({
+          id: currentService.id,
+          action: "approve", // Correct action type for approve
+          reason: actionReason,
+        });
+        break;
+      case "reject":
+        performAction.mutate({
+          id: currentService.id,
+          action: "reject",
+          reason: actionReason,
+        });
+        break;
+      case "feature":
+        performAction.mutate({
+          id: currentService.id,
+          action: "feature",
+          featured: true,
+        });
+        break;
+      case "delete":
+        performAction.mutate({
+          id: currentService.id,
+          action: "delete",
+        });
+        break;
+    }
   };
 
-   const getStatusBadge = StatusBadge;
+  const getStatusBadge = StatusBadge;
 
   return {
     // State

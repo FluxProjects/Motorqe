@@ -19,6 +19,8 @@ const ManageServiceListing = () => {
 
   const {
     // State
+    currentTab,
+    setCurrentTab,
     searchQuery,
     setSearchQuery,
     filters,
@@ -61,7 +63,7 @@ const ManageServiceListing = () => {
           <div className="md:flex">
             {/* Admin Sidebar */}
             <div className="hidden md:block">
-              <DashboardSidebar type={roleMapping[user.roleId] || "ADMIN"} />
+              <DashboardSidebar type={roleMapping[user?.roleId] || "ADMIN"} />
             </div>
 
             {/* Main Content */}
@@ -90,7 +92,7 @@ const ManageServiceListing = () => {
                       {t("common.refresh")}
                     </Button>
 
-                    <PermissionGuard permission={Permission.CREATE_SERVICES}>
+
                       <Button
                         variant="default"
                         className="bg-green-600 hover:bg-green-700"
@@ -99,11 +101,12 @@ const ManageServiceListing = () => {
                         <Plus className="h-4 w-4 mr-2" />
                         {t("services.createService")}
                       </Button>
-                    </PermissionGuard>
                   </div>
                 </div>
 
                 <ServiceListingFilters
+                  currentTab={currentTab}
+                  setCurrentTab={setCurrentTab}
                   searchQuery={searchQuery}
                   setSearchQuery={setSearchQuery}
                   filters={filters}

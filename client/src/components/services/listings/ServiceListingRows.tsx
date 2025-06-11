@@ -63,12 +63,12 @@ export const ServiceListingRows = ({
         {service?.description || t("services.unknownShowroom")}
       </TableCell>
       <TableCell>
-        {service.price} {service.currency}
+        {service?.price} {service?.currency || "QAR"}
       </TableCell>
 
       <TableCell>{getStatusBadge(service.status)}</TableCell>
       <TableCell>
-        {service.is_featured ? (
+        {service?.is_featured ? (
           <Badge className="bg-purple-100 text-purple-800">
             <Star className="h-3 w-3 mr-1 fill-purple-800" />
             {t("admin.featured")}
@@ -77,6 +77,9 @@ export const ServiceListingRows = ({
           <span className="text-slate-400 text-sm">-</span>
         )}
       </TableCell>
+      <TableCell>
+  {service?.created_at ? new Date(service.created_at).toLocaleString() : "—"}
+</TableCell>
       <TableCell className="text-right">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

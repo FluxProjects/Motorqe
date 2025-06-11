@@ -15,13 +15,12 @@ interface FiltersSectionProps {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   filters: {
-    status: string;
-    isFeatured: boolean;
-    isActive: boolean;
+    status?: string;
     dateRange?: FilterRange;
     dateRangePreset?: string;
     priceRange?: FilterRange;
     user_id?: number;
+    customer_id?: number;
   };
   setFilters: (filters: any) => void;
   handleSearch: (e: React.FormEvent) => void;
@@ -196,50 +195,18 @@ export const ServiceBookingFilters = ({
             </Select>
           </div>
 
-          {/* Is Featured Filter */}
-          <div>
-            <Select
-              value={filters.isFeatured !== undefined ? String(filters.isFeatured) : ""}
-              onValueChange={(value) => handleValueChange("isFeatured", value === "true")}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder={t("admin.featured")} />
-              </SelectTrigger>
-              <SelectContent className="bg-slate-800 border-slate-700 text-white">
-                <SelectItem value="all">{t("admin.all")}</SelectItem>
-                <SelectItem value="true">{t("admin.featuredOnly")}</SelectItem>
-                <SelectItem value="false">{t("admin.nonFeatured")}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Is Active Filter */}
-          <div>
-            <Select
-              value={filters.isActive !== undefined ? String(filters.isActive) : ""}
-              onValueChange={(value) => handleValueChange("isActive", value === "true")}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder={t("admin.activeStatus")} />
-              </SelectTrigger>
-              <SelectContent className="bg-slate-800 border-slate-700 text-white">
-                <SelectItem value="all">{t("admin.all")}</SelectItem>
-                <SelectItem value="true">{t("admin.activeOnly")}</SelectItem>
-                <SelectItem value="false">{t("admin.inactiveOnly")}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
 
           {/* Price Range Filter */}
           <div className="flex gap-2">
             <Select
               value={filters.priceRange?.from?.toString() || ""}
-              onValueChange={(value) => 
-                handleValueChange("priceRange", {
-                  from: value,
-                  to: filters.priceRange?.to || "",
+              onValueChange={(value) =>
+              handleValueChange("priceRange", {
+                  from: value === "all" ? "" : value,
+                  to: filters.priceRange?.to ||"",
                 })
               }
+
             >
               <SelectTrigger>
                 <SelectValue placeholder={t("admin.minPrice")} />
@@ -282,7 +249,7 @@ export const ServiceBookingFilters = ({
           {/* Date Range Filter */}
           <div>
             <Select
-              value={filters.dateRangePreset || "all"}
+             value={filters.dateRangePreset || "all"}
               onValueChange={(value) => handleValueChange("dateRangePreset", value)}
             >
               <SelectTrigger>

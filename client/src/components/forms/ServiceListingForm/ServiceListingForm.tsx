@@ -10,9 +10,9 @@ import { ServiceListingFormData, AdminServiceListing } from "@shared/schema";
 import { calculateDurationDays } from "@/lib/utils";
 
 const steps = [
+  "Select Plan",
   "Basic Info",
   "Availability",
-  "Pricing",
   "Review"
 ];
 

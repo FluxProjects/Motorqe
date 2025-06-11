@@ -132,12 +132,12 @@ export function GarageCard({ garage }: GarageCardProps) {
               </span>
             </div>
             <span className="text-sm text-gray-500 ml-2">
-              ({garage.reviewCount || 0} reviews)
+              ({garage.review_count || 0} reviews)
             </span>
           </div>
 
           {/* Main Branch Badge */}
-          {garage.isMainBranch && (
+          {garage.is_main_branch && (
             <div className="mt-3">
               <Badge
                 variant="outline"

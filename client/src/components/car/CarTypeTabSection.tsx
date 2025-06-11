@@ -38,17 +38,18 @@ const CarTypeTabsSection = () => {
 ];
 
 const staticYears: BudgetRange[] = [
-  { id: "1", name: "Before 1995", min: 0, max: 1994 },
-  { id: "2", name: "1995 - 1999", min: 1995, max: 1999 },
-  { id: "3", name: "2000 - 2002", min: 2000, max: 2002 },
-  { id: "4", name: "2003 - 2005", min: 2003, max: 2005 },
-  { id: "5", name: "2006 - 2010", min: 2006, max: 2010 },
-  { id: "6", name: "2011 - 2013", min: 2011, max: 2013 },
-  { id: "7", name: "2014 - 2016", min: 2014, max: 2016 },
-  { id: "8", name: "2017 - 2019", min: 2017, max: 2019 },
-  { id: "9", name: "2020 - 2022", min: 2020, max: 2022 },
-  { id: "10", name: "2023 and newer", min: 2023, max: Infinity },
+  { id: "1", name: "2016", min: 2016, max: 2016 },
+  { id: "2", name: "2017", min: 2017, max: 2017 },
+  { id: "3", name: "2018", min: 2018, max: 2018 },
+  { id: "4", name: "2019", min: 2019, max: 2019 },
+  { id: "5", name: "2020", min: 2020, max: 2020 },
+  { id: "6", name: "2021", min: 2021, max: 2021 },
+  { id: "7", name: "2022", min: 2022, max: 2022 },
+  { id: "8", name: "2023", min: 2023, max: 2023 },
+  { id: "9", name: "2024", min: 2024, max: 2024 },
+  { id: "10", name: "2025", min: 2025, max: 2025 },
 ];
+
 
 const engineCapacityRanges: BudgetRange[] = [
   { id: "1", name: "Under 1.0L", min: 0, max: 0.99 },

@@ -17,7 +17,7 @@ export interface IStaticContentStorage {
 export const StaticContentStorage = {
 
     async getAllStaticContents(): Promise<StaticContent[]> {
-        return await db.query('SELECT * FROM static_content ORDER BY key');
+        return await db.query('SELECT * FROM static_content ORDER BY created_at DESC');
     },
 
     async getStaticContentByKey(key: string): Promise<StaticContent | undefined> {
@@ -25,10 +25,22 @@ export const StaticContentStorage = {
         return result[0];
     },
 
+    async getStaticContentById(id: number): Promise<StaticContent | undefined> {
+        const result = await db.query('SELECT * FROM static_content WHERE id = $1 LIMIT 1', [id]);
+        return result[0];
+    },
+
     async getAllPublishedStaticContents(): Promise<StaticContent[]> {
         return await db.query(
-            'SELECT * FROM static_content WHERE status = $1 ORDER BY key',
+            'SELECT * FROM static_content WHERE status = $1 ORDER BY created_at DESC',
             ['published']
+        );
+    },
+
+    async getStaticContentByPlacement(placement: string): Promise<StaticContent[]> {
+        return await db.query(
+            'SELECT key, title FROM static_content WHERE (placement = $1 OR placement = $2) AND status = $3 ORDER BY key',
+            [placement, 'both', 'published']
         );
     },
 
@@ -40,18 +52,23 @@ export const StaticContentStorage = {
         return result[0];
     },
 
-    async getStaticContentByPlacement(placement: string): Promise<StaticContent[]> {
-        return await db.query(
-            'SELECT key, title FROM static_content WHERE (placement = $1 OR placement = $2) AND status = $3 ORDER BY key',
-            [placement, 'both', 'published']
-        );
-    },
-
     async createStaticContent(content: InsertStaticContent): Promise<StaticContent> {
         const result = await db.query(
-            'INSERT INTO static_content (key, title, title_ar, content, content_ar) ' +
-            'VALUES ($1, $2, $3, $4, $5) RETURNING *',
-            [content.key, content.title, content.titleAr, content.content, content.contentAr]
+            `INSERT INTO static_content 
+            (key, title, title_ar, content, content_ar, author, placement, status, full_width) 
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) 
+            RETURNING *`,
+            [
+                content.key, 
+                content.title, 
+                content.titleAr, 
+                content.content, 
+                content.contentAr,
+                content.author,
+                content.placement || 'both',
+                content.status || 'draft',
+                content.fullWidth || false
+            ]
         );
         return result[0];
     },
@@ -61,35 +78,34 @@ export const StaticContentStorage = {
         const values = [];
         let paramIndex = 1;
 
-        if (updates.key !== undefined) {
-            fields.push(`key = $${paramIndex}`);
-            values.push(updates.key);
-            paramIndex++;
-        }
-        if (updates.title !== undefined) {
-            fields.push(`title = $${paramIndex}`);
-            values.push(updates.title);
-            paramIndex++;
-        }
-        if (updates.titleAr !== undefined) {
-            fields.push(`title_ar = $${paramIndex}`);
-            values.push(updates.titleAr);
-            paramIndex++;
-        }
-        if (updates.content !== undefined) {
-            fields.push(`content = $${paramIndex}`);
-            values.push(updates.content);
-            paramIndex++;
-        }
-        if (updates.contentAr !== undefined) {
-            fields.push(`content_ar = $${paramIndex}`);
-            values.push(updates.contentAr);
-            paramIndex++;
-        }
+        // Dynamic field updates
+        const fieldMappings = {
+            key: 'key',
+            title: 'title',
+            titleAr: 'title_ar',
+            content: 'content',
+            contentAr: 'content_ar',
+            status: 'status',
+            placement: 'placement',
+            fullWidth: 'full_width'
+        };
+
+        Object.entries(updates).forEach(([key, value]) => {
+            if (key in fieldMappings && value !== undefined) {
+                fields.push(`${fieldMappings[key as keyof typeof fieldMappings]} = $${paramIndex}`);
+                values.push(value);
+                paramIndex++;
+            }
+        });
 
         if (fields.length === 0) {
-            return this.getStaticContentByKey(updates.key || '');
+            return this.getStaticContentById(id);
         }
+
+        // Always update the updated_at timestamp
+        fields.push(`updated_at = $${paramIndex}`);
+        values.push(new Date());
+        paramIndex++;
 
         values.push(id);
         const query = `UPDATE static_content SET ${fields.join(', ')} WHERE id = $${paramIndex} RETURNING *`;
@@ -100,5 +116,7 @@ export const StaticContentStorage = {
     async deleteStaticContent(id: number): Promise<void> {
         await db.query('DELETE FROM static_content WHERE id = $1', [id]);
     }
+
+    
 
 };

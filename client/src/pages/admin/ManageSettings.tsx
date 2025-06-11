@@ -45,8 +45,11 @@ const ManageSettings = () => {
     contact_email: "support@carmarket.com",
     phone_number: "+1 (555) 123-4567",
     address: "123 Main Street, City, Country",
-    logo: "/logo.png",
-    favicon: "/favicon.ico",
+    logo: "/src/assets/sitelogo.png",
+    footer_logo: "/src/assets/footerLogo.png",
+    favicon: "/src/assets/favicon.ico",
+    bank_logo: "/src/assets/bankLogo.png",
+    bank_url: "https://wwww.example.com",
     max_listings_per_user: 10,
     max_images_per_listing: 10,
     enable_registration: true,
@@ -125,7 +128,7 @@ const ManageSettings = () => {
   //   },
   // });
 
-  const { data: settingsData = [], isLoading } = useQuery({
+  const { data: settingsData = [], isLoading, refetch } = useQuery({
     queryKey: ["general-settings"],
     queryFn: () => fetch("/api/settings").then((res) => res.json()),
   });
@@ -140,7 +143,10 @@ const ManageSettings = () => {
       "site_description_ar",
       "contact_email",
       "logo",
+      "footer_logo",
       "favicon",
+      "bank_logo",
+      "bank_url",
       "primary_color",
       "secondary_color",
       "enable_registration",
@@ -514,28 +520,74 @@ const ManageSettings = () => {
                             />
                           </div>
 
-                          {/* favicon */}
-                          {/* <div className="space-y-1">
+                          {/* Footer Logo */}
+                          <div className="space-y-1">
                             <Label
-                              htmlFor="favicon"
+                              htmlFor="footer_logo"
                               className="text-gray-700 font-medium"
                             >
-                              Favicon URL
+                              Footer Logo URL
                             </Label>
                             <Input
-                              id="favicon"
+                              id="footer_logo"
                               type="url"
-                              value={generalSettings.favicon}
+                              value={generalSettings.footer_logo}
                               onChange={(e) =>
                                 setGeneralSettings({
                                   ...generalSettings,
-                                  favicon: e.target.value,
+                                  footer_logo: e.target.value,
                                 })
                               }
                               className="bg-white border-gray-300 text-gray-800 focus:ring-blue-500 focus:border-blue-500"
-                              placeholder="https://example.com/favicon.ico"
+                              placeholder="https://example.com/logo-white.png"
                             />
-                          </div> */}
+                          </div>
+
+                          {/* Bank Logo */}
+                          <div className="space-y-1">
+                            <Label
+                              htmlFor="bankLogo"
+                              className="text-gray-700 font-medium"
+                            >
+                              Bank Logo
+                            </Label>
+                            <Input
+                              id="bankLogo"
+                              type="url"
+                              value={generalSettings.bank_logo}
+                              onChange={(e) =>
+                                setGeneralSettings({
+                                  ...generalSettings,
+                                  bank_logo: e.target.value,
+                                })
+                              }
+                              className="bg-white border-gray-300 text-gray-800 focus:ring-blue-500 focus:border-blue-500"
+                              placeholder="https://example.com/bankLogo.png"
+                            />
+                          </div>
+
+                          {/* Bank URL */}
+                          <div className="space-y-1">
+                            <Label
+                              htmlFor="bankURL"
+                              className="text-gray-700 font-medium"
+                            >
+                              Bank URL
+                            </Label>
+                            <Input
+                              id="bankURL"
+                              type="url"
+                              value={generalSettings.bank_url}
+                              onChange={(e) =>
+                                setGeneralSettings({
+                                  ...generalSettings,
+                                  bank_url: e.target.value,
+                                })
+                              }
+                              className="bg-white border-gray-300 text-gray-800 focus:ring-blue-500 focus:border-blue-500"
+                              placeholder="https://bank.com/"
+                            />
+                          </div>
 
                           <div className="grid grid-cols-2 gap-6">
                             {/* max_listings_per_user */}

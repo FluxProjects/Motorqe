@@ -512,7 +512,7 @@ const Badge = ({ role }: { role: string }) => {
                       <CardHeader>
                         <CardTitle className="text-xl text-gray-800 flex items-center justify-between">
                           <span>{t("admin.cmsOverview")}</span>
-                          <Link href="/admin/cms">
+                          <Link href="/admin/content">
                             <Button
                               variant="ghost"
                               className="h-8 w-8 p-0 text-gray-500 hover:bg-gray-100"

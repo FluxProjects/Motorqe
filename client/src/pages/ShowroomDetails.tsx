@@ -59,7 +59,6 @@ import { Showroom } from "@shared/schema";
 
 // Types for our data
 
-
 interface ShowroomMake {
   id: number;
   showroomId: number;
@@ -94,7 +93,6 @@ const ShowroomDetails = () => {
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
 
-
   // Message form
   const messageForm = useForm<MessageValues>({
     resolver: zodResolver(messageSchema),
@@ -111,7 +109,6 @@ const ShowroomDetails = () => {
   } = useQuery<Showroom>({
     queryKey: [`/api/showrooms/${id}`],
   });
-
 
   // Fetch showroom makes (brands they service)
   const { data: makes = [], isLoading: isLoadingMakes } = useQuery<
@@ -183,9 +180,13 @@ const ShowroomDetails = () => {
     }
 
     apiRequest("POST", "/api/messages", {
-      receiverId: showroom!.userId,
-      showroomId: parseInt(id),
+      receiver_id: showroom?.user_id || 0,
+      sender_id: user?.id,
       content: values.message,
+      type:"web",
+      title: "Message From Website",
+      status: "sent",
+      sent_at: new Date().toISOString(),
     })
       .then(() => {
         toast({
@@ -368,7 +369,6 @@ const ShowroomDetails = () => {
                       </div>
                     </div>
                   )}
-
                 </div>
 
                 <div className="flex flex-col items-end w-[250px]">
@@ -389,7 +389,10 @@ const ShowroomDetails = () => {
                   </Button>
                   {showroom.phone && (
                     <a
-                      href={`https://wa.me/${showroom.phone.replace(/\D/g, "")}`}
+                      href={`https://wa.me/${showroom.phone.replace(
+                        /\D/g,
+                        ""
+                      )}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="w-full"
@@ -402,8 +405,6 @@ const ShowroomDetails = () => {
                   )}
                 </div>
               </div>
-
-              
             </div>
           </div>
 
@@ -435,21 +436,21 @@ const ShowroomDetails = () => {
             {/* Showroom details tabs */}
             <Card className="border-transparent shadow-none">
               <CardContent className="p-0">
-                 {isLoadingCarListings ? (
-                      <div className="flex justify-center py-8">
-                        <Loader2 className="h-8 w-8 text-primary animate-spin" />
-                      </div>
-                    ) : carListings.length > 0 ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {carListings.map((car) => (
-                          <CarCard key={car.id} car={car} />
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-8 text-neutral-500">
-                        {t("showroom.noInventory")}
-                      </div>
-                    )}
+                {isLoadingCarListings ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="h-8 w-8 text-primary animate-spin" />
+                  </div>
+                ) : carListings.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {carListings.map((car) => (
+                      <CarCard key={car.id} car={car} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-neutral-500">
+                    {t("showroom.noInventory")}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -467,46 +468,56 @@ const ShowroomDetails = () => {
               </CardHeader>
 
               <CardContent className="p-6 pt-0">
-                
-              <Separator className="my-4" />
+                <Separator className="my-4" />
                 <div className="mt-4 grid grid-cols-1 md:grid-cols-1 gap-4">
                   {showroom?.timing && (
-  <div className="mt-4 p-3 border rounded-lg">
-    <div className="flex items-center justify-between mb-2">
-      <div className="flex items-center">
-        <Clock className="h-4 w-4 text-gray-500 mr-2" />
-        <span className="text-sm">
-          Timings (24h format) •{" "}
-          <span className={isOpenNow(showroom.timing) ? "text-green-600" : "text-red-600"}>
-            {isOpenNow(showroom.timing) ? "Open now" : "Closed now"}
-          </span>
-        </span>
-      </div>
-      <span className="text-xs text-green-600">▼</span>
-    </div>
+                    <div className="mt-4 p-3 border rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center">
+                          <Clock className="h-4 w-4 text-gray-500 mr-2" />
+                          <span className="text-sm">
+                            Timings (24h format) •{" "}
+                            <span
+                              className={
+                                isOpenNow(showroom.timing)
+                                  ? "text-green-600"
+                                  : "text-red-600"
+                              }
+                            >
+                              {isOpenNow(showroom.timing)
+                                ? "Open now"
+                                : "Closed now"}
+                            </span>
+                          </span>
+                        </div>
+                        <span className="text-xs text-green-600">▼</span>
+                      </div>
 
-    <div className="space-y-1 text-xs">
-      {(() => {
-        try {
-          const availability = typeof showroom.timing === "string"
-            ? JSON.parse(showroom.timing)
-            : showroom.timing;
-          return formatAvailability(availability) || t("services.unknownAvailability");
-        } catch (e) {
-          return t("services.unknownAvailability");
-        }
-      })()}
-    </div>
-  </div>
-)}
-
+                      <div className="space-y-1 text-xs">
+                        {(() => {
+                          try {
+                            const availability =
+                              typeof showroom.timing === "string"
+                                ? JSON.parse(showroom.timing)
+                                : showroom.timing;
+                            return (
+                              formatAvailability(availability) ||
+                              t("services.unknownAvailability")
+                            );
+                          } catch (e) {
+                            return t("services.unknownAvailability");
+                          }
+                        })()}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <Separator className="my-4" />
 
                 {showroom.address && (
                   <div className="mt-4">
-                     <h3 className="text-lg font-semibold mb-4">
+                    <h3 className="text-lg font-semibold mb-4">
                       {t("showroom.businessAddress")}
                     </h3>
                     <p className="text-sm text-gray-700">{showroom.address}</p>
@@ -546,7 +557,6 @@ const ShowroomDetails = () => {
                         })()}
                     </div>
                   </div>
-                  
                 )}
               </CardContent>
             </Card>

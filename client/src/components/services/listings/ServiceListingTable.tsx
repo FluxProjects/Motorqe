@@ -91,6 +91,7 @@ export const ServiceListingTable = ({
           <TableHead className="text-white">{t("services.price")}</TableHead>
           <TableHead className="text-white">{t("services.status")}</TableHead>
           <TableHead className="text-white">{t("services.featured")}</TableHead>
+          <TableHead className="text-white">{t("services.createdAt")}</TableHead>
           <TableHead className="text-right text-white">
             {t("common.actions")}
           </TableHead>

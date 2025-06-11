@@ -125,7 +125,7 @@ export const CarListingStorage = {
                 if (value !== undefined && value !== null) {
                     switch (key) {
                         case 'user_id':
-                            whereClauses.push(`user_id = $${paramIndex}`);
+                            whereClauses.push(`cl.user_id = $${paramIndex}`);
                             values.push(value);
                             console.log(`Added user filter: user_id = ${value}`);
                             paramIndex++;

@@ -2,6 +2,7 @@ import { getEngineSizeLabel } from "@/lib/utils";
 import { CarEngineCapacity, CarListing } from "@shared/schema";
 import { useQuery } from "@tanstack/react-query";
 import { Car, Calendar, Settings, Zap } from "lucide-react";
+import { Link } from "wouter";
 
 interface SimilarCarsProps {
   vehicleId: number;
@@ -31,9 +32,7 @@ export function SimilarCars({ vehicleId }: SimilarCarsProps) {
     <div className="mt-12">
       <div className="flex items-center justify-between mb-8">
         <h2 className="text-2xl font-bold text-gray-900">Similar Cars</h2>
-        <a href="#" className="text-primary-blue hover:underline font-medium">
-          Notify me for Similar Cars
-        </a>
+        
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -44,6 +43,7 @@ export function SimilarCars({ vehicleId }: SimilarCarsProps) {
           );
 
           return (
+            <Link to={`/cars/${car.id}`} key={car.id} className="block">
             <div
               key={car.id}
               className="bg-white rounded-lg overflow-hidden shadow-sm border hover:shadow-md transition-shadow"
@@ -82,6 +82,7 @@ export function SimilarCars({ vehicleId }: SimilarCarsProps) {
                 </div>
               </div>
             </div>
+            </Link>
           );
         })}
       </div>

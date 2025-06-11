@@ -10,11 +10,11 @@ import { ListingFormData, AdminCarListing } from "@shared/schema";
 import { calculateDurationDays } from "@/lib/utils";
 
 const steps = [
-  "Basic Info",
+  "Select Plan",
+  "Car Detail",
   "Specifications",
   "Features",
   "Media",
-  "Pricing",
   "Review",
 ];
 

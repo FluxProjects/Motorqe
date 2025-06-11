@@ -4,12 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import i18n, { resources } from "@/lib/i18n";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import {
   Dialog,
   DialogContent,
@@ -17,41 +12,18 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from "@/components/ui/carousel";
 import {
   Heart,
   Share,
   Flag,
   MapPin,
-  Calendar,
-  DollarSign,
-  GaugeCircle,
-  Globe,
-  Fuel,
-  Settings,
   MessageSquare,
   Loader2,
   AlertTriangle,
   ArrowLeft,
-  Check,
-  CircleDot,
-  Wrench,
-  Droplet,
   Phone,
   MessageCircle,
-  Droplets,
-  Sun,
-  User2,
-  Activity,
-  Gauge,
   Navigation,
   Clock,
 } from "lucide-react";
@@ -272,10 +244,7 @@ const CarDetails = () => {
     carEngineCapacities
   );
 
-  console.log("carEngineCapacities", carEngineCapacities);
-  console.log("car?.engine_capacity_id", car?.engine_capacity_id);
 
-  console.log("listingFeatures", listingFeatures);
 
   const makeName =
     makes.find((m) => m.id === car?.make_id)?.name ?? "Unknown Make";
@@ -402,31 +371,33 @@ const CarDetails = () => {
   };
 
   const handleLocationMap = (showroomAddress: string) => {
-  const encodedAddress = encodeURIComponent(showroomAddress);
-  window.open(`https://maps.google.com/?q=${encodedAddress}`, "_blank");
-};
+    const encodedAddress = encodeURIComponent(showroomAddress);
+    window.open(`https://maps.google.com/?q=${encodedAddress}`, "_blank");
+  };
 
-const handleGetDirection = (showroomAddress: string) => {
-  const encodedAddress = encodeURIComponent(showroomAddress);
-  window.open(`https://maps.google.com/maps/dir//${encodedAddress}`, "_blank");
-};
+  const handleGetDirection = (showroomAddress: string) => {
+    const encodedAddress = encodeURIComponent(showroomAddress);
+    window.open(
+      `https://maps.google.com/maps/dir//${encodedAddress}`,
+      "_blank"
+    );
+  };
 
-
- const handleBookTestDrive = (phone: string, carTitle: string) => {
-  const message = `Hi, I would like to book a test drive for the ${carTitle}. Please let me know available times.`;
-  window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`);
-};
-
+  const handleBookTestDrive = (phone: string, carTitle: string) => {
+    const message = `Hi, I would like to book a test drive for the ${carTitle}. Please let me know available times.`;
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`);
+  };
 
   const handleCall = (phone: string) => {
-  window.open(`tel:${phone}`);
-};
+    window.open(`tel:${phone}`);
+  };
 
-const handleWhatsApp = (phone: string, carTitle: string) => {
-  const encodedMessage = encodeURIComponent(`Hi, I'm interested in the ${carTitle}`);
-  window.open(`https://wa.me/${phone}?text=${encodedMessage}`);
-};
-
+  const handleWhatsApp = (phone: string, carTitle: string) => {
+    const encodedMessage = encodeURIComponent(
+      `Hi, I'm interested in the ${carTitle}`
+    );
+    window.open(`https://wa.me/${phone}?text=${encodedMessage}`);
+  };
 
   if (isLoadingCar) {
     return (
@@ -545,10 +516,11 @@ const handleWhatsApp = (phone: string, carTitle: string) => {
             <div className="md:col-span-3">
               <CarImages images={car.images} title={car.title} />
               <CarListingDetail
-                vehicleDescription={car?.description ?? "No Description Available"}
+                vehicleDescription={
+                  car?.description ?? "No Description Available"
+                }
                 vehicleDescriptionAr={car?.descriptionAr ?? "لا يوجد وصف متاح"}
               />
-
 
               {/* Safety Features */}
               <div className="mb-4 bg-gray-50 rounded-lg p-4">
@@ -582,8 +554,6 @@ const handleWhatsApp = (phone: string, carTitle: string) => {
                     ))}
                   </div>
                 )}
-
-                
               </div>
 
               {/* Map */}
@@ -617,7 +587,6 @@ const handleWhatsApp = (phone: string, carTitle: string) => {
                   <div className="text-3xl font-bold text-blue-900">
                     QR {car.price.toLocaleString()}
                   </div>
-                  
                 </div>
 
                 <div className="space-y-2 text-sm">
@@ -683,9 +652,7 @@ const handleWhatsApp = (phone: string, carTitle: string) => {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Owner Type:</span>
-                    <span className="font-medium">
-                      {car.owner_type}
-                    </span>
+                    <span className="font-medium">{car.owner_type}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Warranty Date:</span>
@@ -707,129 +674,174 @@ const handleWhatsApp = (phone: string, carTitle: string) => {
                 <div className="bg-white rounded-lg p-4 mt-4 shadow-sm border mb-4">
                   <h4 className="font-semibold mb-4">Posted by:</h4>
                   <div className="flex flex-col items-center text-center mb-4">
-      {car.showroom ? (
-        <>
-          <img
-            src={car.showroom.logo || "/fallback-avatar.png"}
-            alt={car.showroom.name}
-            className="w-16 h-16 rounded-lg object-cover mb-3"
-            onError={(e) => {
-              e.currentTarget.onerror = null;
-              e.currentTarget.src = "/fallback-avatar.png";
-            }}
-          />
-          <div className="text-sm font-semibold">{car.showroom.name}</div>
-        </>
-      ) : (
-        <>
-          <div className="w-16 h-16 bg-red-600 rounded-lg flex items-center justify-center text-white font-bold text-lg mb-3">
-            <div>
-              <div className="text-xs">{sellerData?.first_name}</div>
-              <div className="text-xs">{sellerData?.last_name}</div>
-            </div>
-          </div>
-          <div className="text-sm font-semibold">
-            {sellerData?.first_name} {sellerData?.last_name}
-          </div>
-        </>
-      )}
-    </div>
-
+                    {car.showroom ? (
+                      <>
+                        <img
+                          src={car.showroom.logo || "/fallback-avatar.png"}
+                          alt={car.showroom.name}
+                          className="w-16 h-16 rounded-lg object-cover mb-3"
+                          onError={(e) => {
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.src = "/fallback-avatar.png";
+                          }}
+                        />
+                        <div className="text-sm font-semibold">
+                          {car.showroom.name}
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="w-16 h-16 bg-red-600 rounded-lg flex items-center justify-center text-white font-bold text-lg mb-3">
+                          <div>
+                            <div className="text-xs">
+                              {sellerData?.first_name}
+                            </div>
+                            <div className="text-xs">
+                              {sellerData?.last_name}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-sm font-semibold">
+                          {sellerData?.first_name} {sellerData?.last_name}
+                        </div>
+                      </>
+                    )}
+                  </div>
 
                   <div className="text-center mb-4">
                     <div className="text-orange-500 hover:underline cursor-pointer text-sm">
-                       See all Cars Listed from{" "}
-        {car?.showroom ? car?.showroom.name : `${sellerData?.first_name} ${sellerData?.last_name}`}
+                      See all Cars Listed from{" "}
+                      {car?.showroom
+                        ? car?.showroom.name
+                        : `${sellerData?.first_name} ${sellerData?.last_name}`}
                     </div>
                   </div>
 
-                  <div className="flex space-x-2 mb-4">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="flex-1 text-orange-500 border-orange-500"
-                      onClick={() => handleLocationMap(car?.showroom?.address || car?.showroom?.addressAr)}
-                    >
-                      <MapPin className="h-3 w-3 mr-1" /> Location Map
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="flex-1 text-orange-500 border-orange-500"
-                      onClick={() => handleGetDirection(car?.showroom?.address || car?.showroom?.addressAr)}
-                    >
-                      <Navigation className="h-3 w-3 mr-1" /> Get Direction
-                    </Button>
-                  </div>
+                  {(car?.showroom?.address || car?.showroom?.addressAr) && (
+                    <div className="flex space-x-2 mb-4">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1 rounded-full bg-orange-500 text-white"
+                        onClick={() =>
+                          handleLocationMap(
+                            car?.showroom?.address || car?.showroom?.addressAr
+                          )
+                        }
+                      >
+                        <MapPin className="h-3 w-3 mr-1" /> Location Map
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1 rounded-full bg-orange-500 text-white"
+                        onClick={() =>
+                          handleGetDirection(
+                            car?.showroom?.address || car?.showroom?.addressAr
+                          )
+                        }
+                      >
+                        <Navigation className="h-3 w-3 mr-1" /> Get Direction
+                      </Button>
+                    </div>
+                  )}
 
                   <div className="space-y-2 text-sm">
-                    <div>
-                      <span className="text-gray-600">Street:</span>{" "}
-                      {car?.showroom?.address || car?.showroom?.addressAr || ""}
-                    </div>
-                    <div>
-                      <span className="text-gray-600">City:</span>{" "}
-                      {car?.location || "Doha"}
-                    </div>
+                    {car?.showroom?.address || car?.showroom?.addressAr ? (
+                      <div>
+                        <span className="text-gray-600">Street:</span>{" "}
+                        {car.showroom.address || car.showroom.addressAr}
+                      </div>
+                    ) : null}
+
+                    {car?.location ? (
+                      <div>
+                        <span className="text-gray-600">City:</span>{" "}
+                        {car?.location}
+                      </div>
+                    ) : null}
                   </div>
-                  {(car?.showroom?.timing) && (
+
+                  {car?.showroom?.timing && (
                     <div className="mt-4 p-3 border rounded-lg">
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center">
                           <Clock className="h-4 w-4 text-gray-500 mr-2" />
                           <span className="text-sm">
                             Timings (24h format) •{" "}
-                            <span className={isOpenNow(car?.showroom.timing) ? "text-green-600" : "text-red-600"}>
-                              {isOpenNow(car?.showroom.timing) ? "Open now" : "Closed now"}
+                            <span
+                              className={
+                                isOpenNow(car?.showroom.timing)
+                                  ? "text-green-600"
+                                  : "text-red-600"
+                              }
+                            >
+                              {isOpenNow(car?.showroom.timing)
+                                ? "Open now"
+                                : "Closed now"}
                             </span>
                           </span>
                         </div>
                         <span className="text-xs text-green-600">▼</span>
                       </div>
-                            
+
                       <div className="space-y-1 text-xs">
                         {(() => {
-                            try {
-                              const availability = typeof car?.showroom?.timing === "string"
+                          try {
+                            const availability =
+                              typeof car?.showroom?.timing === "string"
                                 ? JSON.parse(car?.showroom?.timing)
                                 : car?.showroom?.timing;
-                              console.log("showroom availability", availability);
-                              return formatAvailability(availability) || t("services.unknownAvailability");
-                            } catch (e) {
-                              return t("services.unknownAvailability");
-                            }
-                          })()}
+                            console.log("showroom availability", availability);
+                            return (
+                              formatAvailability(availability) ||
+                              t("services.unknownAvailability")
+                            );
+                          } catch (e) {
+                            return t("services.unknownAvailability");
+                          }
+                        })()}
                       </div>
                     </div>
                   )}
 
-
                   <Button
                     className="mt-4 w-full bg-orange-500 text-white hover:bg-orange-600 text-sm"
-                    onClick={() => handleBookTestDrive(car?.showroom?.phone ?? sellerData?.phone, car.title)}
+                    onClick={() =>
+                      handleBookTestDrive(
+                        car?.showroom?.phone ?? sellerData?.phone,
+                        car.title
+                      )
+                    }
                   >
                     Book a test drive
                   </Button>
 
                   <div className="mt-4 space-y-2">
-                   <Button
-  size="sm"
-  className="w-full bg-blue-900 text-white flex items-center justify-center gap-2"
-  onClick={() => handleCall(car?.showroom?.phone || sellerData?.phone)}
->
-  <Phone size={16} />
-  {car?.showroom?.phone || sellerData?.phone}
-</Button>
+                    <Button
+                      size="sm"
+                      className="w-full bg-blue-900 text-white flex items-center justify-center gap-2"
+                      onClick={() =>
+                        handleCall(car?.showroom?.phone || sellerData?.phone)
+                      }
+                    >
+                      <Phone size={16} />
+                      {car?.showroom?.phone || sellerData?.phone}
+                    </Button>
 
-<Button
-  size="sm"
-  className="w-full bg-green-500 text-white flex items-center justify-center gap-2"
-  onClick={() => handleWhatsApp(car?.showroom?.phone ?? sellerData?.phone, car.title)}
->
-  
-  <MessageCircle size={16} />
-  WhatsApp
-</Button>
+                    <Button
+                      size="sm"
+                      className="w-full bg-green-500 text-white flex items-center justify-center gap-2"
+                      onClick={() =>
+                        handleWhatsApp(
+                          car?.showroom?.phone ?? sellerData?.phone,
+                          car.title
+                        )
+                      }
+                    >
+                      <MessageCircle size={16} />
+                      WhatsApp
+                    </Button>
                   </div>
                 </div>
               )}
@@ -837,8 +849,6 @@ const handleWhatsApp = (phone: string, carTitle: string) => {
           </div>
         </div>
       </div>
-
-
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Loan Calculator */}

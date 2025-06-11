@@ -15,6 +15,8 @@ import {
   Search,
   Trash2,
   Users,
+  Reply,
+  Send,
 } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -45,7 +47,9 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "../../components/ui/dialog";
+import { Textarea } from "../../components/ui/textarea";
 import { queryClient } from "@/lib/queryClient";
 
 type UserRole = z.infer<typeof roleSchema>;
@@ -62,19 +66,33 @@ const ManageMessages = () => {
   });
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [replyContent, setReplyContent] = useState("");
+  const [isReplying, setIsReplying] = useState(false);
 
+  // Update the useQuery section to filter messages based on role
   const {
     data: messagesData = [],
     isLoading,
     refetch,
     error,
   } = useQuery<Message[]>({
-    queryKey: ["/api/messages", user?.id],
+    queryKey: ["/api/messages", user?.id, user?.roleId],
     enabled: !!user?.id,
     queryFn: async () => {
-      const res = await fetch(`/api/messages/${user?.id}`);
-      if (!res.ok) throw new Error("Failed to fetch messages");
-      return res.json();
+      // Admin roles assumed to be 1 or 2
+      const isAdmin = user?.roleId === 1 || user?.roleId === 2;
+
+      if (isAdmin) {
+        // Fetch all messages if admin
+        const res = await fetch(`/api/messages/all`);
+        if (!res.ok) throw new Error("Failed to fetch all messages");
+        return res.json();
+      } else {
+        // Fetch only messages for this user
+        const res = await fetch(`/api/messages/${user?.id}`);
+        if (!res.ok) throw new Error("Failed to fetch user messages");
+        return res.json();
+      }
     },
   });
 
@@ -91,8 +109,37 @@ const ManageMessages = () => {
     },
   });
 
+  const replyMutation = useMutation({
+    mutationFn: async (replyData: {
+      originalMessageId: number;
+      content: string;
+      senderId: number;
+      receiverId: number;
+    }) => {
+      const res = await fetch(`/api/messages/reply`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(replyData),
+      });
+      if (!res.ok) throw new Error("Failed to send reply");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/messages", user?.id] });
+      setReplyContent("");
+      setIsReplying(false);
+    },
+  });
+
   const handleDeleteMessage = (id: number) => {
-    if (confirm(t("admin.confirmDeleteMessage") || "Are you sure you want to delete this message?")) {
+    if (
+      confirm(
+        t("admin.confirmDeleteMessage") ||
+          "Are you sure you want to delete this message?"
+      )
+    ) {
       deleteMutation.mutate(id);
     }
   };
@@ -100,6 +147,26 @@ const ManageMessages = () => {
   const handleViewMessage = (message: Message) => {
     setSelectedMessage(message);
     setIsDialogOpen(true);
+    setIsReplying(false);
+    setReplyContent("");
+  };
+
+  const handleStartReply = () => {
+    setIsReplying(true);
+  };
+
+  const handleSendReply = () => {
+    if (!selectedMessage || !user?.id || !replyContent.trim()) return;
+
+    replyMutation.mutate({
+      originalMessageId: selectedMessage.id,
+      content: replyContent,
+      senderId: user.id,
+      receiverId:
+        selectedMessage.sender_id === user.id
+          ? selectedMessage.receiver_id
+          : selectedMessage.sender_id,
+    });
   };
 
   // Filter and sort messages
@@ -228,6 +295,7 @@ const ManageMessages = () => {
                           </SelectItem>
                           <SelectItem value="email">Email</SelectItem>
                           <SelectItem value="sms">SMS</SelectItem>
+                          <SelectItem value="web">Web</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -246,9 +314,11 @@ const ManageMessages = () => {
                           <SelectItem value="all">
                             {t("admin.allStatuses")}
                           </SelectItem>
-                          <SelectItem value="pending">Pending</SelectItem>
+                          <SelectItem value="draft">Draft</SelectItem>
                           <SelectItem value="sent">Sent</SelectItem>
                           <SelectItem value="failed">Failed</SelectItem>
+                          <SelectItem value="read">Read</SelectItem>
+                          <SelectItem value="unread">UnRead</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -301,7 +371,10 @@ const ManageMessages = () => {
                       </TableHeader>
                       <TableBody>
                         {filteredMessages.map((message: any) => (
-                          <TableRow key={message.id} className="hover:bg-gray-50 border-b">
+                          <TableRow
+                            key={message.id}
+                            className="hover:bg-gray-50 border-b"
+                          >
                             <TableCell className="text-gray-800">
                               {message.sender_first_name} {message.sender_last_name}
                               <span className="block text-sm text-gray-500">
@@ -322,9 +395,9 @@ const ManageMessages = () => {
                                 <Badge className="bg-green-100 text-green-800">
                                   Sent
                                 </Badge>
-                              ) : message.status === "pending" ? (
+                              ) : message.status === "draft" ? (
                                 <Badge className="bg-yellow-100 text-yellow-800">
-                                  Pending
+                                  draft
                                 </Badge>
                               ) : (
                                 <Badge className="bg-red-100 text-red-800">
@@ -359,6 +432,18 @@ const ManageMessages = () => {
                                     <Eye className="mr-2 h-4 w-4" />
                                     {t("common.view")}
                                   </DropdownMenuItem>
+                                  {user?.id === message.receiver_id && (
+                                    <DropdownMenuItem
+                                      className="hover:bg-gray-100"
+                                      onClick={() => {
+                                        handleViewMessage(message);
+                                        handleStartReply();
+                                      }}
+                                    >
+                                      <Reply className="mr-2 h-4 w-4" />
+                                      {t("common.reply")}
+                                    </DropdownMenuItem>
+                                  )}
                                   <DropdownMenuItem
                                     className="text-red-500 hover:bg-red-100"
                                     onClick={() => handleDeleteMessage(message.id)}
@@ -398,7 +483,8 @@ const ManageMessages = () => {
                 <div>
                   <h3 className="text-sm font-medium text-gray-500">Sender</h3>
                   <p className="mt-1 text-sm text-gray-900">
-                    {selectedMessage.sender_first_name} {selectedMessage.sender_last_name}
+                    {selectedMessage.sender_first_name}{" "}
+                    {selectedMessage.sender_last_name}
                     <span className="block text-gray-500">
                       @{selectedMessage.sender_username}
                     </span>
@@ -407,14 +493,15 @@ const ManageMessages = () => {
                 <div>
                   <h3 className="text-sm font-medium text-gray-500">Receiver</h3>
                   <p className="mt-1 text-sm text-gray-900">
-                    {selectedMessage.receiver_first_name} {selectedMessage.receiver_last_name}
+                    {selectedMessage.receiver_first_name}{" "}
+                    {selectedMessage.receiver_last_name}
                     <span className="block text-gray-500">
                       @{selectedMessage.receiver_username}
                     </span>
                   </p>
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <h3 className="text-sm font-medium text-gray-500">Type</h3>
@@ -429,7 +516,7 @@ const ManageMessages = () => {
                   </p>
                 </div>
               </div>
-              
+
               <div>
                 <h3 className="text-sm font-medium text-gray-500">Sent At</h3>
                 <p className="mt-1 text-sm text-gray-900">
@@ -438,7 +525,7 @@ const ManageMessages = () => {
                     : "-"}
                 </p>
               </div>
-              
+
               <div>
                 <h3 className="text-sm font-medium text-gray-500">Content</h3>
                 <div className="mt-1 p-3 bg-gray-50 rounded-md">
@@ -447,8 +534,55 @@ const ManageMessages = () => {
                   </p>
                 </div>
               </div>
+
+              {isReplying && (
+                <div className="mt-4">
+                  <h3 className="text-sm font-medium text-gray-500 mb-2">
+                    Your Reply
+                  </h3>
+                  <Textarea
+                    value={replyContent}
+                    onChange={(e) => setReplyContent(e.target.value)}
+                    placeholder="Type your reply here..."
+                    className="min-h-[100px]"
+                  />
+                </div>
+              )}
             </div>
           )}
+          <DialogFooter>
+            {isReplying ? (
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsReplying(false)}
+                  disabled={replyMutation.isPending}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleSendReply}
+                  disabled={!replyContent.trim() || replyMutation.isPending}
+                >
+                  {replyMutation.isPending ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Send className="mr-2 h-4 w-4" />
+                  )}
+                  Send Reply
+                </Button>
+              </>
+            ) : (
+              <>
+                {selectedMessage?.receiver_id === user?.id && (
+                  <Button onClick={handleStartReply}>
+                    <Reply className="mr-2 h-4 w-4" />
+                    Reply
+                  </Button>
+                )}
+              </>
+            )}
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

@@ -20,7 +20,10 @@ export const ServicePromotionPackageStorage = {
                 query += ' WHERE is_active = true';
             }
             query += ' ORDER BY price ASC';
-            return await db.query(query);
+           const result = await db.query(query);
+
+        console.log("Raw DB result:", result);
+        return result;
         },
     
         async getServicePromotionPackage(id: number): Promise<ServicePromotionPackage | undefined> {
@@ -34,16 +37,16 @@ export const ServicePromotionPackageStorage = {
                 'VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *',
                 [
                     pkg.name,
-                    pkg.nameAr,
+                    pkg.name_ar,
                     pkg.description,
-                    pkg.descriptionAr,
+                    pkg.description_ar,
                     pkg.plan,
                     pkg.price,
                     pkg.currency,
-                    pkg.durationDays,
-                    pkg.isFeatured,
+                    pkg.duration_days,
+                    pkg.is_featured,
                     pkg.priority,
-                    pkg.isActive
+                    pkg.is_active
                 ]
             );
             return result[0];
@@ -59,9 +62,9 @@ export const ServicePromotionPackageStorage = {
                 values.push(updates.name);
                 paramIndex++;
             }
-            if (updates.nameAr !== undefined) {
+            if (updates.name_ar !== undefined) {
                 fields.push(`name_ar = $${paramIndex}`);
-                values.push(updates.nameAr);
+                values.push(updates.name_ar);
                 paramIndex++;
             }
             if (updates.description !== undefined) {
@@ -69,9 +72,14 @@ export const ServicePromotionPackageStorage = {
                 values.push(updates.description);
                 paramIndex++;
             }
-            if (updates.descriptionAr !== undefined) {
+            if (updates.description_ar !== undefined) {
                 fields.push(`description_ar = $${paramIndex}`);
-                values.push(updates.descriptionAr);
+                values.push(updates.description_ar);
+                paramIndex++;
+            }
+            if (updates.plan !== undefined) {
+                fields.push(`plan = $${paramIndex}`);
+                values.push(updates.plan);
                 paramIndex++;
             }
             if (updates.price !== undefined) {
@@ -84,14 +92,14 @@ export const ServicePromotionPackageStorage = {
                 values.push(updates.currency);
                 paramIndex++;
             }
-            if (updates.durationDays !== undefined) {
+            if (updates.duration_days !== undefined) {
                 fields.push(`duration_days = $${paramIndex}`);
-                values.push(updates.durationDays);
+                values.push(updates.duration_days);
                 paramIndex++;
             }
-            if (updates.isFeatured !== undefined) {
+            if (updates.is_featured !== undefined) {
                 fields.push(`is_featured = $${paramIndex}`);
-                values.push(updates.isFeatured);
+                values.push(updates.is_featured);
                 paramIndex++;
             }
             if (updates.priority !== undefined) {
@@ -99,9 +107,9 @@ export const ServicePromotionPackageStorage = {
                 values.push(updates.priority);
                 paramIndex++;
             }
-            if (updates.isActive !== undefined) {
+            if (updates.is_active !== undefined) {
                 fields.push(`is_active = $${paramIndex}`);
-                values.push(updates.isActive);
+                values.push(updates.is_active);
                 paramIndex++;
             }
     

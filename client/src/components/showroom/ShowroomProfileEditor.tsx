@@ -12,7 +12,9 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import MultiImageUpload from "../ui/multi-image-upload";
+import ImageUpload from "../ui/image-upload";
 
 type FormValues = {
   new_name: string;
@@ -21,8 +23,14 @@ type FormValues = {
   new_addressAr: string;
   new_location: string;
   new_phone: string;
+  new_logo: string;
+  new_description: string;
+  new_descriptionAr: string;
+  new_timing: string;
   new_isMainBranch: boolean;
+  new_images: string[];
 };
+
 
 export function ShowroomProfileEditor({ user }: { user: User }) {
   const { t } = useTranslation();
@@ -42,28 +50,35 @@ const roleId = user?.role_id;
   const { reset } = addFormMethods;
 
   const addMutation = useMutation({
-    mutationFn: (newData: Partial<Showroom>) =>
-      fetch("/api/showrooms", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...newData,
-          userId: user.id,
-          isMainBranch: newData.isMainBranch || false,
-        }),
-      }).then((res) => res.json()),
-    onSuccess: () => refetch(),
-  });
+  mutationFn: (newData: Partial<Showroom>) =>
+    fetch("/api/showrooms", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...newData,
+        userId: user.id,
+        isMainBranch: newData.isMainBranch || false,
+        isGarage: Number(roleId) === 4, // Garage role
+        images: newData.images || [],
+      }),
+    }).then((res) => res.json()),
+  onSuccess: () => refetch(),
+});
+
 
   const updateMutation = useMutation({
-    mutationFn: (updated: Showroom) =>
-      fetch(`/api/showrooms/${updated.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updated),
+  mutationFn: (updated: Showroom) =>
+    fetch(`/api/showrooms/${updated.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...updated,
+        isGarage: Number(roleId) === 4,
       }),
-    onSuccess: () => refetch(),
-  });
+    }),
+  onSuccess: () => refetch(),
+});
+
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) =>
@@ -146,7 +161,12 @@ const roleId = user?.role_id;
                       addressAr: data.new_addressAr,
                       location: data.new_location,
                       phone: data.new_phone,
+                      logo: data.new_logo,
+                      timing: data.new_timing,
+                      description: data.new_description,
+                      descriptionAr: data.new_descriptionAr,
                       isMainBranch: data.new_isMainBranch,
+                      images: data.new_images,
                     })
                   }
                 />
@@ -179,50 +199,67 @@ function ShowroomEditCard({
       addressAr: showroom.address_ar ?? "",
       location: showroom.location ?? "",
       phone: showroom.phone ?? "",
-      isMainBranch: showroom.is_main_branch ?? false,
+      logo: showroom.logo ?? "",
+      timing: showroom.timing ?? "",
+      description: showroom.description ?? "",
+      descriptionAr: showroom.description_ar ?? "",
+      isMainBranch: showroom.isMainBranch ?? false,
+      images: showroom.images ?? [],
     },
   });
 
-  const { handleSubmit, register, control } = methods;
+  const { handleSubmit, register, control, setValue, watch } = methods;
+  const images = watch("images");
+  const logo = watch("logo");
+
+  const handleImagesUpload = (newImages: string[]) => {
+    setValue("images", newImages);
+  };
+
+  const handleLogoUpload = (url: string) => {
+    setValue("logo", url);
+  };
 
   return (
     <Card className="bg-muted/50">
       <CardContent className="p-4 space-y-4">
         <form
-          onSubmit={handleSubmit((data) => onUpdate({ ...showroom, ...data }))}
+          onSubmit={handleSubmit((data) => onUpdate({ ...showroom, ...data, images: data.images || [] }))}
           className="grid gap-4"
         >
+
+          {/* Logo Upload */}
+          <div>
+            <label>{t("showroom.logo")}</label>
+            <ImageUpload
+              currentImage={logo}
+              onUploadComplete={handleLogoUpload}
+            />
+          </div>
+          
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label>{t("showroom.name")} (English)</label>
-              <Input {...register("name")} />
-            </div>
-            <div>
-              <label>{t("showroom.name")} (Arabic)</label>
-              <Input {...register("nameAr")} />
-            </div>
+            <div><label>{t("showroom.name")} (EN)</label><Input {...register("name")} /></div>
+            <div><label>{t("showroom.name")} (AR)</label><Input {...register("nameAr")} /></div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label>{t("showroom.address")} (English)</label>
-              <Input {...register("address")} />
-            </div>
-            <div>
-              <label>{t("showroom.address")} (Arabic)</label>
-              <Input {...register("addressAr")} />
-            </div>
+            <div><label>{t("showroom.address")} (EN)</label><Input {...register("address")} /></div>
+            <div><label>{t("showroom.address")} (AR)</label><Input {...register("addressAr")} /></div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label>{t("showroom.location")}</label>
-              <Input {...register("location")} />
-            </div>
-            <div>
-              <label>{t("showroom.phone")}</label>
-              <Input {...register("phone")} />
-            </div>
+            <div><label>{t("showroom.location")}</label><Input {...register("location")} /></div>
+            <div><label>{t("showroom.phone")}</label><Input {...register("phone")} /></div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div><label>{t("showroom.logo")}</label><Input {...register("logo")} /></div>
+            <div><label>{t("showroom.timing")}</label><Input {...register("timing")} /></div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div><label>{t("showroom.description")} (EN)</label><Input {...register("description")} /></div>
+            <div><label>{t("showroom.description")} (AR)</label><Input {...register("descriptionAr")} /></div>
           </div>
 
           <div>
@@ -236,6 +273,15 @@ function ShowroomEditCard({
               />
               <span>{t("showroom.isMainBranch")}</span>
             </label>
+          </div>
+
+          {/* images section */}
+          <div>
+            <label>{t("showroom.images")}</label>
+            <MultiImageUpload
+              currentImages={images || []}
+              onUploadComplete={handleImagesUpload}
+            />
           </div>
 
           <div className="flex gap-2">
@@ -260,43 +306,56 @@ function ShowroomAddForm({
   onSubmit: (data: FormValues) => void;
 }) {
   const { t } = useTranslation();
-  const { register, handleSubmit, control } = useForm<FormValues>();
+  const { register, handleSubmit, control, setValue } = useForm<FormValues>();
+  const [logo, setLogo] = useState("");
+  const [images, setImages] = useState<string[]>([]);
+
+   const handleLogoUpload = (url: string) => {
+    setLogo(url);
+    setValue("new_logo", url);
+  };
+
+  const handleImagesUpload = (newImages: string[]) => {
+    setImages(newImages);
+    setValue("new_images", newImages);
+  };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4">
+    <form onSubmit={handleSubmit((data) => onSubmit({ ...data, new_logo: logo, new_images: images }))} className="grid gap-4">
       <h3 className="text-lg font-semibold">{t("showroom.addNew")}</h3>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label>{t("showroom.name")} (English)</label>
-          <Input {...register("new_name")} />
-        </div>
-        <div>
-          <label>{t("showroom.name")} (Arabic)</label>
-          <Input {...register("new_nameAr")} />
-        </div>
+      {/* Logo Upload */}
+      <div>
+        <label>{t("showroom.logo")}</label>
+        <ImageUpload
+          currentImage={logo}
+          onUploadComplete={handleLogoUpload}
+        />
+      </div>
+
+       <div className="grid grid-cols-2 gap-4">
+        <div><label>{t("showroom.name")} (EN)</label><Input {...register("new_name")} /></div>
+        <div><label>{t("showroom.name")} (AR)</label><Input {...register("new_nameAr")} /></div>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label>{t("showroom.address")} (English)</label>
-          <Input {...register("new_address")} />
-        </div>
-        <div>
-          <label>{t("showroom.address")} (Arabic)</label>
-          <Input {...register("new_addressAr")} />
-        </div>
+        <div><label>{t("showroom.address")} (EN)</label><Input {...register("new_address")} /></div>
+        <div><label>{t("showroom.address")} (AR)</label><Input {...register("new_addressAr")} /></div>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label>{t("showroom.location")}</label>
-          <Input {...register("new_location")} />
-        </div>
-        <div>
-          <label>{t("showroom.phone")}</label>
-          <Input {...register("new_phone")} />
-        </div>
+        <div><label>{t("showroom.location")}</label><Input {...register("new_location")} /></div>
+        <div><label>{t("showroom.phone")}</label><Input {...register("new_phone")} /></div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div><label>{t("showroom.logo")}</label><Input {...register("new_logo")} /></div>
+        <div><label>{t("showroom.timing")}</label><Input {...register("new_timing")} /></div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div><label>{t("showroom.description")} (EN)</label><Input {...register("new_description")} /></div>
+        <div><label>{t("showroom.description")} (AR)</label><Input {...register("new_descriptionAr")} /></div>
       </div>
 
       <div>
@@ -311,6 +370,16 @@ function ShowroomAddForm({
           <span>{t("showroom.isMainBranch")}</span>
         </label>
       </div>
+
+      {/* images section */}
+      <div>
+        <label>{t("showroom.images")}</label>
+        <MultiImageUpload
+          currentImages={images}
+          onUploadComplete={handleImagesUpload}
+        />
+      </div>
+
 
       <Button type="submit">{t("common.add")}</Button>
     </form>

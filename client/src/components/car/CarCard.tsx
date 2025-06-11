@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { User } from "@shared/schema";
+import { CarListing, User } from "@shared/schema";
 import { AuthForms } from "../forms/AuthForm/AuthForms";
 
 interface CarCardProps {
@@ -35,6 +35,9 @@ interface CarCardProps {
     condition: string;
     color: string;
     isFeatured: boolean;
+    status: string;
+    created_at: Date;
+    updated_at?: Date;
     seller: {
       id: number;
       username: string;
@@ -44,35 +47,54 @@ interface CarCardProps {
     showroom_logo?: string;
   };
   isFavorited?: boolean;
+
 }
 
-const CarCard = ({ car, isFavorited = false }: CarCardProps) => {
+const CarCard = ({
+  car,
+  isFavorited = false,
+}: CarCardProps) => {
   const { isAuthenticated, user } = useAuth();
   const { t } = useTranslation();
   const language = i18n.language;
   const { toast } = useToast();
   const [, setIsFavorited] = useState(false);
+  const [comparisonList, setComparisonList] = useState<CarListing[]>([]);
   const [authModal, setAuthModal] = useState<
     "login" | "register" | "forget-password" | null
   >(null);
 
   const title = language === "ar" && car.titleAr ? car.titleAr : car.title;
+  const isCompared = comparisonList?.some((c) => c.id === car.id);
+
+    
+const handleAddToCompare = (car: CarListing) => {
+  const existing = JSON.parse(localStorage.getItem("comparisonList") || "[]");
+  const updated = [...existing, car];
+  localStorage.setItem("comparisonList", JSON.stringify(updated));
+  setComparisonList(updated); // if you're using state
+  const stored = localStorage.getItem("comparisonList");
+  console.log("stored", stored);
+};
+
+
+const handleRemoveFromCompare = (carId: number) => {
+  setComparisonList(comparisonList.filter((c) => c.id !== carId));
+};
 
   // Toggle favorite mutation
   if (user) {
     const { data: favoriteData } = useQuery<any>({
-      queryKey: ["check-favorite", { listingId: car.id, userId: user?.id }],
+      queryKey: ["check-favorite", { listingId: car?.id, userId: user?.id }],
       queryFn: async () => {
         const res = await fetch("/api/favorites/check", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ listingId: id, userId: user?.id }),
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ listingId: car?.id, userId: user?.id }),
         });
         return res.json();
       },
-      enabled: !!user?.id,
+      enabled: !!user?.id && !!car.id,
     });
 
     useEffect(() => {
@@ -115,7 +137,7 @@ const CarCard = ({ car, isFavorited = false }: CarCardProps) => {
     try {
       if (isFavorited) {
         await apiRequest("DELETE", "/api/favorites", {
-          listingId: parseInt(id),
+          listingId: car?.id,
           userId: user?.id,
         });
         setIsFavorited(false);
@@ -153,11 +175,31 @@ const CarCard = ({ car, isFavorited = false }: CarCardProps) => {
       <Link href={`/cars/${car.id}`}>
         <div className="relative h-56 overflow-hidden group cursor-pointer">
           {car.images && car.images.length > 0 ? (
-            <img
-              src={car.images[0]}
-              alt={title}
-              className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
-            />
+            <>
+              <img
+                src={car.images[0]}
+                alt={car.title}
+                className={`h-full w-full object-cover group-hover:scale-105 transition-transform duration-300 ${
+                  car.status === "sold" ? "opacity-50" : ""
+                }`}
+              />
+              {/* SOLD STAMP */}
+              {car.status === "sold" && (
+                <div className="absolute inset-0 flex items-center justify-center z-10">
+                  <div className="text-red-500 text-xl font-extrabold border-red-500 border-2 px-6 py-2 shadow-lg transform rotate-[-10deg] opacity-90">
+                    SOLD
+                  </div>
+                </div>
+              )}
+
+              {/* NEW RIBBON */}
+              {new Date(car.created_at).toDateString() ===
+                new Date().toDateString() && (
+                <div className="absolute top-5 left-[-40px] -rotate-45 bg-red-700 text-white font-black px-20 py-1 text-lg shadow-lg z-10">
+                  NEW
+                </div>
+              )}
+            </>
           ) : (
             <div className="h-full w-full bg-slate-200 flex items-center justify-center">
               <p className="text-slate-400">{t("common.noImage")}</p>
@@ -165,7 +207,7 @@ const CarCard = ({ car, isFavorited = false }: CarCardProps) => {
           )}
 
           {car.is_featured && (
-            <Badge className="absolute top-2 left-2 bg-red-500 hover:bg-orange-500/50">
+            <Badge className="absolute top-2 right-2 bg-blue-700 hover:bg-orange-500">
               {t("common.featured")}
             </Badge>
           )}
@@ -173,7 +215,7 @@ const CarCard = ({ car, isFavorited = false }: CarCardProps) => {
           <Button
             size="icon"
             variant="ghost"
-            className={`absolute top-2 right-2 rounded-full ${
+            className={`absolute top-2 left-2 rounded-full ${
               isFavorited
                 ? "rounded-full hover:text-orange-600 hover:border-orange-600 bg-orange-600 text-white"
                 : "rounded-full text-orange-600 border-orange-600 hover:bg-orange-600 hover:text-white"
@@ -204,29 +246,50 @@ const CarCard = ({ car, isFavorited = false }: CarCardProps) => {
           </div>
           <div className="flex items-center gap-1">
             <Gauge className="w-4 h-4 text-slate-500" />
-            <span>{car.mileage.toLocaleString()} KM</span>
+            <span>{car?.mileage?.toLocaleString()} KM</span>
           </div>
         </div>
 
         <div className="flex justify-between items-center mt-3">
           <div className="flex items-center text-green-600 font-semibold text-sm">
             <MapPin size={16} className="mr-1" />
-            <span className="text-xs">{car.location}</span>
+            <span className="text-xs">{car?.location}</span>
+
+            <label className="flex items-center space-x-2 cursor-pointer ml-2">
+              <input
+                type="checkbox"
+                checked={isCompared}
+                onChange={() => {
+                  if (isCompared) {
+                    handleRemoveFromCompare(car?.id);
+                  } else {
+                    handleAddToCompare(car);
+                  }
+                }}
+                className="h-4 w-4 rounded border-neutral-300 text-orange-500 focus:ring-orange-500"
+              />
+              <span className="text-sm font-semibold text-neutral-700">
+                <Link href="/compare">
+                  {t("common.addCompare")}
+                </Link>
+              </span>
+            </label>
           </div>
+
           <div className="text-blue-800 font-bold text-lg">
-            QR. {car.price.toLocaleString()}
+            QR. {car?.price?.toLocaleString()}
           </div>
         </div>
       </CardContent>
 
       <CardFooter className="border-t pt-4 flex justify-between items-center">
         <div className="flex items-center">
-          {car.showroom_name || seller ? (
+          {car?.showroom_name || seller ? (
             <>
-              {car.showroom_logo || seller?.avatar ? (
+              {car?.showroom_logo || seller?.avatar ? (
                 <img
-                  src={car.showroom_logo || seller?.avatar}
-                  alt={car.showroom_name || seller?.username}
+                  src={car?.showroom_logo || seller?.avatar}
+                  alt={car?.showroom_name || seller?.username}
                   className="w-8 h-8 rounded-full mr-2 object-cover"
                 />
               ) : (
@@ -235,7 +298,7 @@ const CarCard = ({ car, isFavorited = false }: CarCardProps) => {
                 </div>
               )}
               <span className="text-sm text-slate-600">
-                {car.showroom_name || seller?.username.slice(0, 10)}
+                {car?.showroom_name || seller?.username.slice(0, 10)}
               </span>
             </>
           ) : (
@@ -245,7 +308,7 @@ const CarCard = ({ car, isFavorited = false }: CarCardProps) => {
           )}
         </div>
 
-        <Link href={`/cars/${car.id}`}>
+        <Link href={`/cars/${car?.id}`}>
           <Button
             size="sm"
             variant="default"

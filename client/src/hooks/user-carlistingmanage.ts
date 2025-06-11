@@ -116,7 +116,7 @@ export const useCarListingManage = () => {
             }
 
             // For sellers and showrooms, only fetch their own listings
-            if (roleName === "SELLER" || roleName === "DEALER" || roleName === "GARAGE") {
+            if (roleName === "SELLER" || roleName === "DEALER") {
                 console.log("User Id is this:", user?.id);
                 searchParams.append("user_id", user?.id);
             }

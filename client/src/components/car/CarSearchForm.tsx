@@ -25,9 +25,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Search, MapPin, Car, ChevronDown, ChevronUp } from "lucide-react";
-import { CarCategory, CarEngineCapacity, CarMake } from "@shared/schema";
+import { CarCategory, CarEngineCapacity, CarMake, CarService } from "@shared/schema";
 import { fetchModelsByMake } from "@/lib/utils";
-import { Checkbox } from "@/components/ui/checkbox";
 import { MultiSelect } from "@/components/ui/multiselect";
 
 // Search form schema
@@ -113,6 +112,7 @@ const ownerTypeOptions = [
   { value: "second", label: "second" },
   { value: "third", label: "third" },
   { value: "fourth", label: "fourth" },
+  { value: "fifth", label: "fifth" },
 ];
 
 const conditionOptions = [
@@ -131,7 +131,7 @@ const CarSearchForm = () => {
   const language = i18n.language;
   const direction = language === "ar" ? "rtl" : "ltr";
   const [, navigate] = useLocation();
-  const [activeTab, setActiveTab] = useState<"all" | "new" | "scrap">("all");
+  const [activeTab, setActiveTab] = useState<"all" | "new" | "scrap" | "garage">("all");
   const [showAdvanced, setShowAdvanced] = useState(false);
   const { reset } = useForm();
 
@@ -168,6 +168,10 @@ const CarSearchForm = () => {
   // Fetch car categories for filter
   const { data: categories = [] } = useQuery<CarCategory[]>({
     queryKey: ["/api/car-categories"],
+  });
+
+  const { data: carServices = [] } = useQuery<CarService[]>({
+    queryKey: ["/api/services"],
   });
 
   // Engine capacities
@@ -227,30 +231,64 @@ const CarSearchForm = () => {
     navigate(url);
   };
 
+  // Determine which default fields to show based on active tab
+  const showDefaultField = (fieldName: keyof SearchFormValues) => {
+    if (activeTab === "all") {
+      // Show these fields by default for "all" tab
+      return ["make", "model", "minYear", "condition", "owner_type"].includes(fieldName);
+    }
+    if (activeTab === "new") {
+      // Show these fields by default for "new" tab
+      return ["make", "model", "minPrice", "maxPrice", "owner_type"].includes(fieldName);
+    }
+    if (activeTab === "scrap") {
+      // Show these fields by default for "scrap" tab
+      return ["make", "model", "minYear"].includes(fieldName);
+    }
+     if (activeTab === "garage") {
+      // Show these fields by default for "scrap" tab
+      return ["make", "model", "minYear", "service"].includes(fieldName);
+    }
+    return false;
+  };
+
   // Determine which fields to show based on active tab
   const showField = (fieldName: keyof SearchFormValues) => {
-    if (activeTab === "all") return true;
+    if (activeTab === "all") {
+    return ![
+        "condition",
+        "minYear",
+        "maxYear",
+        "keyword",
+        "owner_type",
+        "category",
+      ].includes(fieldName);
+    }
     if (activeTab === "new") {
       // Hide fields not relevant for new cars
       return ![
-        "condition", 
-        "minMiles", 
-        "maxMiles", 
-        "keyword", 
-        "ownerType", 
-        "tinted", 
-        "category", 
-        "is_imported"
+        "condition",
+        "minPrice",
+        "maxPrice",
+        "minMiles",
+        "maxMiles",
+        "keyword",
+        "owner_type",
+        "engine_capacity",
+        "location",
+        "tinted",
+        "category",
+        "is_imported",
       ].includes(fieldName);
     }
     if (activeTab === "scrap") {
       // Hide fields not relevant for scrap cars
       return ![
         "keyword",
-        "minPrice", 
+        "minPrice",
         "maxPrice",
         "category",
-        "minMiles", 
+        "minMiles",
         "maxMiles",
         "fuel_type",
         "transmission",
@@ -258,13 +296,35 @@ const CarSearchForm = () => {
         "cylinder_count",
         "color",
         "interior_color",
-        "tinted", 
+        "tinted",
         "condition",
         "is_featured",
         "is_imported",
         "has_warranty",
         "has_insurance",
-        
+      ].includes(fieldName);
+    }
+    if (activeTab === "garage") {
+      // Hide fields not relevant for scrap cars
+      return ![
+        "keyword",
+        "minPrice",
+        "maxPrice",
+        "category",
+        "minMiles",
+        "maxMiles",
+        "fuel_type",
+        "transmission",
+        "engine_capacity",
+        "cylinder_count",
+        "color",
+        "interior_color",
+        "tinted",
+        "condition",
+        "is_featured",
+        "is_imported",
+        "has_warranty",
+        "has_insurance",
       ].includes(fieldName);
     }
     return true;
@@ -275,10 +335,10 @@ const CarSearchForm = () => {
       <CardContent className="p-6">
         {/* Tabs for status */}
         <div className="flex flex-wrap justify-center mb-8 gap-3">
-          {["all", "new", "scrap"].map((tab) => (
+          {["all", "new", "scrap", "garage"].map((tab) => (
             <button
               key={tab}
-              onClick={() => setActiveTab(tab as "all" | "new" | "scrap")}
+              onClick={() => setActiveTab(tab as "all" | "new" | "scrap" | "garage")}
               className={`px-5 py-2 text-sm font-medium transition-all ${
                 activeTab === tab
                   ? "text-orange-500 border-b-4 border-b-orange-500 hover:font-bold"
@@ -291,179 +351,312 @@ const CarSearchForm = () => {
         </div>
 
         <Form {...form}>
+          
           <form
             onSubmit={form.handleSubmit(onSubmit)}
-            className="space-y-4 md:space-y-0 md:grid md:grid-cols-4 md:gap-4"
+            className="space-y-4"
           >
-            {/* Keyword */}
-            {showField("keyword") && (
-            <FormField
-              control={form.control}
-              name="keyword"
-              render={({ field }) => (
-                <FormItem className="col-span-4 md:col-span-1">
-                  <FormLabel>{t("common.keyword")}</FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                      <Input
-                        {...field}
-                        placeholder={t("search.keywordPlaceholder")}
-                        className="pl-9 bg-slate-50 border-slate-200"
-                      />
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+            {/* Default Fields Section */}
+            <div className="w-full flex flex-wrap justify-center gap-4">
+              {/* Make */}
+              {showDefaultField("make") && (
+                <div className="flex-[1_0_calc(20%-16px)] min-w-[200px] max-w-[calc(20%-16px)]">
+                  <FormField
+                    control={form.control}
+                    name="make"
+                    render={({ field }) => (
+                      <FormItem className="w-full">
+                        <FormLabel>{t("car.make")}</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder={t("car.selectMake")} />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="all">{t("common.all")}</SelectItem>
+                            {makes?.map((make) => (
+                              <SelectItem key={make.id} value={make.id}>
+                                {make.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
               )}
-            />
-            )}
 
-            
-            {/* Make */}
-            {showField("make") && (
-              <FormField
-                control={form.control}
-                name="make"
-                render={({ field }) => (
-                  <FormItem className="text-black col-span-4 md:col-span-1">
-                    <FormLabel>{t("car.make")}</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder={t("car.selectMake")} />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem  className="text-black" value="all">{t("common.all")}</SelectItem>
-                        {makes?.map((make) => (
-                          <SelectItem key={make.id} value={make.id}>
-                            {make.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
+              {/* Model */}
+              {showDefaultField("model") && (
+                <div className="flex-[1_0_calc(20%-16px)] min-w-[200px] max-w-[calc(20%-16px)]">
+                  <FormField
+                    control={form.control}
+                    name="model"
+                    render={({ field }) => (
+                      <FormItem className="w-full">
+                        <FormLabel>{t("car.model")}</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder={t("car.selectModel")} />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {models?.length > 0 ? (
+                              models.map((model) => (
+                                <SelectItem key={model.id} value={model.id}>
+                                  {model.name}
+                                </SelectItem>
+                              ))
+                            ) : (
+                              <SelectItem value="all" disabled>
+                                {t("car.noModelsAvailable")}
+                              </SelectItem>
+                            )}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              )}
 
-            {/* Model */}
-            {showField("model") && (
-              <FormField
-                control={form.control}
-                name="model"
-                render={({ field }) => (
-                  <FormItem className="text-black col-span-4 md:col-span-1">
-                    <FormLabel>{t("car.model")}</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder={t("car.selectModel")} />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {models && models?.length > 0 ? (
-                          models.map((model) => (
-                            <SelectItem  className="text-black" key={model.id} value={model.id}>
-                              {model.name}
-                            </SelectItem>
-                          ))
-                        ) : (
-                          <SelectItem className="text-black" value="all" disabled>
-                            {t("car.noModelsAvailable")}
-                          </SelectItem>
-                        )}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
+              {/* Category */}
+              {showDefaultField("category") && (
+                <div className="flex-[1_0_calc(20%-16px)] min-w-[200px] max-w-[calc(20%-16px)]">
+                  <FormField
+                    control={form.control}
+                    name="category"
+                    render={({ field }) => (
+                      <FormItem className="w-full">
+                        <FormLabel>{t("car.category")}</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder={t("car.selectCategory")} />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="all">{t("common.all")}</SelectItem>
+                            {categories?.map((category) => (
+                              <SelectItem key={category.id} value={category.id}>
+                                {category.name} ({category.count})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              )}
 
-            {/* Category */}
-            {showField("category") && (
-              <FormField
-                control={form.control}
-                name="category"
-                render={({ field }) => (
-                  <FormItem className="col-span-4 md:col-span-1">
-                    <FormLabel>{t("car.category")}</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder={t("car.selectCategory")} />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem  className="text-black" value="all">{t("common.all")}</SelectItem>
-                        {categories?.map((category) => (
-                          <SelectItem  className="text-black" key={category.id} value={category.id}>
-                            {category.name} ({category.count})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
+              {/* Condition */}
+              {showDefaultField("condition") && (
+                <div className="flex-[1_0_calc(20%-16px)] min-w-[200px] max-w-[calc(20%-16px)]">
+                  <FormField
+                    control={form.control}
+                    name="condition"
+                    render={({ field }) => (
+                      <FormItem className="w-full">
+                        <FormLabel>{t("car.condition")}</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder={t("car.selectCondition")} />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="all">{t("common.all")}</SelectItem>
+                            {conditionOptions.map((option) => (
+                              <SelectItem key={option.value} value={option.value}>
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              )}
 
-            {/* Min Price */}
-            {showField("minPrice") && (
-              <FormField
-                control={form.control}
-                name="minPrice"
-                render={({ field }) => (
-                  <FormItem className="col-span-2 md:col-span-1">
-                    <FormLabel>{t("car.minPrice")}</FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        type="number"
-                        placeholder={t("car.minPricePlaceholder")}
-                        min={0}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
+              {/* Year */}
+              {showDefaultField("minYear") && (
+                <div className="flex-[1_0_calc(20%-16px)] min-w-[200px] max-w-[calc(20%-16px)]">
+                  <FormField
+                    control={form.control}
+                    name="minYear"
+                    render={({ field }) => (
+                      <FormItem className="w-full">
+                        <FormLabel>{t("car.year")}</FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            className="w-full"
+                            type="number"
+                            placeholder={t("car.yearPlaceholder")}
+                            min={1900}
+                            max={new Date().getFullYear()}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              )}
 
-            {/* Max Price */}
-            {showField("maxPrice") && (
-              <FormField
-                control={form.control}
-                name="maxPrice"
-                render={({ field }) => (
-                  <FormItem className="col-span-2 md:col-span-1">
-                    <FormLabel>{t("car.maxPrice")}</FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        type="number"
-                        placeholder={t("car.maxPricePlaceholder")}
-                        min={0}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
+              {/* Min Price */}
+              {showDefaultField("minPrice") && (
+                <div className="flex-[1_0_calc(20%-16px)] min-w-[200px] max-w-[calc(20%-16px)]">
+                  <FormField
+                    control={form.control}
+                    name="minPrice"
+                    render={({ field }) => (
+                      <FormItem className="w-full">
+                        <FormLabel>{t("car.minPrice")}</FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            className="w-full"
+                            type="number"
+                            placeholder={t("car.minPricePlaceholder")}
+                            min={0}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              )}
 
-            {/* Year Range */}
-                {showField("minYear") && showField("maxYear") && (
+              {/* Max Price */}
+              {showDefaultField("maxPrice") && (
+                <div className="flex-[1_0_calc(20%-16px)] min-w-[200px] max-w-[calc(20%-16px)]">
+                  <FormField
+                    control={form.control}
+                    name="maxPrice"
+                    render={({ field }) => (
+                      <FormItem className="w-full">
+                        <FormLabel>{t("car.maxPrice")}</FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            className="w-full"
+                            type="number"
+                            placeholder={t("car.maxPricePlaceholder")}
+                            min={0}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              )}
+
+              {/* Location */}
+              {showDefaultField("location") && (
+                <div className="flex-[1_0_calc(20%-16px)] min-w-[200px] max-w-[calc(20%-16px)]">
+                  <FormField
+                    control={form.control}
+                    name="location"
+                    render={({ field }) => (
+                      <FormItem className="w-full">
+                        <FormLabel>{t("common.location")}</FormLabel>
+                        <FormControl>
+                          <div className="relative w-full">
+                            <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                              {...field}
+                              placeholder={t("common.locationPlaceholder")}
+                              className="w-full pl-10"
+                            />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              )}
+
+              {/* Owner Type */}
+              {showDefaultField("owner_type") && (
+                <div className="flex-[1_0_calc(20%-16px)] min-w-[200px] max-w-[calc(20%-16px)]">
+                  <FormField
+                    control={form.control}
+                    name="owner_type"
+                    render={({ field }) => (
+                      <FormItem className="w-full">
+                        <FormLabel>{t("car.ownerType")}</FormLabel>
+                        <FormControl>
+                          <MultiSelect
+                            options={ownerTypeOptions}
+                            selected={field.value || []}
+                            onChange={field.onChange}
+                            placeholder={t("car.selectOwnerType")}
+                            className="w-full"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              )}
+
+               {/* Car Service */}
+              {showDefaultField("service") && (
+                <div className="flex-[1_0_calc(20%-16px)] min-w-[200px] max-w-[calc(20%-16px)]">
+                  <FormField
+                    control={form.control}
+                    name="service"
+                    render={({ field }) => (
+                      <FormItem className="w-full">
+                        <FormLabel>{t("car.service")}</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder={t("car.selectService")} />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="all">{t("common.all")}</SelectItem>
+                            {carServices?.map((service) => (
+                              <SelectItem key={service.id} value={service.id}>
+                                {service.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Advanced Filters Section */}
+            {showAdvanced && (
+               <div className="w-full flex flex-wrap justify-center gap-4">
+                {/* Year Range */}
+                {showField("minYear") && (
                   <>
                     <FormField
                       control={form.control}
                       name="minYear"
                       render={({ field }) => (
-                        <FormItem className="col-span-2 md:col-span-1">
+                        <FormItem className="flex-[1_0_calc(20%-16px)] min-w-[200px] max-w-[calc(20%-16px)]">
                           <FormLabel>{t("car.minYear")}</FormLabel>
                           <FormControl>
                             <Input
@@ -478,11 +671,16 @@ const CarSearchForm = () => {
                         </FormItem>
                       )}
                     />
+                  </>
+                )}
+
+                {showField("maxYear") && (
+                  <>
                     <FormField
                       control={form.control}
                       name="maxYear"
                       render={({ field }) => (
-                        <FormItem className="col-span-2 md:col-span-1">
+                        <FormItem className="flex-[1_0_calc(20%-16px)] min-w-[200px] max-w-[calc(20%-16px)]">
                           <FormLabel>{t("car.maxYear")}</FormLabel>
                           <FormControl>
                             <Input
@@ -500,10 +698,49 @@ const CarSearchForm = () => {
                   </>
                 )}
 
-            {/* Advanced Filters Section */}
-            {showAdvanced && (
-              <>
-                
+                {/* Min Price */}
+                {showField("minPrice") && (
+                  <FormField
+                    control={form.control}
+                    name="minPrice"
+                    render={({ field }) => (
+                      <FormItem className="flex-[1_0_calc(20%-16px)] min-w-[200px] max-w-[calc(20%-16px)]">
+                        <FormLabel>{t("car.minPrice")}</FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            type="number"
+                            placeholder={t("car.minPricePlaceholder")}
+                            min={0}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+
+                {/* Max Price */}
+                {showField("maxPrice") && (
+                  <FormField
+                    control={form.control}
+                    name="maxPrice"
+                    render={({ field }) => (
+                      <FormItem className="flex-[1_0_calc(20%-16px)] min-w-[200px] max-w-[calc(20%-16px)]">
+                        <FormLabel>{t("car.maxPrice")}</FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            type="number"
+                            placeholder={t("car.maxPricePlaceholder")}
+                            min={0}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
 
                 {/* Miles Range */}
                 {showField("minMiles") && showField("maxMiles") && (
@@ -512,7 +749,7 @@ const CarSearchForm = () => {
                       control={form.control}
                       name="minMiles"
                       render={({ field }) => (
-                        <FormItem className="col-span-2 md:col-span-1">
+                        <FormItem className="flex-[1_0_calc(20%-16px)] min-w-[200px] max-w-[calc(20%-16px)]">
                           <FormLabel>{t("car.minMiles")}</FormLabel>
                           <FormControl>
                             <Input
@@ -530,7 +767,7 @@ const CarSearchForm = () => {
                       control={form.control}
                       name="maxMiles"
                       render={({ field }) => (
-                        <FormItem className="col-span-2 md:col-span-1">
+                        <FormItem className="flex-[1_0_calc(20%-16px)] min-w-[200px] max-w-[calc(20%-16px)]">
                           <FormLabel>{t("car.maxMiles")}</FormLabel>
                           <FormControl>
                             <Input
@@ -553,7 +790,7 @@ const CarSearchForm = () => {
                     control={form.control}
                     name="fuel_type"
                     render={({ field }) => (
-                      <FormItem className="col-span-4 md:col-span-1">
+                      <FormItem className="flex-[1_0_calc(20%-16px)] min-w-[200px] max-w-[calc(20%-16px)]">
                         <FormLabel>{t("car.fuelType")}</FormLabel>
                         <FormControl>
                           <MultiSelect
@@ -575,7 +812,7 @@ const CarSearchForm = () => {
                     control={form.control}
                     name="transmission"
                     render={({ field }) => (
-                      <FormItem className="col-span-4 md:col-span-1">
+                      <FormItem className="flex-[1_0_calc(20%-16px)] min-w-[200px] max-w-[calc(20%-16px)]">
                         <FormLabel>{t("car.transmission")}</FormLabel>
                         <FormControl>
                           <MultiSelect
@@ -597,7 +834,7 @@ const CarSearchForm = () => {
                     control={form.control}
                     name="engine_capacity"
                     render={({ field }) => (
-                      <FormItem className="col-span-4 md:col-span-1">
+                      <FormItem className="flex-[1_0_calc(20%-16px)] min-w-[200px] max-w-[calc(20%-16px)]">
                         <FormLabel>{t("car.engineCapacity")}</FormLabel>
                         <FormControl>
                           <MultiSelect
@@ -619,7 +856,7 @@ const CarSearchForm = () => {
                     control={form.control}
                     name="cylinder_count"
                     render={({ field }) => (
-                      <FormItem className="col-span-4 md:col-span-1">
+                      <FormItem className="flex-[1_0_calc(20%-16px)] min-w-[200px] max-w-[calc(20%-16px)]">
                         <FormLabel>{t("car.cylinderCount")}</FormLabel>
                         <FormControl>
                           <MultiSelect
@@ -641,7 +878,7 @@ const CarSearchForm = () => {
                     control={form.control}
                     name="color"
                     render={({ field }) => (
-                      <FormItem className="col-span-4 md:col-span-1">
+                      <FormItem className="flex-[1_0_calc(20%-16px)] min-w-[200px] max-w-[calc(20%-16px)]">
                         <FormLabel>{t("car.color")}</FormLabel>
                         <FormControl>
                           <MultiSelect
@@ -663,7 +900,7 @@ const CarSearchForm = () => {
                     control={form.control}
                     name="interior_color"
                     render={({ field }) => (
-                      <FormItem className="col-span-4 md:col-span-1">
+                      <FormItem className="flex-[1_0_calc(20%-16px)] min-w-[200px] max-w-[calc(20%-16px)]">
                         <FormLabel>{t("car.interiorColor")}</FormLabel>
                         <FormControl>
                           <MultiSelect
@@ -685,7 +922,7 @@ const CarSearchForm = () => {
                     control={form.control}
                     name="tinted"
                     render={({ field }) => (
-                      <FormItem className="col-span-4 md:col-span-1">
+                      <FormItem className="flex-[1_0_calc(20%-16px)] min-w-[200px] max-w-[calc(20%-16px)]">
                         <FormLabel>{t("car.tinted")}</FormLabel>
                         <Select
                           onValueChange={field.onChange}
@@ -724,7 +961,7 @@ const CarSearchForm = () => {
                     control={form.control}
                     name="condition"
                     render={({ field }) => (
-                      <FormItem className="col-span-4 md:col-span-1">
+                      <FormItem className="flex-[1_0_calc(20%-16px)] min-w-[200px] max-w-[calc(20%-16px)]">
                         <FormLabel>{t("car.condition")}</FormLabel>
                         <Select
                           onValueChange={field.onChange}
@@ -763,7 +1000,7 @@ const CarSearchForm = () => {
                     control={form.control}
                     name="location"
                     render={({ field }) => (
-                      <FormItem className="col-span-4 md:col-span-1">
+                      <FormItem className="flex-[1_0_calc(20%-16px)] min-w-[200px] max-w-[calc(20%-16px)]">
                         <FormLabel>{t("common.location")}</FormLabel>
                         <FormControl>
                           <div className="relative">
@@ -787,7 +1024,7 @@ const CarSearchForm = () => {
                     control={form.control}
                     name="owner_type"
                     render={({ field }) => (
-                      <FormItem className="col-span-4 md:col-span-1">
+                      <FormItem className="flex-[1_0_calc(20%-16px)] min-w-[200px] max-w-[calc(20%-16px)]">
                         <FormLabel>{t("car.ownerType")}</FormLabel>
                         <FormControl>
                           <MultiSelect
@@ -809,7 +1046,7 @@ const CarSearchForm = () => {
                     control={form.control}
                     name="is_featured"
                     render={({ field }) => (
-                      <FormItem className="col-span-4 md:col-span-1">
+                      <FormItem className="flex-[1_0_calc(20%-16px)] min-w-[200px] max-w-[calc(20%-16px)]">
                         <FormLabel>{t("car.featured")}</FormLabel>
                         <Select
                           onValueChange={field.onChange}
@@ -846,7 +1083,7 @@ const CarSearchForm = () => {
                     control={form.control}
                     name="is_imported"
                     render={({ field }) => (
-                      <FormItem className="col-span-4 md:col-span-1">
+                      <FormItem className="flex-[1_0_calc(20%-16px)] min-w-[200px] max-w-[calc(20%-16px)]">
                         <FormLabel>{t("car.imported")}</FormLabel>
                         <Select
                           onValueChange={field.onChange}
@@ -883,7 +1120,7 @@ const CarSearchForm = () => {
                     control={form.control}
                     name="has_warranty"
                     render={({ field }) => (
-                      <FormItem className="col-span-4 md:col-span-1">
+                      <FormItem className="flex-[1_0_calc(20%-16px)] min-w-[200px] max-w-[calc(20%-16px)]">
                         <FormLabel>{t("car.warranty")}</FormLabel>
                         <Select
                           onValueChange={field.onChange}
@@ -920,7 +1157,7 @@ const CarSearchForm = () => {
                     control={form.control}
                     name="hasInsurance"
                     render={({ field }) => (
-                      <FormItem className="col-span-4 md:col-span-1">
+                      <FormItem className="flex-[1_0_calc(20%-16px)] min-w-[200px] max-w-[calc(20%-16px)]">
                         <FormLabel>{t("car.insurance")}</FormLabel>
                         <Select
                           onValueChange={field.onChange}
@@ -950,15 +1187,41 @@ const CarSearchForm = () => {
                     )}
                   />
                 )}
-              </>
+
+                {/* Keyword */}
+                {showField("keyword") && (
+                  <FormField
+                    control={form.control}
+                    name="keyword"
+                    render={({ field }) => (
+                      <FormItem className="flex-[1_0_calc(20%-16px)] min-w-[200px] max-w-[calc(20%-16px)]">
+                        <FormLabel>{t("common.keyword")}</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                            <Input
+                              {...field}
+                              placeholder={t("search.keywordPlaceholder")}
+                              className="pl-9 bg-slate-50 border-slate-200"
+                            />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+              </div>
             )}
 
             {/* Search and Clear Buttons in a New Row */}
             <div className="col-span-4 flex flex-col md:flex-row justify-center items-center gap-4 mt-4">
-              <Button type="submit" className="bg-orange-500 rounded-full w-full md:w-auto">
-               {t("common.search")} {totalCount} Cars
+              <Button
+                type="submit"
+                className="bg-orange-500 rounded-full w-full md:w-auto"
+              >
+                {t("common.search")} {totalCount} Cars
               </Button>
-              
             </div>
 
             {/* Advanced Search Toggle */}

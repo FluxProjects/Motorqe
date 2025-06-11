@@ -5,7 +5,9 @@ import { notificationService } from "./services/notification";
 import { paymentService } from "./services/payment";
 import { generateOTP, generateToken, hashPassword, loginUser, registerUser, verifyPassword } from "./services/auth";
 import { verifyToken } from "./services/auth";
-import { InsertShowroom, ShowroomService } from "@shared/schema";
+import { InsertBannerAd, InsertBlogPost, InsertHeroSlider, InsertPromotionPackage, InsertServicePromotionPackage, InsertShowroom, InsertStaticContent, ShowroomService } from "@shared/schema";
+import { Role, roleIdMapping } from "@shared/permissions";
+import multer from "multer";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize database with dummy data
@@ -277,30 +279,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.get("/api/get-users", async (req, res) => {
-    try {
-      const { search, role, status, sortBy } = req.query;
+  try {
+    const { search, role, status, isEmailVerified, sortBy } = req.query;
 
-      console.log("Incoming request with filters:");
-      console.log("Search:", search);
-      console.log("Role:", role);
-      console.log("Status:", status);
-      console.log("SortBy:", sortBy);
+    console.log("Incoming request with filters:");
+    console.log("Search:", search);
+    console.log("Role:", role);
+    console.log("Status:", status);
+    console.log("Email Verified:", isEmailVerified);
+    console.log("SortBy:", sortBy);
 
-      // Assuming you have a function like this in your storage layer:
-      const users = await storage.getFilteredUsers({
-        search: search as string,
-        role: role as string,
-        status: status as string,
-        sortBy: sortBy as string,
-      });
-
-      console.log("Filtered users:", users);
-      res.json(users);
-    } catch (error) {
-      console.error("Error fetching users:", error);
-      res.status(500).json({ message: "Failed to fetch users", error });
+    // Convert role string to roleId
+    let finalRole: string | undefined = undefined;
+    if (typeof role === "string" && role !== "all") {
+      const id = roleIdMapping[role as Role];
+      if (id) finalRole = String(id);
     }
-  });
+
+    // Convert email verification filter to boolean
+    let emailVerified: boolean | undefined = undefined;
+    if (typeof isEmailVerified === "string" && isEmailVerified !== "all") {
+      emailVerified = isEmailVerified === "true" || isEmailVerified === "verified";
+    }
+
+    const users = await storage.getFilteredUsers({
+      search: typeof search === "string" ? search : undefined,
+      role: finalRole,
+      status: typeof status === "string" && status !== "all" ? status : undefined,
+      isEmailVerified: emailVerified,
+      sortBy: typeof sortBy === "string" ? sortBy : undefined,
+    });
+
+    console.log(`Found ${users.length} users matching filters`);
+    res.json(users);
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    res.status(500).json({ 
+      message: "Failed to fetch users",
+      error: error instanceof Error ? error.message : "Unknown error"
+    });
+  }
+});
+
 
   app.get("/api/users/username/:username", async (req, res) => {
     try {
@@ -337,6 +357,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to delete user", error });
     }
   });
+
+  app.put("/api/users/:id/actions", async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const { action, reason, role } = req.body;
+
+    console.log("Action received:", action);
+
+    // Define valid actions
+    const validActions = ['ban', 'delete', 'promote'];
+    if (!validActions.includes(action)) {
+      return res.status(400).json({ message: "Invalid action" });
+    }
+
+    // Fetch user
+    const user = await storage.getUser(id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Prepare updates
+    const updates: any = {};
+
+    switch (action) {
+      case 'ban':
+        updates.status = 'suspended';
+        updates.suspension_reason = reason || null;
+        break;
+
+      case 'delete':
+        updates.status = 'removed';
+        updates.deleted_at = new Date();
+        break;
+
+      case 'promote':
+        if (!role) {
+          return res.status(400).json({ message: "Role required for promotion" });
+        }
+        updates.role = role;
+        updates.status = 'active';
+        break;
+    }
+
+    // Apply updates
+    const updated = await storage.updateUser(id, updates);
+
+    res.json({
+      success: true,
+      user: updated,
+    });
+
+  } catch (error: any) {
+    res.status(500).json({
+      message: error.message || "Failed to perform action",
+    });
+  }
+});
+
 
   /**
    * ROLES
@@ -458,7 +536,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-   app.get("/api/garages/:id", async (req, res) => {
+  app.get("/api/garages/:id", async (req, res) => {
     try {
       const garage = await storage.getGarage(Number(req.params.id));
       garage ? res.json(garage) : res.status(404).json({ message: "Garage not found" });
@@ -1637,7 +1715,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         showroomId,
         serviceId,
         price,
-        currency = 'USD', // default currency
+        currency = 'QAR', // default currency
         description,
         descriptionAr,
         availability,
@@ -1799,111 +1877,255 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
   app.get("/api/service-bookings", async (req, res) => {
-  console.log("Received request to /api/bookings with query:", req.query);
-  try {
-    const filters: any = {};
-    console.log("Initial filters object:", filters);
+    console.log("Received request to /api/service-bookings with query:", req.query);
+    try {
+      const filters: any = {};
+      console.log("Initial filters object:", filters);
 
-    // Showroom ID
-    if (req.query.showroom_id) {
-      const showroomId = parseInt(req.query.showroom_id as string, 10);
-      if (!isNaN(showroomId)) {
-        filters.showroom_id = showroomId;
-        console.log("Added showroom_id filter:", showroomId);
-      } else {
-        console.log("Invalid showroom_id");
-      }
-    }
-
-    // Service ID
-    if (req.query.service_id) {
-      const serviceId = parseInt(req.query.service_id as string, 10);
-      if (!isNaN(serviceId)) {
-        filters.service_id = serviceId;
-        console.log("Added service_id filter:", serviceId);
-      } else {
-        console.log("Invalid service_id");
-      }
-    }
-
-    // User ID
-    if (req.query.user_id) {
-      const userId = parseInt(req.query.user_id as string, 10);
-      if (!isNaN(userId)) {
-        filters.user_id = userId;
-        console.log("Added user_id filter:", userId);
-      } else {
-        console.log("Invalid user_id");
-      }
-    }
-
-    // Status
-    if (req.query.status && req.query.status !== "all") {
-      filters.status = req.query.status;
-      console.log("Added status filter:", req.query.status);
-    }
-
-    // Date Range (created_at)
-    if (req.query.date_from && req.query.date_to) {
-      filters.date_from = req.query.date_from;
-      filters.date_to = req.query.date_to;
-      console.log("Added date range filter:", filters.date_from, "to", filters.date_to);
-    }
-
-    // Sort Parameters
-    const sortBy = req.query.sort_by as string;
-    const sortOrder = req.query.sort_order === "desc" ? "desc" : "asc";
-
-    const validSortFields = ["id", "created_at", "status"]; // Add more if needed
-    if (sortBy && !validSortFields.includes(sortBy)) {
-      return res.status(400).json({ message: "Invalid sort_by field" });
-    }
-
-    console.log("Final filters before query:", filters);
-
-    const bookings = await storage.getAllServiceBookings(filters, sortBy, sortOrder);
-
-    const enrichedBookings = await Promise.all(
-      bookings.map(async (booking: any) => {
-        try {
-          const service = await storage.getService(booking.service_id);
-          const showroom = await storage.getShowroom(booking.showroom_id);
-          const user = await storage.getUser(booking.user_id);
-          return {
-            ...booking,
-            service,
-            showroom,
-            user,
-          };
-        } catch (err) {
-          console.error("Error enriching booking:", err);
-          return booking;
+      // Showroom ID
+      if (req.query.showroom_id) {
+        const showroomId = parseInt(req.query.showroom_id as string, 10);
+        if (!isNaN(showroomId)) {
+          filters.showroom_id = showroomId;
+          console.log("Added showroom_id filter:", showroomId);
+        } else {
+          console.log("Invalid showroom_id");
         }
-      })
-    );
+      }
 
-    res.json(enrichedBookings);
+      // Service ID
+      if (req.query.service_id) {
+        const serviceId = parseInt(req.query.service_id as string, 10);
+        if (!isNaN(serviceId)) {
+          filters.service_id = serviceId;
+          console.log("Added service_id filter:", serviceId);
+        } else {
+          console.log("Invalid service_id");
+        }
+      }
+
+      // Customer ID 
+      if (req.query.customer_id) {
+        const customerId = parseInt(req.query.customer_id as string, 10);
+        if (!isNaN(customerId)) {
+          filters.customer_id = customerId;
+          console.log("Added customer_id filter:", customerId);
+        } else {
+          console.log("Invalid customer_id");
+        }
+      }
+
+      // Status
+      if (req.query.status && req.query.status !== "all") {
+        filters.status = req.query.status;
+        console.log("Added status filter:", req.query.status);
+      }
+
+      // Date Range (created_at)
+      if (req.query.date_from && req.query.date_to) {
+        filters.created_from = req.query.date_from;
+        filters.created_to = req.query.date_to;
+        console.log("Added date range filter:", filters.created_from, "to", filters.created_to);
+      }
+
+      // Sort Parameters
+      const sortBy = req.query.sort_by as string;
+      const sortOrder = req.query.sort_order === "desc" ? "desc" : "asc";
+
+      const validSortFields = ["id", "created_at", "status"];
+      if (sortBy && !validSortFields.includes(sortBy)) {
+        return res.status(400).json({ message: "Invalid sort_by field" });
+      }
+
+      console.log("Final filters before query:", filters);
+
+      const bookings = await storage.getAllServiceBookings(filters, sortBy, sortOrder);
+
+      const enrichedBookings = await Promise.all(
+        bookings.map(async (booking: any) => {
+          try {
+            const service = await storage.getService(booking.service_id);
+            const showroom = await storage.getShowroom(booking.showroom_id);
+            const customer = await storage.getUser(booking.customer_id); // Corrected
+            const user = await storage.getUser(booking.user_id); // Showroom's user
+            return {
+              ...booking,
+              service,
+              showroom,
+              customer,
+              user,
+            };
+          } catch (err) {
+            console.error("Error enriching booking:", err);
+            return booking;
+          }
+        })
+      );
+
+      res.json(enrichedBookings);
+    } catch (error) {
+      console.error("Failed to fetch bookings:", error);
+      res.status(500).json({ message: "Failed to fetch bookings", error });
+    }
+  });
+
+
+  app.post("/api/service-bookings", async (req, res) => {
+  try {
+    const {
+      userId,
+      showroomId,
+      showroomServiceIds, // Array of service IDs
+      servicePrices,      // Array of { serviceId, price, currency }
+      scheduledAt,
+      notes,
+      totalPrice,         // Optional total for backward compatibility
+      // Legacy fields (for backward compatibility)
+      serviceId: legacyServiceId,
+      showroomServiceId: legacyShowroomServiceId,
+      price: legacyPrice,
+      status: legacyStatus,
+    } = req.body;
+
+    console.log("Received service booking request:", req.body);
+
+    // Handle multiple services booking (new format)
+    if (Array.isArray(showroomServiceIds) && showroomServiceIds.length > 0) {
+      // Validate that servicePrices matches showroomServiceIds
+      if (!Array.isArray(servicePrices) || servicePrices.length !== showroomServiceIds.length) {
+        return res.status(400).json({ 
+          message: "servicePrices array must match showroomServiceIds length" 
+        });
+      }
+
+      // Create bookings for each service
+      const createdBookings = await Promise.all(
+        showroomServiceIds.map((serviceId, index) => {
+          const servicePrice = servicePrices.find(
+  sp => String(sp.serviceId) === String(serviceId)
+) || { price: legacyPrice ?? 0, currency: '' };
+
+
+          return storage.createServiceBooking({
+            userId,
+            serviceId,
+            showroomId,
+            price: servicePrice.price,
+            currency: servicePrice.currency,
+            scheduledAt,
+            status: "pending", // Default status
+            notes,
+          });
+        })
+      );
+
+      console.log("Created multiple service bookings:", createdBookings);
+      return res.status(201).json({
+        bookings: createdBookings,
+        totalPrice: totalPrice || createdBookings.reduce((sum, b) => sum + b.price, 0)
+      });
+    }
+
+    // Fallback to single booking (backward compatibility)
+    const serviceId = legacyServiceId || legacyShowroomServiceId;
+    if (!serviceId) {
+      return res.status(400).json({ 
+        message: "Either showroomServiceIds or serviceId is required" 
+      });
+    }
+
+    const booking = await storage.createServiceBooking({
+      userId,
+      serviceId,
+      showroomId,
+      price: legacyPrice || (servicePrices?.[0]?.price ?? 0),
+      currency: servicePrices?.[0]?.currency || '',
+      scheduledAt,
+      status: legacyStatus || "pending",
+      notes,
+    });
+
+    console.log("Created single service booking:", booking);
+    return res.status(201).json(booking);
   } catch (error) {
-    console.error("Failed to fetch bookings:", error);
-    res.status(500).json({ message: "Failed to fetch bookings", error });
+    console.error("Failed to create service booking:", error);
+    return res.status(500).json({ 
+      message: "Failed to create service booking", 
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
+});
+
+app.put("/api/service-bookings/:id/actions", async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const { action, reason, scheduledAt } = req.body;
+
+    console.log(`Received ${action} request for booking ${id}`);
+
+    const validActions = [
+      "confirm", "reschedule", "complete", "cancel", "reject", "expire"
+    ];
+
+    if (!validActions.includes(action)) {
+      return res.status(400).json({ message: "Invalid action" });
+    }
+
+    // Get current booking
+    const booking = await storage.getServiceBooking(id);
+    if (!booking) {
+      return res.status(404).json({ message: "Booking not found" });
+    }
+
+    let updates: any = {};
+
+    switch (action) {
+      case "confirm":
+        updates.status = "confirmed";
+        break;
+      case "reschedule":
+        if (!scheduledAt) {
+          return res.status(400).json({ message: "scheduledAt is required for rescheduling" });
+        }
+        updates.scheduled_at = new Date(scheduledAt);
+        updates.status = "rescheduled";
+        break;
+      case "complete":
+        updates.status = "completed";
+        updates.completed_at = new Date();
+        break;
+      case "cancel":
+        updates.status = "canceled";
+        updates.cancellation_reason = reason || null;
+        updates.canceled_at = new Date();
+        break;
+      case "reject":
+        updates.status = "rejected";
+        updates.rejection_reason = reason || null;
+        break;
+      case "expire":
+        updates.status = "expired";
+        updates.expired_at = new Date();
+        break;
+    }
+
+    const updatedBooking = await storage.updateServiceBooking(id, updates);
+
+    res.json({
+      success: true,
+      booking: updatedBooking,
+    });
+
+    console.log(`Successfully ${action}d booking:`, updatedBooking);
+  } catch (error: any) {
+    console.error("Failed to perform booking action:", error);
+    res.status(500).json({
+      message: error.message || "Failed to perform booking action",
+    });
   }
 });
 
 
-  app.post("/api/service-bookings", async (req, res) => {
-    try {
-      const { userId, serviceId, showroomId, price, scheduledAt, status, notes } = req.body;
-      console.log("Received new service booking request:", req.body);
-
-      const booking = await storage.createServiceBooking({ userId, serviceId, showroomId, price, scheduledAt, status, notes });
-      console.log("Created service booking:", booking);
-
-      res.status(201).json(booking);
-    } catch (error) {
-      console.error("Failed to create service booking:", error);
-      res.status(500).json({ message: "Failed to create service booking", error });
-    }
-  });
 
   /**
    * FAVORITES
@@ -1985,12 +2207,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/static-content", async (req, res) => {
+    try {
+      const contentData: InsertStaticContent = req.body;
+      contentData.author = req.body.user?.id; // Assuming you have authentication
+      const content = await storage.createStaticContent(contentData);
+      res.status(201).json(content);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to create static content", error });
+    }
+  });
+
+  app.put("/api/static-content/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const updates: Partial<InsertStaticContent> = req.body;
+      updates.updatedAt = new Date();
+      const content = await storage.updateStaticContent(id, updates);
+      content
+        ? res.json(content)
+        : res.status(404).json({ message: "Content not found" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update static content", error });
+    }
+  });
+
   app.get("/api/static-content/:key", async (req, res) => {
     try {
       const content = await storage.getStaticContentByKey(req.params.key);
       content ? res.json(content) : res.status(404).json({ message: "Content not found" });
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch static content", error });
+    }
+  });
+
+  app.delete("/api/static-content/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteStaticContent(id);
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete static content", error });
     }
   });
 
@@ -2041,12 +2298,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
    */
   app.get("/api/messages/:userId", async (req, res) => {
     try {
-      const messages = await storage.getMessagesByUser(Number(req.params.userId));
+      const userId = Number(req.params.userId);
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+
+      const messages = await storage.getMessagesByUser(userId);
       console.log("messages", messages);
       res.json(messages);
 
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch messages", error });
+      console.error(error);
+      res.status(500).json({ message: "Failed to fetch messages", error: error.message });
+    }
+  });
+
+  app.get("/api/messages/all", async (req, res) => {
+    try {
+      const messages = await storage.getAllMessages();
+      res.json(messages);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch all messages", error: error.message });
     }
   });
 
@@ -2056,6 +2328,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(message);
     } catch (error) {
       res.status(500).json({ message: "Failed to send message", error });
+    }
+  });
+
+  app.post("/api/messages/reply", async (req, res) => {
+    try {
+      const { originalMessageId, content, senderId, receiverId } = req.body;
+
+      // 1. Get the original message for reference
+      const originalMessage = await storage.getMessage(originalMessageId);
+      if (!originalMessage) {
+        return res.status(404).json({ message: "Original message not found" });
+      }
+
+      // 2. Create the reply message
+      const replyMessage = await storage.sendReply({
+        content,
+        sender_id: senderId,
+        receiver_id: receiverId,
+        type: originalMessage.type, // Keep same type as original
+        status: "sent",
+        parent_message_id: originalMessageId, // Track thread relationship
+        created_at: new Date().toISOString(),
+      });
+
+      // 3. Optionally update original message status
+      if (originalMessage.status === "unread") {
+        await storage.updateMessageStatus(originalMessageId, "read");
+      }
+
+      res.status(201).json(replyMessage);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to send reply", error });
     }
   });
 
@@ -2527,7 +2831,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
    */
   app.get("/api/promotion-packages", async (req, res) => {
     try {
-      const activeOnly = req.query.activeOnly !== 'false'; // Defaults to true
+      const activeOnly = req.query.activeOnly === 'true'; // Defaults to false
       const packages = await storage.getAllPromotionPackages(activeOnly);
       res.json(packages);
     } catch (error) {
@@ -2535,26 +2839,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/promotion-packages/services", async (req, res) => {
-    try {
-      const activeOnly = req.query.activeOnly !== 'false'; // Defaults to true
-      const packages = await storage.getAllServicePromotionPackages(activeOnly);
-      res.json(packages);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch promotion packages", error });
-    }
-  });
-
-  app.get("/api/promotion-packages/services/:packageId", async (req, res) => {
-    try {
-      const promotions = await storage.getServicePromotionPackage(Number(req.params.packageId));
-      res.json(promotions);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch package promotions", error });
-    }
-  });
-
-  app.get("/api/promotion-packages/:packageId", async (req, res) => {
+  app.get("/api/promotion-package/:packageId", async (req, res) => {
     try {
       const promotions = await storage.getPromotionPackage(Number(req.params.packageId));
       res.json(promotions);
@@ -2563,7 +2848,136 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // ... (add similar CRUD routes for promotion packages like we did for subscription plans)
+  app.post("/api/promotion-packages", async (req, res) => {
+    try {
+      const pkg: InsertPromotionPackage = req.body;
+      const createdPackage = await storage.createPromotionPackage(pkg);
+      res.status(201).json(createdPackage);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to create promotion package", error });
+    }
+  });
+
+  app.put("/api/promotion-packages/:packageId", async (req, res) => {
+    try {
+      const id = Number(req.params.packageId);
+      const updates: Partial<InsertPromotionPackage> = req.body;
+      const updatedPackage = await storage.updatePromotionPackage(id, updates);
+      if (!updatedPackage) {
+        return res.status(404).json({ message: "Promotion package not found" });
+      }
+      res.json(updatedPackage);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update promotion package", error });
+    }
+  });
+
+  app.delete("/api/promotion-packages/:packageId", async (req, res) => {
+    try {
+      const id = Number(req.params.packageId);
+      await storage.deletePromotionPackage(id);
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete promotion package", error });
+    }
+  });
+
+  // Service Promotion Packages
+
+  app.get("/api/promotion-packages/services", async (req, res) => {
+    try {
+      const activeOnly = req.query.activeOnly === 'true'; // Defaults to true
+      const packages = await storage.getAllServicePromotionPackages(activeOnly);
+      res.json(packages);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch promotion packages", error });
+    }
+  });
+
+  app.get("/api/promotion-packages/service/:packageId", async (req, res) => {
+    try {
+      const promotions = await storage.getServicePromotionPackage(Number(req.params.packageId));
+      res.json(promotions);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch package promotions", error });
+    }
+  });
+
+  // SERVICE PROMOTION PACKAGES
+  app.post("/api/promotion-packages/services", async (req, res) => {
+    try {
+      const pkg: InsertServicePromotionPackage = req.body;
+      const createdPackage = await storage.createServicePromotionPackage(pkg);
+      res.status(201).json(createdPackage);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to create service promotion package", error });
+    }
+  });
+
+  app.put("/api/promotion-packages/services/:packageId", async (req, res) => {
+    try {
+      const id = Number(req.params.packageId);
+      const updates: Partial<InsertServicePromotionPackage> = req.body;
+      const updatedPackage = await storage.updateServicePromotionPackage(id, updates);
+      if (!updatedPackage) {
+        return res.status(404).json({ message: "Service promotion package not found" });
+      }
+      res.json(updatedPackage);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update service promotion package", error });
+    }
+  });
+
+  app.delete("/api/promotion-packages/services/:packageId", async (req, res) => {
+    try {
+      const id = Number(req.params.packageId);
+      await storage.deleteServicePromotionPackage(id);
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete service promotion package", error });
+    }
+  });
+
+  // BULK OPERATIONS (OPTIONAL)
+  app.get("/api/promotion-packages/bulk", async (req, res) => {
+    try {
+      const activeOnly = req.query.activeOnly === 'true';
+      const listingPackages = await storage.getAllPromotionPackages(activeOnly);
+      const servicePackages = await storage.getAllServicePromotionPackages(activeOnly);
+      res.json({ listingPackages, servicePackages });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch promotion packages", error });
+    }
+  });
+
+  // ACTIVATION/DEACTIVATION (OPTIONAL)
+  app.patch("/api/promotion-packages/:packageId/status", async (req, res) => {
+    try {
+      const id = Number(req.params.packageId);
+      const { isActive } = req.body;
+      const updatedPackage = await storage.updatePromotionPackage(id, { isActive });
+      if (!updatedPackage) {
+        return res.status(404).json({ message: "Promotion package not found" });
+      }
+      res.json(updatedPackage);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update promotion package status", error });
+    }
+  });
+
+  app.patch("/api/promotion-packages/services/:packageId/status", async (req, res) => {
+    try {
+      const id = Number(req.params.packageId);
+      const { isActive } = req.body;
+      const updatedPackage = await storage.updateServicePromotionPackage(id, { isActive });
+      if (!updatedPackage) {
+        return res.status(404).json({ message: "Service promotion package not found" });
+      }
+      res.json(updatedPackage);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update service promotion package status", error });
+    }
+  });
 
   /**
    * LISTING PROMOTIONS
@@ -2663,6 +3077,305 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get all inspections (with optional filtering)
+  app.get("/api/inspections", async (req, res) => {
+    try {
+      const { status } = req.query;
+      const inspections = await storage.getInspections(status as string | undefined);
+      res.json(inspections);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch inspections", error });
+    }
+  });
+
+  // Get single inspection by ID
+  app.get("/api/inspections/:id", async (req, res) => {
+    try {
+      const inspection = await storage.getInspectionById(Number(req.params.id));
+      if (!inspection) {
+        return res.status(404).json({ message: "Inspection not found" });
+      }
+      res.json(inspection);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch inspection", error });
+    }
+  });
+
+  // Create new inspection
+  app.post("/api/inspections", async (req, res) => {
+    try {
+      // Get user ID from session or token
+
+      const newInspection = await storage.createInspection({
+        userId: req.body.userId || '0',
+        carMake: req.body.car_make || req.body.make || 'Unknown',
+        carModel: req.body.car_model || req.body.model || 'Unknown',
+        carYear: req.body.year ? Number(req.body.year) : new Date().getFullYear(),
+        price: req.body.price ? Number(req.body.price) : 0,
+        additionalNotes: req.body.notes || req.body.additional_notes || null,
+        fullName: req.body.fullName || req.body.name || '',
+        email: req.body.email || '',
+        phone: req.body.phone || '',
+        createdAt: null
+      });
+
+      res.status(201).json(newInspection);
+    } catch (error) {
+      console.error('Inspection creation error:', error);
+      res.status(500).json({ message: "Failed to create inspection", error: error.message });
+    }
+  });
+  // Update inspection status
+  app.put("/api/inspections/:id/status", async (req, res) => {
+    try {
+      const updated = await storage.updateInspectionStatus(
+        Number(req.params.id),
+        req.body.status
+      );
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update inspection status", error });
+    }
+  });
+
+  // Delete inspection
+  app.delete("/api/inspections/:id", async (req, res) => {
+    try {
+      await storage.deleteInspection(Number(req.params.id));
+      res.status(204).end();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete inspection", error });
+    }
+  });
+
+  // Hero Sliders Routes
+  app.get("/api/hero-sliders", async (_req, res) => {
+    try {
+      const sliders = await storage.getAllHeroSliders();
+      res.json(sliders);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch hero sliders", error });
+    }
+  });
+
+  app.post("/api/hero-sliders", async (req, res) => {
+    try {
+      const sliderData: InsertHeroSlider = req.body;
+      const slider = await storage.createHeroSlider(sliderData);
+      res.status(201).json(slider);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to create hero slider", error });
+    }
+  });
+
+  app.put("/api/hero-sliders/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const updates: Partial<InsertHeroSlider> = req.body;
+      updates.updatedAt = new Date();
+      const slider = await storage.updateHeroSlider(id, updates);
+      slider
+        ? res.json(slider)
+        : res.status(404).json({ message: "Slider not found" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update hero slider", error });
+    }
+  });
+
+  app.delete("/api/hero-sliders/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteHeroSlider(id);
+      success
+        ? res.status(204).send()
+        : res.status(404).json({ message: "Slider not found" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete hero slider", error });
+    }
+  });
+
+  // Blog Posts Routes
+  app.get("/api/blog-posts", async (_req, res) => {
+    try {
+      const posts = await storage.getAllBlogPosts();
+      res.json(posts);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch blog posts", error });
+    }
+  });
+
+  app.post("/api/blog-posts", async (req, res) => {
+    try {
+      const postData: InsertBlogPost = req.body;
+      postData.authorId = req.body.user?.id; // Assuming authentication
+      postData.authorName = req.body.user?.name;
+      const post = await storage.createBlogPost(postData);
+      res.status(201).json(post);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to create blog post", error });
+    }
+  });
+
+  app.put("/api/blog-posts/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const updates: Partial<InsertBlogPost> = req.body;
+      updates.updatedAt = new Date();
+      const post = await storage.updateBlogPost(id, updates);
+      post
+        ? res.json(post)
+        : res.status(404).json({ message: "Blog post not found" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update blog post", error });
+    }
+  });
+
+  app.delete("/api/blog-posts/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteBlogPost(id);
+      success
+        ? res.status(204).send()
+        : res.status(404).json({ message: "Blog post not found" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete blog post", error });
+    }
+  });
+
+  // =============================================
+  // BANNER ADS ROUTES
+  // =============================================
+
+  app.get("/api/banner-ads", async (_req, res) => {
+    try {
+      const banners = await storage.getAllBannerAds();
+      res.json(banners);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch banner ads", error });
+    }
+  });
+
+  app.post("/api/banner-ads", async (req, res) => {
+    try {
+
+      const bannerData = req.body;
+  console.log("bannerData", bannerData);
+      const imageFile = req.body.imageUrl;
+      console.log("imageFile", imageFile);
+
+      if (!imageFile) {
+        return res.status(400).json({ message: "Image file is required" });
+      }
+      
+      const newBanner = await storage.createBannerAd({
+        title: bannerData.title,
+        titleAr: bannerData.titleAr,
+        imageUrl: bannerData.imageUrl,
+        link: bannerData.link,
+        position: bannerData.position || 'top',
+        isActive: bannerData.isActive !== 'false',
+        startDate: new Date(bannerData.startDate),
+        endDate: new Date(bannerData.endDate),
+      });
+      
+      res.status(201).json(newBanner);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to create banner ad", error });
+    }
+  });
+
+  app.put("/api/banner-ads/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const updates: Partial<InsertBannerAd> = req.body;
+      const imageFile = req.body.image_url;
+
+      // If new image uploaded, update the image URL
+      if (imageFile) {
+        const imageUrl = await storage.uploadBannerImage(imageFile);
+        updates.imageUrl = imageUrl;
+        // Optionally delete old image from storage
+      }
+
+      // Convert date strings to Date objects if present
+      if (updates.startDate) updates.startDate = new Date(updates.startDate);
+      if (updates.endDate) updates.endDate = new Date(updates.endDate);
+
+      updates.updatedAt = new Date();
+
+      const updatedBanner = await storage.updateBannerAd(id, updates);
+      updatedBanner
+        ? res.json(updatedBanner)
+        : res.status(404).json({ message: "Banner not found" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update banner ad", error });
+    }
+  });
+
+ app.delete("/api/banner-ads/:id", async (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        
+        // Validate ID
+        if (isNaN(id)) {
+            return res.status(400).json({ message: "Invalid banner ID" });
+        }
+
+        // Check if banner exists
+        const banner = await storage.getBannerAdById(id);
+        if (!banner) {
+            return res.status(404).json({ message: "Banner not found" });
+        }
+
+        // Delete banner from database
+        await storage.deleteBannerAd(id);
+
+        // Attempt to delete image (failure shouldn't block response)
+        try {
+            await storage.deleteBannerImage(banner.image_url);
+        } catch (imageError) {
+            console.warn("Banner record deleted, but image deletion failed:", imageError);
+            // Consider adding to error tracking system
+        }
+
+        return res.status(204).send();
+    } catch (error: any) {
+        console.error("Error deleting banner ad:", error);
+        return res.status(500).json({ 
+            message: "Failed to delete banner ad",
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+});
+  
+
+// Set up multer for memory storage (buffer access)
+const upload = multer({ storage: multer.memoryStorage() });
+
+app.post("/api/upload", upload.single("file"), async (req, res) => {
+  try {
+    const file = req.file;
+
+    if (!file) {
+      return res.status(400).json({ message: "No image uploaded" });
+    }
+
+    // Upload the file using your storage method
+    const url = await storage.uploadSingleFile(file);
+
+    res.status(200).json({ url });
+  } catch (error) {
+    console.error("Failed to upload image:", error);
+    res.status(500).json({
+      message: "Failed to upload image",
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+});
+
+
+
   const httpServer = createServer(app);
   return httpServer;
 }
+

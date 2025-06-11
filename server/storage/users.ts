@@ -11,6 +11,7 @@ export interface IUserStorage {
         search?: string;
         role?: string;
         status?: string;
+        isEmailVerified?: string;
         sortBy?: string;
     }): Promise<User[]>;
     getUserByUsername(username: string): Promise<User | undefined>;
@@ -41,31 +42,33 @@ export const UserStorage = {
         const result = await db.query('SELECT * FROM users WHERE email = $1 LIMIT 1', [email]);
         return result[0];
     },
-    
-      async hashPassword(password: string): Promise<string> {
+
+    async hashPassword(password: string): Promise<string> {
         return bcrypt.hash(password, 12);
     },
-    
-      async getUser(id: number): Promise<User | undefined> {
+
+    async getUser(id: number): Promise<User | undefined> {
         const result = await db.query('SELECT * FROM users WHERE id = $1 LIMIT 1', [id]);
         return result[0];
     },
-    
-      async getUsersByIds(ids: number[]): Promise<User[]> {
+
+    async getUsersByIds(ids: number[]): Promise<User[]> {
         if (!ids.length) return [];
         const result = await db.query('SELECT * FROM users WHERE id = ANY($1)', [ids]);
         return result;
     },
-    
-      async getFilteredUsers({
+
+    async getFilteredUsers({
         search,
         role,
         status,
+        isEmailVerified,
         sortBy,
     }: {
         search?: string;
         role?: string;
         status?: string;
+        isEmailVerified?: boolean;
         sortBy?: string;
     }): Promise<User[]> {
         const values: any[] = [];
@@ -86,33 +89,44 @@ export const UserStorage = {
             conditions.push(`status = $${values.length}`);
         }
 
+        if (typeof isEmailVerified !== 'undefined') {
+            values.push(isEmailVerified);
+            conditions.push(`is_email_verified = $${values.length}`);
+        }
+
         let query = "SELECT * FROM users";
         if (conditions.length) {
             query += ` WHERE ${conditions.join(" AND ")}`;
         }
 
         if (sortBy) {
-            const allowedSorts = ["username", "email", "first_name", "created_at"];
-            if (allowedSorts.includes(sortBy)) {
-                query += ` ORDER BY ${sortBy}`;
+            const [field, direction = 'ASC'] = sortBy.split('_');
+
+            const allowedSorts = new Set([
+                'username', 'email', 'first_name',
+                'last_name', 'created_at', 'updated_at'
+            ]);
+            if (allowedSorts.has(field)) {
+                const sortDirection = direction.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
+                query += ` ORDER BY ${field} ${sortDirection}`;
             }
         }
 
         const result = await db.query(query, values);
         return result;
     },
-    
-      async getUserByUsername(username: string): Promise<User | undefined> {
+
+    async getUserByUsername(username: string): Promise<User | undefined> {
         const result = await db.query('SELECT * FROM users WHERE username = $1 LIMIT 1', [username]);
         return result[0];
     },
-    
-      async getUserWithPassword(id: number): Promise<{ password: string } | undefined> {
+
+    async getUserWithPassword(id: number): Promise<{ password: string } | undefined> {
         const query = 'SELECT password FROM users WHERE id = $1';
         const result = await db.query(query, [id]);
         return result[0];
     },
-    
+
     async updateUserPassword(id: number, newPassword: string): Promise<boolean> {
         const result = await db.query(
             `UPDATE users SET password = $1, updated_at = NOW() WHERE id = $2 RETURNING id`,
@@ -120,7 +134,7 @@ export const UserStorage = {
         );
         return result.length > 0;
     },
-    
+
     async updateUserPasswordByEmail(email: string, newPassword: string): Promise<boolean> {
         const result = await db.query(
             `UPDATE users SET password = $1, updated_at = NOW() WHERE email = $2 RETURNING id`,
@@ -128,8 +142,8 @@ export const UserStorage = {
         );
         return result.length > 0;
     },
-    
-      async createUser(user: InsertUser): Promise<User> {
+
+    async createUser(user: InsertUser): Promise<User> {
         const fields = Object.keys(user);
         const values = Object.values(user);
         const placeholders = fields.map((_, i) => `$${i + 1}`).join(', ');
@@ -137,8 +151,8 @@ export const UserStorage = {
         const result = await db.query(query, values);
         return result[0];
     },
-    
-      async updateUser(id: number, updates: Partial<InsertUser>): Promise<User | undefined> {
+
+    async updateUser(id: number, updates: Partial<InsertUser>): Promise<User | undefined> {
         const fields = Object.keys(updates);
         const values = Object.values(updates);
         const setClause = fields.map((key, i) => `${key} = $${i + 1}`).join(', ');
@@ -146,12 +160,12 @@ export const UserStorage = {
         const result = await db.query(query, [...values, id]);
         return result[0];
     },
-    
-      async deleteUser(id: number): Promise<void> {
+
+    async deleteUser(id: number): Promise<void> {
         await db.query('DELETE FROM users WHERE id = $1', [id]);
     },
-    
-      async createPasswordResetToken(
+
+    async createPasswordResetToken(
         email: string,
         otp: string,
         token: string
@@ -167,7 +181,7 @@ export const UserStorage = {
             [email, token, otp, expiresAt]
         );
     },
-    
+
     async verifyPasswordResetToken(
         email: string,
         otp: string,
@@ -181,14 +195,14 @@ export const UserStorage = {
         );
         return result.length > 0;
     },
-    
+
     async invalidateResetToken(token: string): Promise<void> {
         await db.query(
             `UPDATE password_reset_tokens SET used = true WHERE token = $1`,
             [token]
         );
     },
-    
+
     async updateLastLogin(id: number, ip: string): Promise<void> {
         await db.query(
             `UPDATE users SET last_login_at = NOW(), login_ip = $1, updated_at = NOW() WHERE id = $2`,

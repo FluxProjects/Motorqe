@@ -201,6 +201,10 @@ export const roleMapping: Record<number, Role> = {
   7: "ADMIN", // roleId 7 maps to 'ADMIN'
   8: "SUPER_ADMIN", // roleId 8 maps to 'SUPER_ADMIN'
 };
+
+export const roleIdMapping: Record<Role, number> = Object.fromEntries(
+  Object.entries(roleMapping).map(([id, name]) => [name, Number(id)])
+) as Record<Role, number>;
 // Helper function to check if a role has a specific permission
 // export const hasPermission = (role: Role, permission: PermissionType): boolean => {
 //   return Roles[role].includes(permission as any);

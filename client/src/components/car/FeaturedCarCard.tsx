@@ -36,7 +36,12 @@ interface CarCardProps {
   isFavorited?: boolean;
 }
 
-const FeaturedCarCard = ({ car, isFavorited = false, className = "", cardSize = "default" }: CarCardProps & { className?: string, cardSize?: 'default' | 'large' }) => {
+const FeaturedCarCard = ({
+  car,
+  isFavorited = false,
+  className = "",
+  cardSize = "default",
+}: CarCardProps & { className?: string; cardSize?: "default" | "large" }) => {
   const auth = useAuth();
   const { isAuthenticated } = auth;
   const { t } = useTranslation();
@@ -104,55 +109,68 @@ const FeaturedCarCard = ({ car, isFavorited = false, className = "", cardSize = 
 
   return (
     <Link href={`/cars/${car.id}`}>
-  <Card className={`overflow-hidden hover:shadow-lg transition-shadow duration-300 border-2 rounded-2xl ${car.is_featured ? "border-blue-700" : "border-slate-200"} ${className}`}>
-    <div className={`w-full ${cardSize === 'large' ? 'h-340' : 'aspect-[16/6]'} overflow-hidden`}>
-  {car.images?.length ? (
-  <img
-    src={car.images[0]}
-    alt={car.title}
-    className="object-cover w-full h-full"
-  />) : (
-        <div className="h-full w-full bg-slate-100 flex items-center justify-center">
-          <p className="text-slate-400">{t("common.noImage")}</p>
-        </div>
-      )}
-</div>
+      <Card
+        className={`overflow-hidden hover:shadow-lg transition-shadow duration-300 border-2 rounded-2xl ${
+          car.is_featured ? "border-blue-700" : "border-slate-200"
+        } ${className}`}
+      >
+        <div
+          className={`relative w-full ${
+            cardSize === "large" ? "aspect-[1/1]" : "aspect-[16/6]"
+          } overflow-hidden`}
+        >
+          {car.images?.length ? (
+            <img
+              src={car.images[0]}
+              alt={car.title}
+              className="object-cover w-full h-full"
+            />
+          ) : (
+            <div className="h-full w-full bg-slate-100 flex items-center justify-center">
+              <p className="text-slate-400">{t("common.noImage")}</p>
 
+            </div>
+          )}
 
-    <CardContent className="p-4 space-y-2">
-      <h3 className="text-base font-extrabold uppercase text-slate-900 whitespace-nowrap overflow-hidden text-ellipsis">
-  {title}
-</h3>
+          {car?.is_featured && (
+            <Badge className="absolute top-2 right-2 bg-blue-700 hover:bg-orange-500/50">
+              {t("common.featured")}
+            </Badge>
+          )}
+        </div>
 
+        <CardContent className="p-4 space-y-2">
+          <h3 className="text-base font-extrabold uppercase text-slate-900 whitespace-nowrap overflow-hidden text-ellipsis">
+            {title}
+          </h3>
 
-      <div className="flex justify-between text-xs text-slate-700 mt-2">
-        <div className="flex items-center gap-1">
-          <CalendarIcon className="w-4 h-4 text-slate-500" />
-          <span>{car.year || "2021"}</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <Cog className="w-4 h-4 text-slate-500" />
-          <span>{car.condition || "4 Cylinder"}</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <Gauge className="w-4 h-4 text-slate-500" />
-          <span>{car.mileage.toLocaleString()} KM</span>
-        </div>
-      </div>
+          <div className="flex justify-between text-xs text-slate-700 mt-2">
+            <div className="flex items-center gap-1">
+              <CalendarIcon className="w-4 h-4 text-slate-500" />
+              <span>{car.year || "2021"}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Cog className="w-4 h-4 text-slate-500" />
+              <span>{car.condition || "4 Cylinder"}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Gauge className="w-4 h-4 text-slate-500" />
+              <span>{car.mileage.toLocaleString()} KM</span>
+            </div>
+          </div>
 
-      <div className="flex justify-between items-center mt-3">
-        <div className="flex items-center text-green-600 font-semibold text-sm">
-          <MapPin size={16} className="mr-1" />
-          <span className="text-xs">{car.location}</span>
-        </div>
-        <div className="text-blue-800 font-bold text-lg">
-          QR. {car.price.toLocaleString()}
-        </div>
-      </div>
-    </CardContent>
-  </Card>
-</Link>
-
+          <div className="flex justify-between items-center mt-3">
+            <div className="flex items-center text-green-600 font-semibold text-sm">
+              <MapPin size={16} className="mr-1" />
+              <span className="text-xs">{car.location}</span>
+            </div>
+            <div className="text-blue-800 font-bold text-lg">
+              QR. {car.price.toLocaleString()}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </Link>
   );
 };
 

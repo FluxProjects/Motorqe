@@ -15,15 +15,16 @@ interface FiltersSectionProps {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   filters: {
-    status: string;
-    isFeatured: boolean;
-    isActive: boolean;
-    dateRange?: FilterRange;
-    dateRangePreset?: string;
-    priceRange?: FilterRange;
-    user_id?: number;
-    showroomId?: number;
-    serviceId?: number;
+     isActive: boolean | undefined;
+  isFeatured: boolean | undefined;
+  priceRange?: FilterRange;
+  showroomId?: number;
+  serviceId?: number;
+  user_id?: number;
+  searchQuery?: string;
+  dateRangePreset?: string; // Add this
+  dateRange?: FilterRange; // Add this
+  status?: string;
   };
   setFilters: (filters: any) => void;
   handleSearch: (e: React.FormEvent) => void;
@@ -47,27 +48,29 @@ export const ServiceListingFilters = ({
   const { t } = useTranslation();
   const { user } = useAuth();
 
-  const getDateRangeFromKeyword = (preset: string): { from: string; to: string } => {
-    const today = new Date();
-    const format = (d: Date) => d.toISOString().split("T")[0];
+ const getDateRangeFromKeyword = (preset: string): { from: string; to: string } => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // Normalize time
   
-    switch (preset) {
-      case "today":
-        return { from: format(today), to: format(today) };
-      case "week":
-        const first = new Date(today);
-        first.setDate(today.getDate() - today.getDay());
-        const last = new Date(first);
-        last.setDate(first.getDate() + 6);
-        return { from: format(first), to: format(last) };
-      case "month":
-        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-        const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-        return { from: format(firstDay), to: format(lastDay) };
-      default:
-        return { from: "", to: "" };
-    }
-  };
+  const format = (d: Date) => d.toISOString().split('T')[0];
+
+  switch (preset) {
+    case "today":
+      return { from: format(today), to: format(today) };
+    case "week":
+      const first = new Date(today);
+      first.setDate(today.getDate() - today.getDay());
+      const last = new Date(first);
+      last.setDate(first.getDate() + 6);
+      return { from: format(first), to: format(last) };
+    case "month":
+      const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+      const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      return { from: format(firstDay), to: format(lastDay) };
+    default:
+      return { from: "", to: "" };
+  }
+};
   
   const handleValueChange = <K extends keyof AdminServiceListingFilters>(
     key: K,
@@ -82,7 +85,11 @@ export const ServiceListingFilters = ({
         updatedFilters.dateRange = range;
         updatedFilters.dateRangePreset = value;
       } else {
-        updatedFilters[key] = value;
+        if (value === "all" || value === "") {
+          delete updatedFilters[key];
+        } else {
+          updatedFilters[key] = value;
+        }
       }
       
       return updatedFilters;
@@ -215,22 +222,6 @@ export const ServiceListingFilters = ({
             </Select>
           </div>
 
-          {/* Is Active Filter */}
-          <div>
-            <Select
-              value={filters.isActive !== undefined ? String(filters.isActive) : ""}
-              onValueChange={(value) => handleValueChange("isActive", value === "true")}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder={t("admin.activeStatus")} />
-              </SelectTrigger>
-              <SelectContent className="bg-slate-800 border-slate-700 text-white">
-                <SelectItem value="all">{t("admin.all")}</SelectItem>
-                <SelectItem value="true">{t("admin.activeOnly")}</SelectItem>
-                <SelectItem value="false">{t("admin.inactiveOnly")}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
 
           {/* Price Range Filter */}
           <div className="flex gap-2">
