@@ -345,7 +345,7 @@ const ShowroomDetails = () => {
             {t("common.error")}
           </h1>
           <p className="text-neutral-600 mb-6">{t("common.garageNotFound")}</p>
-          <Link href="/home-garages">
+          <Link href="/home">
             <Button>
               <ArrowLeft className="mr-2" size={16} />
               {t("common.backToBrowse")}
@@ -433,7 +433,7 @@ const ShowroomDetails = () => {
               />
 
               {/* Showroom listings */}
-            <Card className="border-transparent shadow-none">
+            <Card className="border-transparent shadow-none mb-4">
               <CardContent className="p-0">
                 {isLoadingCarListings ? (
                   <div className="flex justify-center py-8">
