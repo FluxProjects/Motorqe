@@ -4,10 +4,11 @@ import { Button } from "@/components/ui/button";
 
 interface ImageGalleryProps {
   images: string[];
-  title: string;
+  title?: string;
+  is_garage?: boolean;
 }
 
-export function CarImages({ images, title }: ImageGalleryProps) {
+export function CarImages({ images, title, is_garage=false }: ImageGalleryProps) {
   const [selectedImage, setSelectedImage] = useState(0);
   const [activeTab, setActiveTab] = useState("360");
 
@@ -22,40 +23,43 @@ export function CarImages({ images, title }: ImageGalleryProps) {
   return (
     <div className="mb-6">
       {/* Tab Navigation */}
-      <div className="flex mb-3 bg-gray-100 rounded-lg p-1">
-        <button
-          onClick={() => setActiveTab("360")}
-          className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-            activeTab === "360"
-              ? "bg-white text-accent-orange shadow-sm"
-              : "text-gray-600 hover:text-gray-900"
-          }`}
-        >
-          360 Tour
-        </button>
-        <button
-          onClick={() => setActiveTab("exterior")}
-          className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-            activeTab === "exterior"
-              ? "bg-white text-primary-blue shadow-sm"
-              : "text-gray-600 hover:text-gray-900"
-          }`}
-        >
-          Exterior
-        </button>
-        <button
-          onClick={() => setActiveTab("interior")}
-          className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-            activeTab === "interior"
-              ? "bg-white text-primary-blue shadow-sm"
-              : "text-gray-600 hover:text-gray-900"
-          }`}
-        >
-          Interior
-        </button>
-      </div>
+      {!is_garage && (
+  <div className="flex mb-3 bg-gray-100 rounded-lg p-1">
+    <button
+      onClick={() => setActiveTab("360")}
+      className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+        activeTab === "360"
+          ? "bg-white text-accent-orange shadow-sm"
+          : "text-gray-600 hover:text-gray-900"
+      }`}
+    >
+      360 Tour
+    </button>
+    <button
+      onClick={() => setActiveTab("exterior")}
+      className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+        activeTab === "exterior"
+          ? "bg-white text-primary-blue shadow-sm"
+          : "text-gray-600 hover:text-gray-900"
+      }`}
+    >
+      Exterior
+    </button>
+    <button
+      onClick={() => setActiveTab("interior")}
+      className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+        activeTab === "interior"
+          ? "bg-white text-primary-blue shadow-sm"
+          : "text-gray-600 hover:text-gray-900"
+      }`}
+    >
+      Interior
+    </button>
+  </div>
+)}
 
-      {/* Main Image with Navigation */}
+      {images && ( 
+
       <div className="relative mb-3 group">
         <img 
           src={images[selectedImage]} 
@@ -80,10 +84,14 @@ export function CarImages({ images, title }: ImageGalleryProps) {
         {/* MOTORGE Logo */}
         <div className="absolute bottom-4 right-4">
           <div className="bg-primary-blue text-white w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg">
-            M
+      
           </div>
         </div>
       </div>
+
+      )}
+      {/* Main Image with Navigation */}
+      
       
       {/* Thumbnail Gallery */}
       <div className="grid grid-cols-7 gap-2 mb-3">

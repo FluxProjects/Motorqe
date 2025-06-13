@@ -19,15 +19,15 @@ import ImageUpload from "../ui/image-upload";
 type FormValues = {
   new_name: string;
   new_nameAr: string;
+  new_description: string;
+  new_descriptionAr: string;
   new_address: string;
   new_addressAr: string;
   new_location: string;
   new_phone: string;
-  new_logo: string;
-  new_description: string;
-  new_descriptionAr: string;
   new_timing: string;
   new_isMainBranch: boolean;
+  new_logo: string;
   new_images: string[];
 };
 
@@ -38,12 +38,17 @@ export function ShowroomProfileEditor({ user }: { user: User }) {
 console.log("inside showroom profile");
 const roleId = user?.role_id;
 
-  const { data: showrooms = [], isLoading, refetch } = useQuery<Showroom[]>({
-  queryKey: ["user-showrooms", user.id],
+ const isGarage = user?.roleId === 4;
+
+const { data: showrooms = [], isLoading, refetch } = useQuery<Showroom[]>({
+  queryKey: [isGarage ? "user-garages" : "user-showrooms", user.id],
   queryFn: () =>
-    fetch(`/api/showrooms/user/${user.id}`).then((res) => res.json()),
+    fetch(`/api/${isGarage ? "garages" : "showrooms"}/user/${user.id}`).then((res) =>
+      res.json()
+    ),
   enabled: !!user?.id,
 });
+
 
 
   const addFormMethods = useForm<FormValues>();
@@ -58,11 +63,16 @@ const roleId = user?.role_id;
         ...newData,
         userId: user.id,
         isMainBranch: newData.isMainBranch || false,
-        isGarage: Number(roleId) === 4, // Garage role
+        isGarage: isGarage, // Garage role
         images: newData.images || [],
+        createdAt: new Date(), // ✅ Returns current date-time
       }),
     }).then((res) => res.json()),
   onSuccess: () => refetch(),
+  onError: (error) => {
+    console.error("Error adding showroom:", error);
+    // Show error to user
+  }
 });
 
 
@@ -73,7 +83,7 @@ const roleId = user?.role_id;
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ...updated,
-        isGarage: Number(roleId) === 4,
+        isGarage: isGarage,
       }),
     }),
   onSuccess: () => refetch(),
@@ -194,23 +204,22 @@ function ShowroomEditCard({
   const methods = useForm({
     defaultValues: {
       name: showroom.name ?? "",
-      nameAr: showroom.name_ar ?? "",
+      nameAr: showroom.nameAr ?? "",
+      description: showroom.description ?? "",
+      descriptionAr: showroom.descriptionAr ?? "",
       address: showroom.address ?? "",
-      addressAr: showroom.address_ar ?? "",
+      addressAr: showroom.addressAr ?? "",
       location: showroom.location ?? "",
       phone: showroom.phone ?? "",
-      logo: showroom.logo ?? "",
       timing: showroom.timing ?? "",
-      description: showroom.description ?? "",
-      descriptionAr: showroom.description_ar ?? "",
       isMainBranch: showroom.isMainBranch ?? false,
+      logo: showroom.logo ?? "",
       images: showroom.images ?? [],
     },
   });
 
   const { handleSubmit, register, control, setValue, watch } = methods;
   const images = watch("images");
-  const logo = watch("logo");
 
   const handleImagesUpload = (newImages: string[]) => {
     setValue("images", newImages);
@@ -232,7 +241,7 @@ function ShowroomEditCard({
           <div>
             <label>{t("showroom.logo")}</label>
             <ImageUpload
-              currentImage={logo}
+              currentImage={watch("logo")}
               onUploadComplete={handleLogoUpload}
             />
           </div>
@@ -240,6 +249,11 @@ function ShowroomEditCard({
           <div className="grid grid-cols-2 gap-4">
             <div><label>{t("showroom.name")} (EN)</label><Input {...register("name")} /></div>
             <div><label>{t("showroom.name")} (AR)</label><Input {...register("nameAr")} /></div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div><label>{t("showroom.description")} (EN)</label><Input {...register("description")} /></div>
+            <div><label>{t("showroom.description")} (AR)</label><Input {...register("descriptionAr")} /></div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -253,16 +267,8 @@ function ShowroomEditCard({
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div><label>{t("showroom.logo")}</label><Input {...register("logo")} /></div>
             <div><label>{t("showroom.timing")}</label><Input {...register("timing")} /></div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div><label>{t("showroom.description")} (EN)</label><Input {...register("description")} /></div>
-            <div><label>{t("showroom.description")} (AR)</label><Input {...register("descriptionAr")} /></div>
-          </div>
-
-          <div>
+            <div>
             <label className="inline-flex items-center space-x-2">
               <Controller
                 name="isMainBranch"
@@ -274,6 +280,11 @@ function ShowroomEditCard({
               <span>{t("showroom.isMainBranch")}</span>
             </label>
           </div>
+          </div>
+
+          
+
+          
 
           {/* images section */}
           <div>
@@ -337,6 +348,10 @@ function ShowroomAddForm({
         <div><label>{t("showroom.name")} (EN)</label><Input {...register("new_name")} /></div>
         <div><label>{t("showroom.name")} (AR)</label><Input {...register("new_nameAr")} /></div>
       </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div><label>{t("showroom.description")} (EN)</label><Input {...register("new_description")} /></div>
+        <div><label>{t("showroom.descriptionAr")} (AR)</label><Input {...register("new_descriptionAr")} /></div>
+      </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div><label>{t("showroom.address")} (EN)</label><Input {...register("new_address")} /></div>
@@ -349,16 +364,9 @@ function ShowroomAddForm({
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <div><label>{t("showroom.logo")}</label><Input {...register("new_logo")} /></div>
+        
         <div><label>{t("showroom.timing")}</label><Input {...register("new_timing")} /></div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div><label>{t("showroom.description")} (EN)</label><Input {...register("new_description")} /></div>
-        <div><label>{t("showroom.description")} (AR)</label><Input {...register("new_descriptionAr")} /></div>
-      </div>
-
-      <div>
+         <div>
         <label className="inline-flex items-center space-x-2">
           <Controller
             name="new_isMainBranch"
@@ -370,6 +378,11 @@ function ShowroomAddForm({
           <span>{t("showroom.isMainBranch")}</span>
         </label>
       </div>
+      </div>
+
+      
+
+     
 
       {/* images section */}
       <div>

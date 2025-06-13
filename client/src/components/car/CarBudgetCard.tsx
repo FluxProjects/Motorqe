@@ -14,8 +14,8 @@ const CarBudgetCard = ({ budget }: Props) => {
 
   return (
     <Link href={`/browse?minPrice=${min}&maxPrice=${max}`}>
-      <div className="bg-white rounded-lg shadow-sm p-4 text-center hover:shadow-md transition cursor-pointer">
-        <h3 className="text-sm font-medium text-neutral-800">{budgetName}</h3>
+      <div className="text-blue-900 border-2 border-blue-900 rounded-lg shadow-sm p-4 text-center hover:shadow-md hover:bg-blue-900 hover:text-white transition cursor-pointer">
+        <h3 className="text-sm font-medium">{budgetName}</h3>
       </div>
     </Link>
   );

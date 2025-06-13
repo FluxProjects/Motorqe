@@ -3,12 +3,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Link } from "wouter";
-import { ArrowRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import FeaturedCarCard from "@/components/car/FeaturedCarCard";
-import { Showroom } from "@shared/schema";
 import { Skeleton } from "../ui/skeleton";
-import { ShowroomCard } from "../showroom/ShowroomCard";
+import { GarageCard } from "../showroom/GarageCard";
 import { apiRequest } from "@/lib/queryClient";
 import { useState } from "react";
 
@@ -16,7 +12,6 @@ const FeaturedGaragesSection = () => {
   const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = useState("");
     const [selectedMake, setSelectedMake] = useState("all");
-    const [selectedService, setSelectedService] = useState("all");
     const [selectedTab, setSelectedTab] = useState("all");
 
   const { data: showrooms, isLoading } = useQuery({
@@ -125,7 +120,7 @@ const FeaturedGaragesSection = () => {
         ))
       ) : filteredShowrooms && filteredShowrooms?.length > 0 ? (
         filteredShowrooms.map((showroom: any) => (
-          <ShowroomCard key={showroom.id} showroom={showroom} />
+          <GarageCard key={showroom.id} garage={showroom} />
         ))
       ) : (
         <div className="col-span-full text-center py-12">

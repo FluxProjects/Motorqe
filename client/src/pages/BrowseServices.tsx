@@ -35,57 +35,31 @@ const BrowseServices = () => {
           {/* Updated tabs container with new styling */}
           <div className="flex flex-col gap-4 mb-8 md:flex-row md:items-center md:justify-between">
             {/* Tabs with new styling */}
-            <div className="w-full flex justify-left">
+            <div className="w-full flex justify-center">
               <TabsList className="flex flex-wrap justify-center gap-3 bg-transparent p-0">
                 <TabsTrigger 
                   value="all"
-                  className="px-5 py-2 text-sm font-medium transition-all data-[state=active]:text-orange-500 data-[state=active]:border-b-4 data-[state=active]:border-b-orange-500 data-[state=active]:hover:font-bold text-blue-900"
+                  className="px-5 py-2 text-sm border-2 border-orange-500 font-medium transition-all data-[state=active]:text-white data-[state=active]:bg-blue-900 hover:bg-blue-900 hover:text-white data-[state=active]:hover:text-white"
                 >
-                  {t("services.allServices")}
+                  {t("services.carServices")}
                 </TabsTrigger>
                 <TabsTrigger 
                   value="byMake"
-                  className="px-5 py-2 text-sm font-medium transition-all data-[state=active]:text-orange-500 data-[state=active]:border-b-4 data-[state=active]:border-b-orange-500 data-[state=active]:hover:font-bold text-blue-900"
+                  className="px-5 py-2 text-sm border-2 border-orange-500 font-medium transition-all data-[state=active]:text-white data-[state=active]:bg-blue-900 hover:bg-blue-900 hover:text-white data-[state=active]:hover:text-white"
                 >
-                  {t("services.byMake")}
+                  {t("services.brands")}
                 </TabsTrigger>
                 <TabsTrigger 
                   value="featured"
-                  className="px-5 py-2 text-sm font-medium transition-all data-[state=active]:text-orange-500 data-[state=active]:border-b-4 data-[state=active]:border-b-orange-500 data-[state=active]:hover:font-bold text-blue-900"
+                  className="px-5 py-2 text-sm border-2 border-orange-500 font-medium transition-all data-[state=active]:text-white data-[state=active]:bg-blue-900 hover:bg-blue-900 hover:text-white data-[state=active]:hover:text-white"
                 >
                   <Star className="w-4 h-4 mr-1" />
-                  {t("services.featured")}
+                  {t("services.promotions")}
                 </TabsTrigger>
               </TabsList>
             </div>
 
-            {/* Search and filter - unchanged */}
-            <div className="flex flex-col gap-3 w-full md:w-auto md:flex-row md:items-center">
-              <div className="relative flex-1 md:w-[250px]">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500" />
-                <Input
-                  placeholder={t("services.searchPlaceholder")}
-                  className="w-full pl-10"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
 
-              <Select
-                onValueChange={(value) =>
-                  setSelectedMake(value === "all" ? null : parseInt(value))
-                }
-                value={selectedMake ? selectedMake.toString() : "all"}
-              >
-                <SelectTrigger className="w-full md:w-[180px]">
-                  <SelectValue placeholder={t("services.filterByMake")} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{t("services.allMakes")}</SelectItem>
-                  {/* Makes will be loaded in ByMakeTab */}
-                </SelectContent>
-              </Select>
-            </div>
           </div>
 
           {/* Tabs content remains unchanged */}

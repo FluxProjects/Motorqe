@@ -15,7 +15,7 @@ function CompareCars() {
   // Remove duplicates while preserving order
   const uniqueComparisonList = useMemo(() => {
     const seenIds = new Set<number>();
-    return comparisonList.filter(car => {
+    return comparisonList.filter((car) => {
       if (!car || seenIds.has(car.id)) return false;
       seenIds.add(car.id);
       return true;
@@ -40,7 +40,10 @@ function CompareCars() {
   useEffect(() => {
     if (isClient) {
       if (uniqueComparisonList.length > 0) {
-        localStorage.setItem("comparisonList", JSON.stringify(uniqueComparisonList));
+        localStorage.setItem(
+          "comparisonList",
+          JSON.stringify(uniqueComparisonList)
+        );
       } else {
         localStorage.removeItem("comparisonList");
       }
@@ -48,7 +51,7 @@ function CompareCars() {
   }, [uniqueComparisonList, isClient]);
 
   const handleRemove = (id: number) => {
-    setComparisonList(prev => prev.filter(car => car.id !== id));
+    setComparisonList((prev) => prev.filter((car) => car.id !== id));
   };
 
   const handleClear = () => {
@@ -61,22 +64,39 @@ function CompareCars() {
 
   // Key specifications to compare
   const comparisonFields = [
-    { key: "price", label: "Price", format: (val: string) => `${val} ${uniqueComparisonList[0]?.currency || 'QAR'}` },
+    {
+      key: "price",
+      label: "Price",
+      format: (val: string) =>
+        `${val} ${uniqueComparisonList[0]?.currency || "QAR"}`,
+    },
     { key: "year", label: "Year" },
     { key: "mileage", label: "Mileage", format: (val: string) => `${val} km` },
     { key: "fuel_type", label: "Fuel Type" },
     { key: "transmission", label: "Transmission" },
     { key: "color", label: "Color" },
     { key: "condition", label: "Condition" },
-    { key: "has_warranty", label: "Warranty", format: (val: boolean) => val ? "Yes" : "No" },
-    { key: "has_insurance", label: "Insurance", format: (val: boolean) => val ? "Yes" : "No" },
-    { key: "tinted", label: "Tinted Windows", format: (val: boolean) => val ? "Yes" : "No" },
+    {
+      key: "has_warranty",
+      label: "Warranty",
+      format: (val: boolean) => (val ? "Yes" : "No"),
+    },
+    {
+      key: "has_insurance",
+      label: "Insurance",
+      format: (val: boolean) => (val ? "Yes" : "No"),
+    },
+    {
+      key: "tinted",
+      label: "Tinted Windows",
+      format: (val: boolean) => (val ? "Yes" : "No"),
+    },
     { key: "owner_type", label: "Owner Type" },
     { key: "engine_capacity", label: "Engine Capacity" },
   ];
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-8 py-8">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold flex items-center gap-2">
           <Scale className="text-primary" size={28} />
@@ -100,7 +120,10 @@ function CompareCars() {
           {/* Cars Header Row */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-0 border-b dark:border-gray-700">
             {uniqueComparisonList.map((car) => (
-              <div key={car.id} className="p-4 relative group border-r dark:border-gray-700 last:border-r-0">
+              <div
+                key={car.id}
+                className="p-4 relative group border-r dark:border-gray-700 last:border-r-0"
+              >
                 <button
                   onClick={() => handleRemove(car.id)}
                   className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 dark:bg-gray-700/90 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-500 dark:text-red-400 p-1 rounded-full"
@@ -120,7 +143,9 @@ function CompareCars() {
                     </div>
                   )}
                 </div>
-                <h2 className="text-xl font-semibold mb-1 line-clamp-1">{car.title}</h2>
+                <h2 className="text-xl font-semibold mb-1 line-clamp-1">
+                  {car.title}
+                </h2>
                 <p className="text-primary font-bold text-lg mb-2">
                   {car.price} {car.currency}
                 </p>
@@ -139,7 +164,10 @@ function CompareCars() {
                   className="w-full h-full flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-6 hover:border-primary transition-colors group"
                 >
                   <div className="w-12 h-12 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-3 group-hover:bg-primary/10 transition-colors">
-                    <Plus className="text-gray-500 group-hover:text-primary" size={24} />
+                    <Plus
+                      className="text-gray-500 group-hover:text-primary"
+                      size={24}
+                    />
                   </div>
                   <span className="font-medium text-gray-600 dark:text-gray-300 group-hover:text-primary">
                     Add Vehicle
@@ -155,27 +183,33 @@ function CompareCars() {
           {/* Specifications Table */}
           <div className="divide-y dark:divide-gray-700">
             {comparisonFields.map((field) => (
-              <div key={field.key} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-0">
-               {uniqueComparisonList.map((car) => (
-  <div key={`car-${car.id}`} className="p-4 border gray-700">
-    <div className="grid grid-cols-2 gap-2">
-     
-          <div className="font-medium text-gray-600 dark:text-gray-300">
-            {field.label}
-          </div>
-          <div className="text-gray-800 dark:text-white">
-            {field?.format
-              ? field?.format(car?.[field?.key as keyof CarListing])
-              : car?.[field?.key as keyof CarListing] || "-"}
-          </div>
-      
-    </div>
-  </div>
-))}
+              <div
+                key={field.key}
+                className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-0"
+              >
+                {uniqueComparisonList.map((car) => (
+                  <div key={`car-${car.id}`} className="p-4 border gray-700">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="font-medium text-gray-600 dark:text-gray-300">
+                        {field.label}
+                      </div>
+                      <div className="text-gray-800 dark:text-white">
+                        {field?.format
+                          ? field?.format(car?.[field?.key as keyof CarListing])
+                          : car?.[field?.key as keyof CarListing] || "-"}
+                      </div>
+                    </div>
+                  </div>
+                ))}
 
                 {/* Empty cells for add car button space */}
-                {Array.from({ length: MAX_COMPARE_ITEMS - uniqueComparisonList.length }).map((_, i) => (
-                  <div key={`empty-${i}`} className="p-3 border-r dark:border-gray-700 last:border-r-0"></div>
+                {Array.from({
+                  length: MAX_COMPARE_ITEMS - uniqueComparisonList.length,
+                }).map((_, i) => (
+                  <div
+                    key={`empty-${i}`}
+                    className="p-3 border-r dark:border-gray-700 last:border-r-0"
+                  ></div>
                 ))}
               </div>
             ))}
@@ -190,7 +224,8 @@ function CompareCars() {
             No Vehicles Selected
           </h2>
           <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-md mx-auto">
-            Add up to {MAX_COMPARE_ITEMS} vehicles to compare their specifications side by side
+            Add up to {MAX_COMPARE_ITEMS} vehicles to compare their
+            specifications side by side
           </p>
           <Button onClick={handleAddCar} size="lg" className="gap-2">
             <Plus size={18} />
@@ -200,13 +235,13 @@ function CompareCars() {
       )}
 
       {/* Floating Compare Tool (optional) */}
-      {uniqueComparisonList.length > 0 && (
+      {/* {uniqueComparisonList.length > 0 && (
         <CompareTool
           comparisonList={uniqueComparisonList}
           onRemove={handleRemove}
           onClear={handleClear}
         />
-      )}
+      )} */}
     </div>
   );
 }

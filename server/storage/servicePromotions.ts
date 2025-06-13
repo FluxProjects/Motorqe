@@ -7,6 +7,15 @@ export interface IServicePromotionStorage {
     getServicePromotionsByServiceId(serviceId: number): Promise<ServicePromotion[]>;
     getCurrentServicePromotion(serviceId: number): Promise<ServicePromotion | null>;
     createServicePromotion(promotion: InsertServicePromotion): Promise<ServicePromotion>;
+    updateServicePromotion(
+            promotionId: number,
+            updates: Partial<{
+                packageId: number;
+                startDate: Date;
+                endDate: Date;
+                isActive: boolean;
+            }>
+        ): Promise<ServicePromotion>;
     deactivateServicePromotion(id: number): Promise<void>;
 
 }

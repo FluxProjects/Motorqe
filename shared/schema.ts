@@ -550,19 +550,21 @@ export const messages = pgTable("messages", {
   sentAt: timestamp("sent_at"),                   // When message was sent
   error: text("error"),                           // Error message if delivery failed
   createdAt: timestamp("created_at").defaultNow(), // Creation timestamp
+  parentMessageId: integer('parent_message_id'),
 });
 
 export const insertMessageSchema = createInsertSchema(messages).pick({
   senderId: true,
   receiverId: true,
   recipientType: true,
-  listingId: true,
   type: true,
-  status: true,
+  listingId: true,
   title: true,
   content: true,
+  status: true,
   sentAt: true,
   error: true,
+  parentMessageId: true,
 });
 
 export type InsertMessage = z.infer<typeof insertMessageSchema>;

@@ -1,5 +1,7 @@
 {
   "common": {
+    "backToGaragesHome":"Back to Garages Home",
+    "garageNotFound":"Garage Not Found",
     "compare":"Compare",
     "remove":"Remove",
     "minimumRequired":"Minimum Required",
@@ -420,6 +422,8 @@
     "listMyCar": "List My Car"
   },
   "showroom": {
+    "timing":"Timing",
+    "images":"Images",
     "description": "Description",
     "dashboard": "Dashboard",
     "viewShowroom": "View Showroom",
@@ -935,6 +939,9 @@
     "allGarages": "All Garages"
   },
   "services": {
+    "brands":"Brands",
+    "promotions": "Promotions",
+    "carServices":"Car Services",
     "date": "Date",
     "time": "Time",
     "notes": "Notes",

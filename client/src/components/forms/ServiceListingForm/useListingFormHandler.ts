@@ -48,8 +48,8 @@ export const useServiceListingFormHandler = (onSuccess?: () => void) => {
         description: formData.basicInfo.description,
         descriptionAr: formData.basicInfo.descriptionAr,
         availability: formData.availability,
-        is_featured: formData.isFeatured || false,
-        is_active: formData.isActive !== false, // Default to true
+        isFeatured: formData.isFeatured || false,
+        isActive: formData.isActive !== false, // Default to true
 
         user_id: user?.id,
         package_id: formData.package?.packageId

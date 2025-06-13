@@ -22,211 +22,186 @@ export interface IShowroomServiceStorage {
 export const ShowroomServiceStorage = {
 
     async getAllShowroomServices(
-        filter?: Partial<ShowroomService> & {
+    filter?: Partial<ShowroomService> & {
+        price_from?: number | string;
+        price_to?: number | string;
+        showroom_id?: string | number | (string | number)[];
+        showroom_ids?: string | number | (string | number)[]; // Handle both singular and plural
+        service_id?: string;
+        is_featured?: boolean;
+        updated_from?: string;
+        updated_to?: string;
+        status?: string;
+        user_id?: number;
+    },
+    sortBy?: keyof ShowroomService,
+    sortOrder: 'asc' | 'desc' = 'asc'
+): Promise<(ShowroomService & {
+    package_id?: number;
+    start_date?: Date;
+    end_date?: Date;
+    package_name?: string;
+    package_description?: string;
+    package_price?: number;
+})[]> {
+    console.log('--- START: getAllShowroomServices ---');
+    console.log('Incoming filter parameters:', JSON.stringify(filter, null, 2));
+    console.log('Incoming sort parameters:', { sortBy, sortOrder });
 
-            price_from?: number | string;
-            price_to?: number | string;
+    let baseQuery = `SELECT
+        cl.*,
+        lp.id AS promotion_id,
+        lp.package_id,
+        lp.start_date,
+        lp.end_date,
+        lp.is_active,
+        lp.transaction_id,
+        p.name AS package_name,
+        p.name_ar AS package_name_ar,
+        p.description AS package_description,
+        p.description_ar AS package_description_ar,
+        p.plan AS package_plan,
+        p.price AS package_price,
+        p.currency AS package_currency,
+        p.duration_days AS package_duration_days,
+        p.is_featured AS package_is_featured,
+        s.id AS showroom_id,
+        s.name AS showroom_name,
+        s.name_ar AS showroom_name_ar,
+        s.logo AS showroom_logo,
+        s.phone AS showroom_phone,
+        s.location AS showroom_location,
+        s.timing AS showroom_timing
+    FROM showroom_services cl
+    INNER JOIN service_promotions lp ON cl.id = lp.service_id
+    LEFT JOIN service_promotion_packages p ON lp.package_id = p.id
+    LEFT JOIN showrooms s ON cl.showroom_id = s.id
+    LEFT JOIN car_services sc ON cl.service_id = sc.id
+    WHERE 1=1`;
 
-            showroom_id?: string;
-            service_id?: string;
+    const whereClauses: string[] = [];
+    const values: any[] = [];
+    let paramIndex = 1;
 
-            is_featured?: boolean;
-
-            updated_from?: string;
-            updated_to?: string;
-
-            status?: string;
-
-            user_id?: number;
-
-
-        },
-        sortBy?: keyof ShowroomService,
-        sortOrder: 'asc' | 'desc' = 'asc'
-    ): Promise<(ShowroomService & {
-        package_id?: number;
-        start_date?: Date;
-        end_date?: Date;
-        package_name?: string;
-        package_description?: string;
-        package_price?: number;
-    })[]> {
-        console.log('--- START: getAllShowroomServices ---');
-        console.log('Incoming filter parameters:', JSON.stringify(filter, null, 2));
-        console.log('Incoming sort parameters:', { sortBy, sortOrder });
-        let baseQuery = `
-  SELECT 
-    cl.*, 
-    lp.id AS promotion_id,
-    lp.package_id, 
-    lp.start_date, 
-    lp.end_date, 
-    lp.is_active,
-    lp.transaction_id,
-    p.name AS package_name,
-    p.name_ar AS package_name_ar,
-    p.description AS package_description,
-    p.description_ar AS package_description_ar,
-    p.plan AS package_plan,
-    p.price AS package_price,
-    p.currency AS package_currency,
-    p.duration_days AS package_duration_days,
-    p.is_featured AS package_is_featured,
-    s.id AS showroom_id,
-    s.name AS showroom_name,
-    s.name_ar AS showroom_name_ar,
-    s.logo AS showroom_logo,
-    s.phone AS showroom_phone,
-    s.location AS showroom_location,
-    s.timing AS showroom_timing
-  FROM showroom_services cl
-  INNER JOIN service_promotions lp ON cl.id = lp.service_id
-    AND lp.end_date > NOW()
-  LEFT JOIN service_promotion_packages p ON lp.package_id = p.id
-  LEFT JOIN showrooms s ON cl.showroom_id = s.id
-  LEFT JOIN car_services sc ON cl.service_id = sc.id
-`;
-
-
-        const whereClauses: string[] = [];
-        const values: any[] = [];
-        let paramIndex = 1;
-
-        // Process filters
-        for (const key in filter) {
-            if (Object.prototype.hasOwnProperty.call(filter, key)) {
-                const value = filter[key as keyof typeof filter];
-
+    for (const key in filter) {
+        if (Object.prototype.hasOwnProperty.call(filter, key)) {
+            const value = filter[key as keyof typeof filter];
+            if (value !== undefined && value !== null) {
                 console.log(`Processing filter: ${key} =`, value);
 
-                if (value !== undefined && value !== null) {
-                    switch (key) {
-                        case 'user_id':
-                            whereClauses.push(`cl.user_id = $${paramIndex}`);
+                switch (key) {
+                    case 'showroom_id':
+                    case 'showroom_ids': // Handle both variants
+                        if (Array.isArray(value)) {
+                            whereClauses.push(`cl.showroom_id = ANY($${paramIndex})`);
                             values.push(value);
-                            console.log(`Added user filter: user_id = ${value}`);
                             paramIndex++;
-                            break;
-                        case 'showroom_id':
+                        } else {
                             whereClauses.push(`cl.showroom_id = $${paramIndex}`);
                             values.push(value);
-                            console.log(`Added user filter: showroom_id = ${value}`);
                             paramIndex++;
-                            break;
-                        case 'service_id':
-                            whereClauses.push(`cl.service_id = $${paramIndex}`);
-                            values.push(value);
-                            console.log(`Added user filter: service_id = ${value}`);
-                            paramIndex++;
-                            break;
-                        case 'price_from':
-                            whereClauses.push(`cl.price >= $${paramIndex}`);
-                            values.push(Number(value));
-                            console.log(`Added price filter: price >= ${Number(value)}`);
-                            paramIndex++;
-                            break;
-                        case 'price_to':
-                            whereClauses.push(`cl.price <= $${paramIndex}`);
-                            values.push(Number(value));
-                            console.log(`Added price filter: price <= ${Number(value)}`);
-                            paramIndex++;
-                            break;
-                        case 'status':
-                            whereClauses.push(`cl.status = $${paramIndex}`);
-                            values.push(value);
-                            console.log(`Added Status filter: status = ${value}`);
-                            paramIndex++;
-                            break;
-                        case 'is_active':
-                            whereClauses.push(`cl.is_active = $${paramIndex}`);
-                            values.push(value);
-                            console.log(`Added is_active filter: is_active = ${value}`);
-                            paramIndex++;
-                            break;
-                        case 'is_featured':
-                            whereClauses.push(`cl.is_featured = $${paramIndex}`);
-                            values.push(value);
-                            console.log(`Added featured filter: is_featured = ${value}`);
-                            paramIndex++;
-                            break;
-                        case 'updated_from': {
-                            if (typeof value === 'string' || value instanceof Date) {
-                                const date = new Date(value);
-                                if (!isNaN(date.getTime())) {
-                                    whereClauses.push(`updated_at >= $${paramIndex}`);
-                                    values.push(date.toISOString());
-                                    console.log(`Added date filter: updated_at >= ${date.toISOString()}`);
-                                    paramIndex++;
-                                }
-                            }
-                            break;
                         }
-                        case 'updated_to': {
-                            if (typeof value === 'string' || value instanceof Date) {
-                                const date = new Date(value);
-                                if (!isNaN(date.getTime())) {
-                                    date.setUTCHours(23, 59, 59, 999);
-                                    whereClauses.push(`updated_at <= $${paramIndex}`);
-                                    values.push(date.toISOString());
-                                    console.log(`Added date filter: updated_at <= ${date.toISOString()}`);
-                                    paramIndex++;
-                                }
+                        break;
+                    case 'user_id':
+                        whereClauses.push(`cl.user_id = $${paramIndex}`);
+                        values.push(value);
+                        paramIndex++;
+                        break;
+                    case 'service_id':
+                        whereClauses.push(`cl.service_id = $${paramIndex}`);
+                        values.push(value);
+                        paramIndex++;
+                        break;
+                    case 'price_from':
+                        whereClauses.push(`cl.price >= $${paramIndex}`);
+                        values.push(Number(value));
+                        paramIndex++;
+                        break;
+                    case 'price_to':
+                        whereClauses.push(`cl.price <= $${paramIndex}`);
+                        values.push(Number(value));
+                        paramIndex++;
+                        break;
+                    case 'status':
+                        whereClauses.push(`cl.status = $${paramIndex}`);
+                        values.push(value);
+                        paramIndex++;
+                        break;
+                    case 'is_active':
+                        whereClauses.push(`cl.is_active = $${paramIndex}`);
+                        values.push(value);
+                        paramIndex++;
+                        break;
+                    case 'is_featured':
+                        whereClauses.push(`cl.is_featured = $${paramIndex}`);
+                        values.push(value);
+                        paramIndex++;
+                        break;
+                    case 'updated_from':
+                        {
+                            const date = new Date(value);
+                            if (!isNaN(date.getTime())) {
+                                whereClauses.push(`cl.updated_at >= $${paramIndex}`);
+                                values.push(date.toISOString());
+                                paramIndex++;
                             }
-                            break;
                         }
-                        default:
-                            const column = ['id', 'created_at', 'updated_at'].includes(key) ? `cl.${key}` : key;
-                            whereClauses.push(`${column} = $${paramIndex}`);
-                            values.push(value);
-                            console.log(`Added generic filter: ${key} = ${value}`);
-                            paramIndex++;
-                            break;
-                    }
-                } else {
-                    console.log(`Skipping filter ${key} - value is undefined or null`);
+                        break;
+                    case 'updated_to':
+                        {
+                            const date = new Date(value);
+                            if (!isNaN(date.getTime())) {
+                                date.setUTCHours(23, 59, 59, 999);
+                                whereClauses.push(`cl.updated_at <= $${paramIndex}`);
+                                values.push(date.toISOString());
+                                paramIndex++;
+                            }
+                        }
+                        break;
+                    default:
+                        const column = ['id', 'created_at', 'updated_at'].includes(key) ? `cl.${key}` : key;
+                        whereClauses.push(`${column} = $${paramIndex}`);
+                        values.push(value);
+                        paramIndex++;
+                        break;
                 }
             }
         }
+    }
 
+    if (whereClauses.length > 0) {
+        baseQuery += ' AND ' + whereClauses.join(' AND ');
+        console.log('Final WHERE clause:', whereClauses.join(' AND '));
+        console.log('Query parameters:', values);
+    } else {
+        console.log('No additional filters - using base query');
+    }
 
-        // Build WHERE clause
-        if (whereClauses.length > 0) {
-            baseQuery += ' WHERE ' + whereClauses.join(' AND ');
-            console.log('Final WHERE clause:', whereClauses.join(' AND '));
-            console.log('Query parameters:', values);
-        } else {
-            console.log('No filters applied - using base query');
-        }
+    const validSortFields: (keyof ShowroomService)[] = [
+        'id', 'price', 'is_featured', 'status', 'updated_at', 'created_at'
+    ];
 
+    if (sortBy && validSortFields.includes(sortBy)) {
+        baseQuery += ` ORDER BY cl.${sortBy} ${sortOrder.toUpperCase()}`;
+        console.log(`Applying sort: ORDER BY cl.${sortBy} ${sortOrder.toUpperCase()}`);
+    } else if (sortBy) {
+        console.log(`Invalid sort field: ${sortBy} - skipping sort`);
+    }
 
-        // Handle sorting
-        const validSortFields: (keyof ShowroomService)[] = [
-            'id', 'price', 'is_featured', 'status', 'updated_at', 'created_at'
-        ];
+    console.log('Final SQL query:', baseQuery);
 
-        if (sortBy && validSortFields.includes(sortBy)) {
-            baseQuery += ` ORDER BY ${sortBy} ${sortOrder.toUpperCase()}`;
-            console.log(`Applying sort: ORDER BY ${sortBy} ${sortOrder.toUpperCase()}`);
-        } else if (sortBy) {
-            console.log(`Invalid sort field: ${sortBy} - skipping sort`);
-        }
-
-
-        console.log('Final SQL query:', baseQuery);
-
-        try {
-            const result = await db.query(baseQuery, values);
-            console.log('Query successful. Retrieved rows:', result.length);
-            console.log('First row (sample):', result.slice(0, 1));
-
-            console.log('--- END: getAllShowroomServices ---');
-            return result;
-        } catch (error) {
-            console.error('Database query failed:', error);
-            console.log('--- END: getAllShowroomServices (with error) ---');
-            throw error;
-        }
-    },
+    try {
+        const result = await db.query(baseQuery, values);
+        console.log('Query successful. Retrieved rows:', result.length);
+        console.log('First row (sample):', result.slice(0, 1));
+        console.log('--- END: getAllShowroomServices ---');
+        return result;
+    } catch (error) {
+        console.error('Database query failed:', error);
+        console.log('--- END: getAllShowroomServices (with error) ---');
+        throw error;
+    }
+},
 
 
 
@@ -303,9 +278,10 @@ export const ShowroomServiceStorage = {
 
     // Update your storage methods to include isFeatured and isActive
     async createShowroomService(service: InsertShowroomService): Promise<ShowroomService> {
+        const createdAt = new Date();
         const result = await db.query(
-            'INSERT INTO showroom_services (showroom_id, service_id, price, currency, description, description_ar, availability, is_featured, is_active, status) ' +
-            'VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *',
+            'INSERT INTO showroom_services (showroom_id, service_id, price, currency, description, description_ar, availability, is_featured, is_active, status, created_at) ' +
+            'VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *',
             [
                 service.showroomId,
                 service.serviceId,
@@ -317,6 +293,7 @@ export const ShowroomServiceStorage = {
                 service.isFeatured || false,
                 service.isActive !== false, // Default to true
                 service.status || 'draft',
+                createdAt,
             ]
         );
         return result[0];
@@ -330,6 +307,7 @@ export const ShowroomServiceStorage = {
         const fields: string[] = [];
         const values: any[] = [];
         let paramIndex = 1;
+        const updatedAt = new Date();
 
         // Handle all possible fields that might be updated
         if (updates.isFeatured !== undefined) {
@@ -361,11 +339,14 @@ export const ShowroomServiceStorage = {
             paramIndex++;
         }
 
-        if (fields.length === 0) {
-            return this.getShowroomService(id);
-        }
+       if (fields.length === 0) {
+        return this.getShowroomService(id);
+    }
 
-        values.push(id);
+    // Always update updated_at
+    fields.push(`updated_at = $${updatedAt}`);
+
+    values.push(id);
 
         try {
             const query = `

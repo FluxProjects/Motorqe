@@ -1,3 +1,4 @@
+import { truncate } from "node:fs/promises";
 import { db } from "../db";
 import { Showroom, InsertShowroom } from "@shared/schema";
 
@@ -38,8 +39,8 @@ export const ShowroomStorage = {
 
     async createShowroom(showroom: InsertShowroom): Promise<Showroom> {
         const result = await db.query(
-            'INSERT INTO showrooms (user_id, name, name_ar, is_main_branch, parent_id, address, address_ar, location, timing, phone, logo, is_featured, is_garage) ' +
-            'VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING *',
+            'INSERT INTO showrooms (user_id, name, name_ar, is_main_branch, parent_id, address, address_ar, location, timing, phone, logo, is_featured, is_garage, images) ' +
+            'VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING *',
             [
                 showroom.userId,
                 showroom.name,
@@ -54,6 +55,7 @@ export const ShowroomStorage = {
                 showroom.logo,
                 showroom.isFeatured,
                 showroom.isGarage,
+                showroom.images,
             ]
         );
         return result[0];
@@ -132,6 +134,12 @@ export const ShowroomStorage = {
             paramIndex++;
         }
 
+        if (updates.images !== undefined) {
+            fields.push(`images = $${paramIndex}`);
+            values.push(updates.images);
+            paramIndex++;
+        }
+
         if (fields.length === 0) {
             return this.getShowroom(id);
         }
@@ -154,22 +162,22 @@ export const ShowroomStorage = {
 
     async getShowroomsByUser(userId: number): Promise<Showroom[]> {
         return await db.query(
-            'SELECT * FROM showrooms WHERE user_id = $1  AND is_garage=$2 ORDER BY is_main_branch DESC, name',
+            'SELECT * FROM showrooms WHERE user_id = $1  AND is_garage = $2 ORDER BY name',
             [userId, false]
         );
     },
 
     async getGaragesByUser(userId: number): Promise<Showroom[]> {
         return await db.query(
-            'SELECT * FROM showrooms WHERE user_id = $1 AND is_garage=$2 ORDER BY is_main_branch DESC, name',
+            'SELECT * FROM showrooms WHERE user_id = $1 AND is_garage = $2 ORDER BY name',
             [userId, true]
         );
     },
 
     async getMainShowroomByUser(userId: number): Promise<Showroom | undefined> {
         const result = await db.query(
-            'SELECT * FROM showrooms WHERE user_id = $1 AND is_main_branch = true LIMIT 1',
-            [userId]
+            'SELECT * FROM showrooms WHERE user_id = $1 AND is_main_branch = $2 LIMIT 1',
+            [userId, true]
         );
         return result[0];
     }

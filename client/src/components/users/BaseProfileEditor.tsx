@@ -14,6 +14,7 @@ import { useTranslation } from "react-i18next";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User } from "@shared/schema";
 import { Checkbox } from "@/components/ui/checkbox";
+import ImageUpload from "../ui/image-upload";
 
 interface BaseProfileEditorProps {
   user: User;
@@ -43,8 +44,14 @@ export function BaseProfileEditor({
     },
   });
 
+  const { setValue } = form;
+
   console.log("user inside basic profile", user);
 
+
+  const handleAvatarUpload = (url: string) => {
+    setValue("avatar", url);
+  };
   // Reset form when user data is available
   useEffect(() => {
     if (user) {
@@ -82,31 +89,15 @@ export function BaseProfileEditor({
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
         {/* Avatar Section */}
-        <div className="flex flex-col items-center gap-4 mb-6">
-          <Avatar className="h-24 w-24">
-            <AvatarImage src={form.watch("avatar")} />
-            <AvatarFallback>
-              {user.firstName?.charAt(0)}
-              {user.lastName?.charAt(0)}
-            </AvatarFallback>
-          </Avatar>
-          <FormField
-            control={form.control}
-            name="avatar"
-            render={({ field }) => (
-              <FormItem className="w-full max-w-xs">
-                <FormLabel>{t("user.avatarUrl")}</FormLabel>
-                <FormControl>
-                  <Input
-                    {...field}
-                    value={field.value || ""}
-                    placeholder="https://example.com/avatar.jpg"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label>{t("user.avatarUrl")}</label>
+            <ImageUpload
+              currentImage={form.watch("avatar")}
+              onUploadComplete={handleAvatarUpload}
+            />
+          </div>
+
         </div>
 
         {/* Personal Information */}
@@ -248,7 +239,7 @@ export function BaseProfileEditor({
                         <FormControl>
                           <Input
                             type="tel"
-                            placeholder="+1234567890"
+                            placeholder="+97412345678"
                             {...field}
                           />
                         </FormControl>

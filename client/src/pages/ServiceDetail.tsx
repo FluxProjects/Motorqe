@@ -157,13 +157,13 @@ export default function ServiceDetails() {
       <div className="bg-white py-6 mb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center mb-6">
-            <Link href="/browse-garages">
+            <Link href="/home-garages">
               <Button
                 variant="ghost"
                 className="flex items-center text-blue-900"
               >
                 <ChevronLeft className="h-4 w-4 mr-2" />
-                {t("common.backToServices")}
+                {t("common.backToGaragesHome")}
               </Button>
             </Link>
 

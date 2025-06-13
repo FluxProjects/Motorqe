@@ -45,16 +45,20 @@ export function BasicInfoStep({ data, updateData, nextStep, prevStep }: ServiceS
     nextStep();
   };
 
-     const { data: garages = [] } = useQuery<Showroom[]>({
-    queryKey: ['user-garages'],
-    queryFn: async () => {
-      const url = '/api/garages';
-      const res = await fetch(url);
-      if (!res.ok) throw new Error('Failed to fetch garages');
-      return res.json();
-    },
-    enabled: !!user?.id && !!user?.roleId,
-  });
+    const { data: garages = [] } = useQuery<Showroom[]>({
+  queryKey: ['user-garages', user?.id, user?.roleId],
+  queryFn: async () => {
+    const isAdmin = user?.roleId > 6; // or whatever your admin role value is
+    const url = isAdmin
+      ? '/api/garages'
+      : `/api/garages/user/${user?.id}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Failed to fetch garages');
+    return res.json();
+  },
+  enabled: !!user?.id && !!user?.roleId,
+});
+
 
  
 
@@ -193,7 +197,7 @@ export function BasicInfoStep({ data, updateData, nextStep, prevStep }: ServiceS
       {/* Hidden Currency Field */}
       <Input id="currency" type="hidden" {...register("basicInfo.currency")} />
 
-      <div className="flex justify-end pt-4">
+      <div className="flex justify-between pt-4">
          <Button 
                 className="bg-blue-900 flex items-center gap-2"
                 type="button" onClick={prevStep}>

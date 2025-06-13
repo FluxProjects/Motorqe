@@ -269,14 +269,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
    * USER ROUTES
    */
   app.get("/api/users/:id", async (req, res) => {
-    try {
-      const id = Number(req.params.id);
+  try {
+    const idParam = req.params.id;
+
+    // Check if it's a comma-separated list of IDs
+    const idList = idParam.split(",").map(id => Number(id.trim())).filter(Boolean);
+
+    if (idList.length > 1) {
+      // Batch fetch
+      const users = await Promise.all(idList.map(id => storage.getUser(id)));
+      const filteredUsers = users.filter(Boolean); // Remove nulls (not found)
+      res.json(filteredUsers);
+    } else {
+      // Single user fetch (original behavior)
+      const id = Number(idParam);
       const user = await storage.getUser(id);
       user ? res.json(user) : res.status(404).json({ message: "User not found" });
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch user", error });
     }
-  });
+
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch user(s)", error });
+  }
+});
+
 
   app.get("/api/get-users", async (req, res) => {
   try {
@@ -1641,6 +1656,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log("No service_type filter or 'all' selected");
       }
 
+      // Status
+      if (req.query.user_id && req.query.user_id !== "all") {
+        console.log("Processing user_id filter with value:", req.query.user_id);
+        filters.user_id = req.query.user_id;
+        console.log("Added user_id filter:", req.query.user_id);
+      } else {
+        console.log("No user_id filter or 'all' selected");
+      }
+
       // Search Query
       if (req.query.search) {
         console.log("Processing search filter with value:", req.query.search);
@@ -1671,6 +1695,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const sortOrder = req.query.sort_order === 'desc' ? 'desc' : 'asc';
 
+      if (filters.user_id) {
+        console.log("Fetching showrooms for user_id:", filters.user_id);
+        const userShowrooms = await storage.getGaragesByUser(filters.user_id);
+        if (!userShowrooms || userShowrooms.length === 0) {
+          console.log("No showrooms found for user_id:", filters.user_id);
+          return res.json([]); // return empty result if no showrooms exist
+        }
+
+        const showroomIds = userShowrooms.map((s: any) => s.id);
+        filters.showroom_ids = showroomIds;
+        console.log("User's showroom IDs:", showroomIds);
+
+        delete filters.user_id; // remove user_id to avoid confusion
+      }
+
       console.log("Final filters object before querying storage:", filters);
       const services = await storage.getAllShowroomServices(filters, sortBy, sortOrder);
 
@@ -1681,7 +1720,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           services.map(async (service: any) => {
             try {
               const serviceDetails = await storage.getService(service.service_id);
-              const showroomDetails = await storage.getShowroom(service.showroom_id);
+              const showroomDetails = await storage.getGarage(service.showroom_id);
               console.log("service", service);
               const finalresult = {
                 ...service,
@@ -1709,31 +1748,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Create Showroom Service
   app.post("/api/showroom/services", async (req, res) => {
-    console.log("Received request to create showroom service:", req.body);
+    console.log("👉 Received POST /api/showroom/services");
+    console.log("📦 Payload:", req.body);
+
     try {
       const {
         showroomId,
         serviceId,
         price,
-        currency = 'QAR', // default currency
+        currency = 'QAR',
         description,
         descriptionAr,
         availability,
         isFeatured = false,
-        isActive = true
+        isActive = true,
+        package_id,
+        start_date,
+        end_date
       } = req.body;
 
       // Validate required fields
       if (!showroomId || !serviceId || price === undefined) {
-        console.log("Missing required fields");
+        console.log("❌ Missing required fields");
         return res.status(400).json({ message: "Missing required fields" });
       }
 
       // Validate price is a number
       if (isNaN(parseFloat(price))) {
-        console.log("Invalid price value");
+        console.log("❌ Invalid price value");
         return res.status(400).json({ message: "Price must be a number" });
       }
+
+      // Validate dates if promotion package is provided
+      if (package_id) {
+        if (!start_date || !end_date) {
+          console.log("❌ Missing promotion dates");
+          return res.status(400).json({ message: "Start and end dates are required for promotions" });
+        }
+
+        const startDate = new Date(start_date);
+        const endDate = new Date(end_date);
+
+        if (startDate >= endDate) {
+          console.log("❌ Invalid date range");
+          return res.status(400).json({ message: "End date must be after start date" });
+        }
+      }
+
+      console.log("🛠 Creating showroom service with data:", {
+        showroomId,
+        serviceId,
+        price,
+        currency,
+        description,
+        descriptionAr,
+        availability,
+        isFeatured,
+        isActive
+      });
 
       const newService = await storage.createShowroomService({
         showroomId,
@@ -1747,25 +1819,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isActive
       });
 
-      console.log("Successfully created service:", newService);
-      res.status(201).json(newService);
+      console.log("✅ Service created with ID:", newService.id);
+
+      if (package_id && start_date && end_date) {
+        console.log("📣 Creating promotion with:", {
+          serviceId: newService.id,
+          packageId: package_id,
+          startDate: start_date,
+          endDate: end_date,
+        });
+
+        await storage.createServicePromotion({
+          serviceId: newService.id,
+          packageId: package_id,
+          startDate: start_date,
+          endDate: end_date,
+          transactionId: null,
+          isActive: true,
+        });
+
+        console.log("✅ Promotion created");
+      }
+
+      // Fetch the full service with promotion details
+      const fullService = await storage.getShowroomService(newService.id);
+      console.log("📤 Returning full service");
+      res.status(201).json(fullService);
     } catch (error) {
-      console.error("Failed to create showroom service:", error);
-      res.status(500).json({ message: "Failed to create showroom service", error });
+      console.error("❌ Failed to create showroom service:", error);
+      res.status(500).json({ 
+        message: "Failed to create showroom service", 
+        error: process.env.NODE_ENV === 'development' ? error : undefined 
+      });
     }
   });
 
   // Update Showroom Service
   app.put("/api/showroom/services/:id", async (req, res) => {
     const serviceId = parseInt(req.params.id, 10);
-    console.log(`Received request to update showroom service ${serviceId}:`, req.body);
+    console.log(`👉 Received PUT /api/showroom/services/${serviceId}`);
+    console.log("📝 Payload:", req.body);
 
     if (isNaN(serviceId)) {
+      console.log("❌ Invalid service ID");
       return res.status(400).json({ message: "Invalid service ID" });
     }
 
     try {
-      const updates = req.body;
+      const {
+        package_id,
+        start_date,
+        end_date,
+        ...updates
+      } = req.body;
+
+      // Validate dates if promotion package is provided
+      if (start_date && end_date) {
+        const startDate = new Date(start_date);
+        const endDate = new Date(end_date);
+
+        if (startDate >= endDate) {
+          console.log("❌ Invalid date range");
+          return res.status(400).json({ message: "End date must be after start date" });
+        }
+      }
 
       // Remove fields that shouldn't be updated directly
       delete updates.id;
@@ -1775,22 +1892,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (updates.price !== undefined) {
         updates.price = parseFloat(updates.price);
         if (isNaN(updates.price)) {
+          console.log("❌ Invalid price value");
           return res.status(400).json({ message: "Price must be a number" });
         }
       }
 
+      console.log("🛠 Updating showroom service:", updates);
       const updatedService = await storage.updateShowroomService(serviceId, updates);
 
       if (!updatedService) {
-        console.log("Service not found");
+        console.log("⚠️ Service not found");
         return res.status(404).json({ message: "Service not found" });
       }
+      console.log("✅ Service updated");
 
-      console.log("Successfully updated service:", updatedService);
-      res.json(updatedService);
-    } catch (error) {
-      console.error("Failed to update showroom service:", error);
-      res.status(500).json({ message: "Failed to update showroom service", error });
+      if (package_id && start_date && end_date) {
+        console.log("🔍 Checking for existing active promotions");
+        const activePromotions = await storage.getActiveServicePromotions(serviceId);
+
+        if (activePromotions.length > 0) {
+          console.log("🔄 Updating existing promotion instead of creating new one");
+          const promotionToUpdate = activePromotions[0];
+
+          await storage.updateServicePromotion(promotionToUpdate.id, {
+            packageId: package_id,
+            startDate: start_date,
+            endDate: end_date
+          });
+        } else {
+          console.log("📣 Creating new promotion with:", {
+            serviceId: serviceId,
+            packageId: package_id,
+            startDate: start_date,
+            endDate: end_date,
+          });
+
+          await storage.createServicePromotion({
+            serviceId: serviceId,
+            packageId: package_id,
+            startDate: start_date,
+            endDate: end_date,
+            transactionId: null,
+            isActive: true,
+          });
+        }
+        console.log("✅ Promotion updated");
+      }
+
+      // Fetch the full service with promotion details
+      const fullService = await storage.getShowroomService(serviceId);
+      console.log("📤 Returning full service");
+      res.json(fullService);
+    } catch (error: any) {
+      console.error("❌ Failed to update showroom service:", error);
+      const statusCode = error.message.includes("date") ? 400 : 500;
+      res.status(statusCode).json({
+        message: error.message || "Failed to update showroom service",
+        error: process.env.NODE_ENV === 'development' ? error : undefined
+      });
     }
   });
 

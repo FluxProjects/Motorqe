@@ -49,7 +49,7 @@ export function ServiceListingForm({ service, onSuccess }: Props) {
           packagePrice: service.package_price?.toString(),
           durationDays: calculateDurationDays(service.start_date?.toString(), service.end_date?.toString()),
         } : undefined,
-        status: service.status,
+        status: service.status || "pending",
         
       };
 
@@ -92,7 +92,7 @@ export function ServiceListingForm({ service, onSuccess }: Props) {
 
   return (
     <FormProvider {...methods}>
-      <Card className="mx-auto mt-2">
+      <Card className="mx-auto mt-2 shadow-none border-none">
         <ProgressHeader
           currentStep={step}
           totalSteps={steps.length}

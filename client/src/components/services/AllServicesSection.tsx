@@ -54,10 +54,10 @@ export default function AllServicesSection({ searchQuery }: { searchQuery: strin
         <Link
           key={`service-${service.id}`}
           href={`/services/${service.id}`}
-          className="flex flex-col items-center p-4 hover:bg-gray-50 cursor-pointer"
+          className="flex flex-col items-center bg-white rounded-md border-2 border-neutral-300 p-4 hover:bg-neutral-50 cursor-pointer"
         >
-          <Avatar className="h-16 w-16 mb-2">
-            <AvatarImage src={service.image} alt={service.name} />
+          <Avatar className="h-16 w-16 mb-2 rounded-none overflow-hidden">
+            <AvatarImage className="h-full w-full object-cover rounded-none overflow-hidden" src={service.image} alt={service.name} />
             <AvatarFallback>{service.name?.charAt(0)}</AvatarFallback>
           </Avatar>
           <span className="text-sm font-medium text-center">

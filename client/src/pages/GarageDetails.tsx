@@ -381,7 +381,7 @@ const GarageDetails = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {/* Images (3/4 width on md and above) */}
             <div className="md:col-span-3">
-              <CarImages images={showroom?.images} title={showroom.name} />
+              <CarImages images={showroom.images} title={showroom.name} is_garage={true}  />
               <CarListingDetail
                 vehicleDescription={
                   showroom?.description ?? "No Description Available"
@@ -593,7 +593,12 @@ const GarageDetails = () => {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Similar Cars */}
-        <SimilarShowrooms showroomId={showroom.id} />
+        <div className="mt-12">
+        <div className="flex items-center justify-between mb-8">
+        <h2 className="text-2xl font-bold text-gray-900">Similar Garages</h2>
+      </div>
+        <SimilarShowrooms showroomId={showroom.id} limit={4} />
+        </div>
       </div>
 
       {/* Contact Seller Dialog */}

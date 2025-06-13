@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { AdminServiceListing, AdminServiceListingFilters, ServiceListingAction, ServicePromotionPackage } from "@shared/schema";
+import { AdminServiceListing, AdminServiceListingFilters, CarService, ServiceListingAction, ServicePromotionPackage, Showroom, User } from "@shared/schema";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { hasPermission, Permission, roleMapping } from "@shared/permissions";
 import { useAuth } from "@/contexts/AuthContext";
@@ -75,173 +75,176 @@ export const useServiceListingManage = () => {
 
 
   // Data fetching
-  const {
-    data: services = [],
-    isLoading,
-    refetch,
-  } = useQuery<AdminServiceListing[]>({
-    queryKey: ["showroom-services", searchQuery, filters, user?.id],
-    queryFn: async () => {
-      const searchParams = new URLSearchParams();
+const {
+  data: services = [],
+  isLoading,
+  refetch,
+} = useQuery<AdminServiceListing[]>({
+  queryKey: ["showroom-services", searchQuery, filters, user?.id, user?.roleId],
+  queryFn: async () => {
+    const searchParams = new URLSearchParams();
 
-      // Add role-based filtering
-      const roleName = roleMapping[user?.roleId ?? 1];
+    // Add role-based filtering
+    const roleName = roleMapping[user?.roleId];
 
-      if (!roleName) {
-        console.warn(`No role mapping found for role ID: ${user?.roleId}`);
-        return [];
+    if (!roleName) {
+      console.warn(`No role mapping found for role ID: ${user?.roleId}`);
+      return [];
+    }
+
+    // For admins (roleId >= 7), don't filter by user_id - show all services
+    // For non-admins (roleId < 7), filter by their user_id to get all their showroom's services
+    if (user?.roleId < 7) {
+      searchParams.append("user_id", String(user?.id));
+    }
+
+    // If a specific showroom filter is applied, use that instead
+    if (filters.showroomId) {
+      searchParams.append("showroom_id", filters.showroomId.toString());
+      // Remove user_id filter if showroom_id is specified to avoid conflicts
+      searchParams.delete("user_id");
+    }
+
+    if (searchQuery) searchParams.append("search", searchQuery);
+    if (filters.status && filters.status !== "all") {
+      searchParams.append("status", filters.status);
+    }
+    if (filters.isFeatured !== undefined) {
+      searchParams.append("is_featured", String(filters.isFeatured));
+    }
+    if (filters.isActive !== undefined) {
+      searchParams.append("is_active", String(filters.isActive));
+    }
+    if (filters.priceRange?.from) {
+      searchParams.append("price_from", filters.priceRange.from.toString());
+    }
+    if (filters.priceRange?.to) {
+      searchParams.append("price_to", filters.priceRange.to.toString());
+    }
+    if (filters.dateRange?.from) {
+      searchParams.append("date_from", filters.dateRange.from.toString());
+    }
+    if (filters.dateRange?.to) {
+      searchParams.append("date_to", filters.dateRange.to.toString());
+    }
+
+    if (filters.serviceId) {
+      searchParams.append("service_id", filters.serviceId.toString());
+    }
+
+    const finalUrl = `/api/showroom/services?${searchParams.toString()}`;
+    console.log("[DEBUG] Final API URL:", finalUrl);
+
+    // Fetch all service listings
+    const res = await fetch(finalUrl);
+
+    if (!res.ok) {
+      console.error("[ERROR] Failed to fetch listings. Status:", res.status);
+      const errorText = await res.text();
+      console.error("[ERROR] Response text:", errorText);
+      throw new Error("Failed to fetch listings");
+    }
+
+    const services = await res.json();
+    console.log("[DEBUG] Raw services from API:", services);
+
+    if (!services || services.length === 0) {
+      console.warn("[WARNING] No services returned from API");
+      return [];
+    }
+
+    // Get unique IDs for batch fetching
+    const uniqueShowroomIds = [...new Set(services.map((service: any) => service.showroom_id))];
+    const uniqueServiceIds = [...new Set(services.map((service: any) => service.service_id))];
+
+    console.log("[DEBUG] Unique IDs to fetch:", {
+      uniqueShowroomIds,
+      uniqueServiceIds
+    });
+
+    // Fetch all related data in parallel
+    const [showroomsResponse, serviceDetailsResponse] = await Promise.all([
+      // Fetch all showrooms at once if there are any
+      uniqueShowroomIds.length > 0 
+        ? fetch(`/api/showrooms?ids=${uniqueShowroomIds.join(',')}`)
+        : Promise.resolve({ ok: false }),
+      
+      // Fetch all services at once if there are any
+      uniqueServiceIds.length > 0
+        ? fetch(`/api/services?ids=${uniqueServiceIds.join(',')}`)
+        : Promise.resolve({ ok: false })
+    ]);
+
+    // Process showrooms response
+    let showrooms = [];
+    if ('ok' in showroomsResponse && showroomsResponse.ok) {
+      const response = showroomsResponse as Response;
+      showrooms = await response.json();
+      console.log("[DEBUG] Fetched showrooms:", showrooms);
+    } else {
+      console.warn("[WARNING] Failed to fetch showrooms");
+    }
+
+    // Process services response
+   let serviceDetails: any[] = [];
+
+if ('ok' in serviceDetailsResponse && serviceDetailsResponse.ok) {
+  const response = serviceDetailsResponse as Response;
+  serviceDetails = await response.json();
+  console.log("[DEBUG] Fetched service details:", serviceDetails);
+} else {
+  console.warn("[WARNING] Failed to fetch service details");
+}
+    // Get user IDs from showrooms
+    const userIdsFromShowrooms = showrooms
+  .filter((showroom: any) => showroom.user_id !== undefined)
+  .map((showroom: any) => showroom.user_id);
+
+    // Fetch users in batch if there are any
+    let users = [];
+    if (userIdsFromShowrooms.length > 0) {
+      try {
+        const usersResponse = await fetch(`/api/users/${userIdsFromShowrooms.join(',')}`);
+        if (usersResponse.ok) {
+          users = await usersResponse.json();
+          console.log("[DEBUG] Fetched users:", users);
+        }
+
+      } catch (error) {
+        console.error("[ERROR] Failed to fetch users:", error);
       }
+    }
 
-      // For sellers and showrooms, only fetch their own listings
-      if (roleName === "SELLER" || roleName === "GARAGE") {
-        searchParams.append("user_id", user?.id);
-      }
+    // Create lookup maps for faster access
+    const showroomsMap = new Map(showrooms.map((showroom: Showroom) => [showroom.id, showroom]));
+    const servicesMap = new Map(serviceDetails.map(service => [service.id, service]));
+    const usersMap = new Map(users.map((user: User) => [user.id, user]));
 
-      if (searchQuery) searchParams.append("search", searchQuery);
+    // Enrich services with related data
+    const enrichedServices = services.map((service: CarService) => {
+      const showroom = showroomsMap.get(service.showroom_id);
+      const serviceDetail = servicesMap.get(service.service_id);
+      const user = showroom && showroom.user_id ? usersMap.get(showroom.user_id) : null;
 
-      if (filters.status && filters.status !== "all") {
-        searchParams.append("status", filters.status);
-      }
-      if (filters.isFeatured !== undefined) {
-        searchParams.append("is_featured", String(filters.isFeatured));
-      }
-      if (filters.isActive !== undefined) {
-        searchParams.append("is_active", String(filters.isActive));
-      }
-      if (filters.priceRange?.from) {
-        searchParams.append("price_from", filters.priceRange.from.toString());
-      }
-      if (filters.priceRange?.to) {
-        searchParams.append("price_to", filters.priceRange.to.toString());
-      }
-      if (filters.dateRange?.from) {
-        searchParams.append("date_from", filters.dateRange.from.toString());
-      }
-      if (filters.dateRange?.to) {
-        searchParams.append("date_to", filters.dateRange.to.toString());
-      }
-      if (filters.showroomId) {
-        searchParams.append("showroom_id", filters.showroomId.toString());
-      }
-      if (filters.serviceId) {
-        searchParams.append("service_id", filters.serviceId.toString());
-      }
+      return {
+        ...service,
+        serviceData: serviceDetail,
+        showroom: showroom,
+        user: user,
+      };
+    });
 
-      const finalUrl = `/api/showroom/services?${searchParams.toString()}`;
-      console.log("[DEBUG] Final API URL:", finalUrl);
-
-      // Fetch all service listings
-      const res = await fetch(finalUrl);
-
-      if (!res.ok) {
-        console.error("[ERROR] Failed to fetch listings. Status:", res.status);
-        const errorText = await res.text();
-        console.error("[ERROR] Response text:", errorText);
-        throw new Error("Failed to fetch listings");
-      }
-
-      const services = await res.json();
-      console.log("[DEBUG] Raw listings from API:", services);
-
-      if (!services || services.length === 0) {
-        console.warn("[WARNING] No services returned from API");
-        return [];
-      }
-
-      const uniqueShowroomIds = [...new Set(services.map((service: any) => service.showroom_id))];
-      const uniqueServiceIds = [...new Set(services.map((service: any) => service.service_id))];
-
-      console.log("[DEBUG] Unique IDs to fetch:", {
-        uniqueShowroomIds,
-        uniqueServiceIds
-      });
-
-      // First fetch showrooms and services
-      const [showrooms, serviceDetails] = await Promise.all([
-        Promise.all(
-          uniqueShowroomIds.map(async (id) => {
-            try {
-              const res = await fetch(`/api/showrooms/${id}`);
-              if (!res.ok) return null;
-              return await res.json();
-            } catch (error) {
-              console.error(`Error fetching showroom ${id}:`, error);
-              return null;
-            }
-          })
-        ),
-        Promise.all(
-          uniqueServiceIds.map(async (id) => {
-            try {
-              const res = await fetch(`/api/services/${id}`);
-              if (!res.ok) {
-                console.error(`[ERROR] Service fetch failed for ID: ${id}`, res.status);
-                return null;
-              }
-              const data = await res.json();
-              console.log(`[DEBUG] Fetched service ${id}:`, data);
-              return data;
-            } catch (error) {
-              console.error(`[ERROR] Exception while fetching service ${id}:`, error);
-              return null;
-            }
-          })
-        )
-      ]);
-
-      // Extract unique user IDs from showrooms
-      const uniqueUserIds = [...new Set(
-        showrooms
-          .filter(showroom => showroom?.user_id)
-          .map(showroom => showroom.user_id)
-      )];
-
-      // Fetch users data in parallel
-      const users = await Promise.all(
-        uniqueUserIds.map(async (userId) => {
-          try {
-            const res = await fetch(`/api/users/${userId}`);
-            if (!res.ok) return null;
-            return await res.json();
-          } catch (error) {
-            console.error(`Error fetching user ${userId}:`, error);
-            return null;
-          }
-        })
-      );
-
-      // Create a map of user ID to user data for quick lookup
-      const usersMap = new Map(
-        users.filter(user => user).map(user => [user.id, user])
-      );
-
-      // Enrich services with showroom, service, and user data
-      const enrichedServices = services.map((service: any) => {
-        const showroom = showrooms.find(s => s?.id === service?.showroom_id);
-        const services = serviceDetails.find(s => Number(s?.id) === Number(service.service_id));
-        const user = showroom?.user_id ? usersMap.get(showroom.user_id) : null;
-
-        return {
-          ...service,
-          serviceData: services,
-          showroom: showroom,
-          user: user,
-
-        };
-      });
-
-      console.log("Enriched Services", enrichedServices);
-
-      return enrichedServices;
-    },
-  });
+    console.log("[DEBUG] Enriched Services:", enrichedServices);
+    return enrichedServices;
+  },
+});
 
   // Fetch user's showrooms for selection
   const { data: userShowrooms = [] } = useQuery({
     queryKey: ["user-showrooms", user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-      const res = await fetch(`/api/users/${user.id}/showrooms`);
+      const res = await fetch(`/api/garages/user/${user.id}`);
       if (!res.ok) throw new Error("Failed to fetch user showrooms");
       return res.json();
     },

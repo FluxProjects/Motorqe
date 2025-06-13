@@ -86,7 +86,7 @@ export const ServiceListingTable = ({
       <TableHeader>
         <TableRow className="bg-neutral-500 hover:bg-neutral-700 border-neutral-50">
           <TableHead className="text-white">{t("services.serviceName")}</TableHead>
-          <TableHead className="text-white">{t("services.showroom")}</TableHead>
+          <TableHead className="text-white">{t("services.garage")}</TableHead>
           <TableHead className="text-white">{t("services.description")}</TableHead>
           <TableHead className="text-white">{t("services.price")}</TableHead>
           <TableHead className="text-white">{t("services.status")}</TableHead>
