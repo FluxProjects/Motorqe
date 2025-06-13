@@ -26,12 +26,12 @@ export default defineConfig({
     watch: {
       usePolling: true // If files aren't being detected
     },
-    host: 'localhost',
+    host: '0.0.0.0',
     port: 5173,
     proxy: {
       // Your proxy configurations if any
       '/api': {
-        target: 'http://localhost:4000',
+        target: 'http://0.0.0.0:4000',
         changeOrigin: true
       }
     },

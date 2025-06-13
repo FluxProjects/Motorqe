@@ -10,7 +10,7 @@ const app = express();
 // Enable CORS for cookies
 app.use(
   cors({
-    origin: 'http://127:0.0.1:4000', // Replace with your frontend URL
+    origin: 'http://0:0.0.0:4000', // Replace with your frontend URL
     credentials: true, // Allow cookies to be sent with requests
   })
 );
@@ -79,7 +79,7 @@ app.use((req, res, next) => {
   const port = 4000;
   server.listen({
     port,
-    host: "127.0.0.1",
+    host: "0.0.0.0",
   }, () => {
     log(`serving on port ${port}`);
   });
