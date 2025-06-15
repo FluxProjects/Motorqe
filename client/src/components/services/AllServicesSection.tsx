@@ -52,18 +52,23 @@ export default function AllServicesSection({ searchQuery }: { searchQuery: strin
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
       {filteredServices && filteredServices.map((service) => (
         <Link
-          key={`service-${service.id}`}
-          href={`/services/${service.id}`}
-          className="flex flex-col items-center bg-white rounded-md border-2 border-neutral-300 p-4 hover:bg-neutral-50 cursor-pointer"
-        >
-          <Avatar className="h-16 w-16 mb-2 rounded-none overflow-hidden">
-            <AvatarImage className="h-full w-full object-cover rounded-none overflow-hidden" src={service.image} alt={service.name} />
-            <AvatarFallback>{service.name?.charAt(0)}</AvatarFallback>
-          </Avatar>
-          <span className="text-sm font-medium text-center">
-            {service.name}
-          </span>
-        </Link>
+  key={`service-${service.id}`}
+  href={`/services/${service.id}`}
+  className="flex flex-col items-center bg-white rounded-md border-2 border-neutral-300 p-4 hover:bg-neutral-50 cursor-pointer"
+>
+  <Avatar className="h-16 w-16 mb-2 rounded-none overflow-hidden flex items-center justify-center">
+    <AvatarImage
+      src={service.image}
+      alt={service.name}
+      className="max-h-24 w-auto object-contain rounded-none"
+    />
+    <AvatarFallback>{service.name?.charAt(0)}</AvatarFallback>
+  </Avatar>
+  <span className="text-sm font-medium text-center">
+    {service.name}
+  </span>
+</Link>
+
       ))}
     </div>
   );

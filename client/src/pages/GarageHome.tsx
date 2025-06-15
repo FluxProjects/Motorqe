@@ -54,7 +54,7 @@ const GarageHome = () => {
       {/* Featured Listings Section */}
       <FeaturedGaragesSection />
 
-      {/* ShowRooms Section */}
+      {/* Garages Section */}
       <GaragesCarousel />
 
       {/* FAQ Section*/}

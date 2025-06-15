@@ -16,6 +16,7 @@ interface GarageCardProps {
     phone: string;
     image?: string;
     isMainBranch: boolean;
+    isFeatured: boolean;
     services: {
       id: number;
       image: string;
@@ -41,7 +42,7 @@ export function GarageCard({ garage }: GarageCardProps) {
   return (
     <Card
       className={`overflow-hidden hover:shadow-lg transition-shadow duration-300 border-2 border-solid rounded-2xl ${
-        garage.isMainBranch ? "border-orange-500" : "border-gray-200"
+        garage.is_featured ? "border-orange-500" : "border-gray-200"
       }`}
     >
       <div className="flex flex-col md:flex-row">
@@ -57,18 +58,18 @@ export function GarageCard({ garage }: GarageCardProps) {
           {/* Image */}
           <div className="relative flex-1 mb-3">
             <Link href={`/garages/${garage.id}`}>
-              <div className="h-full w-full overflow-hidden rounded-lg group cursor-pointer min-h-[100px]">
-                {garage.image ? (
-                  <img
-                    src={garage.image}
-                    alt={name}
-                    className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300 min-h-[100px]"
-                  />
-                ) : (
-                  <div className="h-full w-full bg-slate-200 flex items-center justify-center rounded-lg min-h-[100px]">
-                    <Car size={40} className="text-slate-400" />
-                  </div>
-                )}
+              <div className="h-full w-full overflow-hidden rounded-lg group cursor-pointer min-h-[85px]">
+                <img
+                  src={garage.image || "/src/assets/showroom-image.png"}
+                  alt={name}
+                  onError={(e) => {
+                    const target = e.currentTarget;
+                    target.onerror = null; // prevent infinite loop if default fails
+                    target.src = "/src/assets/showroom-image.png";
+                  }}
+                  className="w-full h-auto object-cover object-center group-hover:scale-105 transition-transform duration-300 min-h-[85px]"
+                />
+
               </div>
             </Link>
           </div>
@@ -87,7 +88,7 @@ export function GarageCard({ garage }: GarageCardProps) {
           {/* Featured Badge - With consistent spacing */}
           <div className="mb-3 min-h-[24px]">
             {garage.is_featured ? (
-              <Badge className="bg-red-600 hover:bg-red-700 text-white">
+              <Badge className="bg-blue-900 text-white">
                 FEATURED
               </Badge>
             ) : (

@@ -4,7 +4,7 @@ import { CarService, InsertCarService, ShowroomService } from "@shared/schema";
 export interface ICarServiceStorage {
 
     getAllServices(): Promise<CarService[]>;
-    getAllFeaturedServices(): Promise<CarService[]>
+    getAllFeaturedServices(): Promise<any[]>
     getFeaturedServices(): Promise<CarService[]>;
     getShowroomServiceByServiceId(id: number): Promise<any>;
     getService(id: number): Promise<any>
@@ -22,7 +22,9 @@ export const CarServiceStorage = {
     },
 
     async getAllFeaturedServices(): Promise<any[]> {
-        return await db.query(`SELECT
+        console.log("inside storage getAllFeaturedServices");
+  const result = await db.query(`
+    SELECT
       ss.id AS showroom_service_id,
       ss.is_featured,
       ss.price,
@@ -36,16 +38,20 @@ export const CarServiceStorage = {
       s.name AS showroom_name,
       s.location AS showroom_location,
       s.address AS showroom_address,
+      s.address_ar AS showroom_addressAr,
+      s.logo AS showroom_logo,
       s.phone AS showroom_phone
     FROM showroom_services ss
     JOIN car_services cs ON ss.service_id = cs.id
     JOIN showrooms s ON ss.showroom_id = s.id
     WHERE ss.is_featured = true
-    `);
-    },
+  `);
+  console.log("result", result);
+  return result;
+},
 
     async getFeaturedServices(): Promise<CarService[]> {
-            return await db.query(`
+            const result = await db.query(`
           SELECT cl.* FROM car_services cl
           JOIN service_promotions lp ON cl.id = lp.service_id
           JOIN service_promotion_packages pp ON lp.package_id = pp.id
@@ -54,6 +60,7 @@ export const CarServiceStorage = {
             AND pp.is_featured = true
           ORDER BY pp.priority DESC, lp.start_date DESC
         `);
+        return result;
         },
 
     async getServicesByMake(makeId: number): Promise<ShowroomService[]> {

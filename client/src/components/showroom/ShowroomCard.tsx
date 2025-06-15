@@ -60,18 +60,18 @@ export function ShowroomCard({ showroom }: ShowroomCardProps) {
           {/* Image */}
           <div className="relative flex-1 mb-3">
             <Link href={`/showrooms/${showroom.id}`}>
-              <div className="h-full w-full overflow-hidden rounded-lg group cursor-pointer min-h-[100px]">
-                {showroom.image ? (
-                  <img
-                    src={showroom.image}
-                    alt={name}
-                    className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300 min-h-[100px]"
-                  />
-                ) : (
-                  <div className="h-full w-full bg-slate-200 flex items-center justify-center rounded-lg min-h-[100px]">
-                    <Car size={40} className="text-slate-400" />
-                  </div>
-                )}
+              <div className="h-full w-full overflow-hidden rounded-lg group cursor-pointer min-h-[85px]">
+                <img
+                src={showroom.image || "/src/assets/showroom-image.png"}
+                alt={name}
+                onError={(e) => {
+                  const target = e.currentTarget;
+                  target.onerror = null; // prevent infinite loop if default fails
+                  target.src = "/src/assets/showroom-image.png";
+                }}
+                className="w-full h-auto object-cover object-center group-hover:scale-105 transition-transform duration-300 min-h-[85px]"
+              />
+
               </div>
             </Link>
           </div>

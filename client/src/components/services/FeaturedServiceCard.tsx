@@ -16,6 +16,7 @@ export interface ShowroomService {
   service_nameAr: string;
   showroom_id: number;
   showroom_name: string;
+  showroom_logo: string;
   showroom_location: string;
   showroom_address: string;
 }
@@ -44,10 +45,15 @@ export default function FeaturedServiceCard({ service }: { service: ShowroomServ
         <Link href={`/showroom-services/${service.showroom_service_id}`}>
           <div className="h-[100px] w-full overflow-hidden rounded-lg group cursor-pointer">
   <img
-    src={`https://placehold.co/400x400?text=${service.service_name}`}
-    alt={service.service_name}
-    className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
-  />
+                src={service.showroom_logo || "/src/assets/showroom-image.png"}
+                alt={service.showroom_name}
+                onError={(e) => {
+                  const target = e.currentTarget;
+                  target.onerror = null; // prevent infinite loop if default fails
+                  target.src = "/src/assets/showroom-image.png";
+                }}
+               className="w-full h-auto object-cover object-center group-hover:scale-105 transition-transform duration-300 min-h-[85px]"
+              />
 </div>
 
         </Link>

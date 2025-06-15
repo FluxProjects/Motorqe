@@ -1447,6 +1447,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/services/featured", async (_req, res) => {
+    try {
+      console.log("inside features service route");
+      const services = await storage.getAllFeaturedServices();
+      res.json(services);
+    } catch (error) {
+      console.error("❌ Error fetching services:", error);
+      res.status(500).json({ message: "Failed to fetch services" });
+    }
+  });
+
   // get single service
   app.get("/api/services/:id", async (req, res) => {
     try {
@@ -1463,15 +1474,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/services/featured", async (_req, res) => {
-    try {
-      const services = await storage.getAllFeaturedServices();
-      res.json(services);
-    } catch (error) {
-      console.error("❌ Error fetching services:", error);
-      res.status(500).json({ message: "Failed to fetch services" });
-    }
-  });
+  
 
   // Get all services for a specific make
   app.get("/api/services/makes/:id", async (req, res) => {

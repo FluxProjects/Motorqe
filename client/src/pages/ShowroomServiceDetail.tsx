@@ -22,7 +22,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { CarMake, CarService, Showroom, ShowroomService } from "@shared/schema";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { AuthForms } from "@/components/forms/AuthForm/AuthForms";
 import { Separator } from "@/components/ui/separator";
@@ -56,10 +56,12 @@ interface ExtendedCarService extends CarService {
 interface ServiceDetailData {
   service: ExtendedCarService;
   showroom: Showroom;
+  availability: string;
   makes: CarMake[];
   price: number;
-  currency: string;
+  currency?: string;
   isFeatured: boolean;
+  status?: boolean;
 }
 
 // Booking form schema
@@ -84,13 +86,7 @@ const messageSchema = z.object({
 
 type MessageValues = z.infer<typeof messageSchema>;
 
-const fetchServiceDetail = async (serviceId: string) => {
-  const response = await apiRequest(
-    "GET",
-    `/api/showroom/services/${serviceId}`
-  );
-  return await response.json();
-};
+
 
 export default function ShowroomServiceDetails() {
   const { t } = useTranslation();
@@ -108,9 +104,9 @@ export default function ShowroomServiceDetails() {
   const params = useParams();
   const serviceId = params.id;
 
+
   const { data, isLoading, error } = useQuery<ServiceDetailData>({
-    queryKey: ["service-detail", serviceId],
-    queryFn: () => fetchServiceDetail(serviceId),
+    queryKey: ["/api/showroom/services/", serviceId],
   });
 
   // Booking form
@@ -159,38 +155,38 @@ export default function ShowroomServiceDetails() {
     );
   }
 
-  const handleFavoriteToggle = async () => {
-    if (!isAuthenticated) {
-      setAuthModal("login");
-      return;
-    }
+ const handleFavoriteToggle = async () => {
+  if (!isAuthenticated) {
+    setAuthModal("login");
+    return;
+  }
 
-    try {
-      if (isFavorited) {
-        await apiRequest("DELETE", `/api/favorites/showrooms/${id}`, {});
-        setIsFavorited(false);
-        toast({
-          title: t("showroom.removedFromFavorites"),
-          description: t("showroom.removedFromFavoritesDesc"),
-        });
-      } else {
-        await apiRequest("POST", "/api/favorites/showrooms", {
-          showroomId: parseInt(id),
-        });
-        setIsFavorited(true);
-        toast({
-          title: t("showroom.addedToFavorites"),
-          description: t("showroom.addedToFavoritesDesc"),
-        });
-      }
-    } catch (error) {
+  try {
+    if (isFavorited) {
+      await apiRequest("DELETE", `/api/favorites/services/${serviceId}`, {});
+      setIsFavorited(false);
       toast({
-        title: t("common.error"),
-        description: t("showroom.favoriteError"),
-        variant: "destructive",
+        title: t("showroom.removedFromFavorites"),
+        description: t("showroom.removedFromFavoritesDesc"),
+      });
+    } else {
+      await apiRequest("POST", "/api/favorites/services", {
+        serviceId: parseInt(serviceId),
+      });
+      setIsFavorited(true);
+      toast({
+        title: t("showroom.addedToFavorites"),
+        description: t("showroom.addedToFavoritesDesc"),
       });
     }
-  };
+  } catch (error) {
+    toast({
+      title: t("common.error"),
+      description: t("showroom.favoriteError"),
+      variant: "destructive",
+    });
+  }
+};
 
   const handleContactShowroom = (values: MessageValues) => {
     if (!isAuthenticated) {
@@ -374,7 +370,7 @@ export default function ShowroomServiceDetails() {
                       {t("services.description")}
                     </h3>
                     <p className="text-neutral-600 mb-4">
-                      {service.description || t("services.noDescription")}
+                      {service?.description || t("services.noDescription")}
                     </p>
 
                     {makes && makes.length > 0 && (
@@ -383,7 +379,7 @@ export default function ShowroomServiceDetails() {
                           {t("services.availableFor")}
                         </h3>
                         <div className="flex flex-wrap gap-2 mb-4">
-                          {makes.map((make) => (
+                          {makes?.map((make) => (
                             <Badge key={make.id} variant="outline">
                               <Avatar className="h-5 w-5 mr-2">
                                 <AvatarImage src={make.image} alt={make.name} />
@@ -404,15 +400,17 @@ export default function ShowroomServiceDetails() {
                       className="rounded-full bg-orange-500 hover:bg-orange-700"
                       onClick={() => {
                         setSelectedService({
-                          id: service.id,
-                          description: service.description ?? null,
-                          isFeatured: service.is_featured ?? null,
-                          showroomId: showroom.id,
-                          serviceId: service.ServiceId,
-                          price: service.price,
-                          currency: service.currency ?? null,
-                          descriptionAr: service.descriptionAr ?? null,
-                          isActive: service.is_active ?? null,
+                          id: service?.id,
+                          description: service?.description ?? null,
+                          isFeatured: service?.is_featured ?? false,
+                          showroomId: showroom?.id,
+                          serviceId: service?.ServiceId,
+                          price: service?.price,
+                          currency: service?.currency ?? "QAR",
+                          descriptionAr: service?.descriptionAr ?? null,
+                          isActive: service?.is_active ?? true,
+                          status: service?.status ?? "active",
+                          availability: service?.availability,
                         });
                         setBookingDialogOpen(true);
                       }}

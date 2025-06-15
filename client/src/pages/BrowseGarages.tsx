@@ -321,7 +321,11 @@ const BrowseGarages = () => {
                         : "border border-blue-900 text-blue-900 bg-transparent hover:bg-blue-900 hover:text-white"
                     }`}
                   >
-                    <Wrench size={14} />
+                     <img
+      src={service.image}
+      alt={service.name}
+      className="w-4 h-4 object-contain"
+    />
                     {service.name}
                   </Badge>
                 ))}
