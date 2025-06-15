@@ -137,19 +137,23 @@ export default function ServiceDetails() {
     );
   }
 
-  if (error || !data) {
+ if (error || !data) {
+  return (
+    <div className="text-center py-12 text-neutral-500">
+      {t("services.failedToLoad")}
+    </div>
+  );
+}
+
+useEffect(() => {
+  if (error) {
     toast({
       title: t("common.error"),
       description: t("services.failedToLoad"),
       variant: "destructive",
     });
-    return (
-      <div className="text-center py-12 text-neutral-500">
-        {t("services.failedToLoad")}
-      </div>
-    );
   }
-
+}, [error]);
   const { service, showrooms, makes } = data;
 
   return (
@@ -274,19 +278,20 @@ export default function ServiceDetails() {
 
             {/* Showrooms Grid */}
             <div className="space-y-6">
-              {showrooms.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
-                  {showrooms.map((garages) => (
-                    <GarageCard key={garages.id} garage={garages} />
-                  ))}
-                </div>
-              ) : (
-                <Card>
-                  <CardContent className="text-center py-8 text-neutral-500">
-                    {t("services.noShowroomsAvailable")}
-                  </CardContent>
-                </Card>
-              )}
+             {showrooms && showrooms.length > 0 ? (
+  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
+    {showrooms.map((garage) => (
+      <GarageCard key={garage.id} garage={garage} />
+    ))}
+  </div>
+) : (
+  <Card>
+    <CardContent className="text-center py-8 text-neutral-500">
+      {t("services.noShowroomsAvailable") || "No garages found"}
+    </CardContent>
+  </Card>
+)}
+
             </div>
           </div>
         </div>

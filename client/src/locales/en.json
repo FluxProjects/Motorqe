@@ -939,6 +939,7 @@
     "allGarages": "All Garages"
   },
   "services": {
+    "failedToLoad": "No Data Available",
     "brands":"Brands",
     "promotions": "Promotions",
     "carServices":"Car Services",
