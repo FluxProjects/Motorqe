@@ -590,6 +590,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/garages/:id/makes", async (req, res) => {
+    const garageId = Number(req.params.id);
+    console.log(`Fetching makes for garage ID: ${garageId}`);
+
+    try {
+      const makes = await storage.getShowroomMakes(garageId);
+      console.log(`Retrieved ${makes.length} makes for garages ID ${garageId}`);
+      res.json(makes);
+    } catch (error) {
+      console.error("Failed to fetch showroom makes:", error);
+      res.status(500).json({ message: "Failed to fetch showroom makes", error });
+    }
+  });
+
   // Get showroom car listings
   app.get("/api/showrooms/:id/cars", async (req, res) => {
     const showroomId = Number(req.params.id);

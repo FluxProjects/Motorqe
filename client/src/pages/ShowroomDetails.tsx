@@ -146,9 +146,7 @@ const ShowroomDetails = () => {
   });
 
   // Fetch showroom makes (brands they service)
-  const { data: makes = [], isLoading: isLoadingMakes } = useQuery<
-    ShowroomMake[]
-  >({
+  const { data: makes = [], isLoading: isLoadingMakes } = useQuery<any[]>({
     queryKey: [`/api/showrooms/${id}/makes`],
     enabled: !!id,
   });

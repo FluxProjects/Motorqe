@@ -15,108 +15,28 @@ const FeaturedGaragesSection = () => {
   const [selectedMake, setSelectedMake] = useState("all");
   const [activeTab, setActiveTab] = useState("featured");
 
-  const { data: showrooms, isLoading } = useQuery({
-    queryKey: ["/api/showrooms"],
+  const { data: garages, isLoading } = useQuery({
+    queryKey: ["/api/garages"],
     queryFn: () =>
-      apiRequest("GET", "/api/showrooms").then((res) => res.json()),
+      apiRequest("GET", "/api/garages").then((res) => res.json()),
   });
 
-  const { data: makes } = useQuery({
-    queryKey: ["/api/car-makes"],
-    queryFn: () =>
-      apiRequest("GET", "/api/car-makes").then((res) => res.json()),
-  });
-
-  const { data: showroomMakes } = useQuery({
-    queryKey: ["/api/showrooms/service/makes"],
-    queryFn: () =>
-      apiRequest("GET", "/api/showrooms/service/makes").then((res) =>
-        res.json()
-      ),
-  });
-
-  const { data: services } = useQuery({
-    queryKey: ["/api/services"],
-    queryFn: () => apiRequest("GET", "/api/services").then((res) => res.json()),
-  });
-
-  // Fetch services for each showroom in parallel
-  const { data: showroomsWithListings } = useQuery({
-    queryKey: ["showrooms-with-services"],
-    queryFn: async () => {
-      if (!showrooms) return [];
-
-      const showroomsData = await Promise.all(
-        showrooms.map(async (showroom: any) => {
-          try {
-            const listingResponse = await apiRequest(
-              "GET",
-              `/api/garages/${showroom.id}/services`
-            ).then((res) => res.json());
-
-            console.log("listingResponse", listingResponse);
-            // Transform services to match expected structure
-            const uniqueListings = Array.from(
-              new Map(
-                listingResponse.map((item: any) => [
-                  item.id,
-                  {
-                    id: item.id,
-                    image: item.image,
-                    name: item.name,
-                    nameAr: item.name_ar,
-                    price: item.price,
-                  },
-                ])
-              ).values()
-            );
-
-            return {
-              ...showroom,
-              listings: uniqueListings,
-            };
-          } catch (error) {
-            console.error(
-              `Failed to fetch listings for showroom ${showroom.id}`,
-              error
-            );
-            return {
-              ...showroom,
-              listings: [],
-            };
-          }
-        })
-      );
-
-      return showroomsData;
-    },
-    enabled: !!showrooms,
-  });
-
-  console.log("showroomsWithListings", showroomsWithListings);
+  console.log("garages", garages);
   
-  const filteredShowrooms = showroomsWithListings?.filter((showroom: any) => {
+  const filteredShowrooms = garages?.filter((showroom: any) => {
     const matchesSearch =
       showroom.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       showroom.nameAr?.toLowerCase().includes(searchTerm.toLowerCase());
 
-    // Filter by make
-    const matchesMake =
-      selectedMake === "all" ||
-      (showroomMakes &&
-        showroomMakes.some(
-          (sm: any) =>
-            sm.showroom_id === showroom.id &&
-            sm.make_id.toString() === selectedMake
-        ));
 
-    return matchesSearch && matchesMake;
+    return matchesSearch;
   });
 
   // Sort showrooms by creation date for recently added
-  const recentlyAddedShowrooms = [...(filteredShowrooms || [])].sort((a, b) => {
-    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-  });
+  const recentlyAddedShowrooms = [...(filteredShowrooms || [])]
+  .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+  .slice(0, 6); // <-- limit to 6
+
 
   // Filter featured showrooms (assuming there's a 'is_featured' property)
   const featuredShowrooms = filteredShowrooms?.filter((showroom: any) => showroom.is_featured);

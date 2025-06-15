@@ -4,7 +4,8 @@ import { ShowroomMake, InsertShowroomMake, CarMake } from "@shared/schema";
 
 export interface IShowroomServiceMakeStorage {
 
-  getShowroomMakes(serviceId: number): Promise<(ShowroomMake & { make?: CarMake })[]>;
+  getShowroomMakes(listingId: number): Promise<(ShowroomMake & { make?: CarMake })[]>;
+  getGarageMakes(serviceId: number): Promise<(ShowroomMake & { make?: CarMake })[]>;
   getAllShowroomsMakes(): Promise<any>;
   addShowroomMake(serviceId: number, makeId: number): Promise<ShowroomMake>;
   removeShowroomMake(serviceId: number, makeId: number): Promise<void>;
@@ -19,6 +20,24 @@ export const ShowroomMakeStorage = {
   },
 
   async getShowroomMakes(
+    showroomId: number
+  ): Promise<(ShowroomMake & { make?: CarMake })[]> {
+    const showroomMakes = await db.query(
+      'SELECT * FROM car_listings WHERE showroom_id = $1',
+      [showroomId]
+    );
+
+    const enrichedMakes = await Promise.all(
+      showroomMakes.map(async (item) => {
+        const make = await storage.getCarMake(item.make_id); // Assuming `make_id` refers to `car_makes.id`
+        return { ...item, make };
+      })
+    );
+
+    return enrichedMakes;
+  },
+
+   async getGarageMakes(
     showroomId: number
   ): Promise<(ShowroomMake & { make?: CarMake })[]> {
     const showroomMakes = await db.query(
