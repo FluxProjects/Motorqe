@@ -1,5 +1,6 @@
 {
   "common": {
+    "sellService":"Sell Service",
     "backToGaragesHome":"Back to Garages Home",
     "garageNotFound":"Garage Not Found",
     "compare":"Compare",
