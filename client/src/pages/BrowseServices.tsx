@@ -39,19 +39,19 @@ const BrowseServices = () => {
               <TabsList className="flex flex-wrap justify-center gap-3 bg-transparent p-0">
                 <TabsTrigger 
                   value="all"
-                  className="px-5 py-2 text-sm border-2 border-orange-500 font-medium transition-all data-[state=active]:text-white data-[state=active]:bg-blue-900 hover:bg-blue-900 hover:text-white data-[state=active]:hover:text-white"
+                  className="px-5 py-2 text-blue-900 text-sm border-2 border-orange-500 font-medium transition-all data-[state=active]:text-white data-[state=active]:bg-blue-900 hover:bg-blue-900 hover:text-white data-[state=active]:hover:text-white"
                 >
                   {t("services.carServices")}
                 </TabsTrigger>
                 <TabsTrigger 
                   value="byMake"
-                  className="px-5 py-2 text-sm border-2 border-orange-500 font-medium transition-all data-[state=active]:text-white data-[state=active]:bg-blue-900 hover:bg-blue-900 hover:text-white data-[state=active]:hover:text-white"
+                  className="px-5 py-2 text-blue-900 text-sm border-2 border-orange-500 font-medium transition-all data-[state=active]:text-white data-[state=active]:bg-blue-900 hover:bg-blue-900 hover:text-white data-[state=active]:hover:text-white"
                 >
                   {t("services.brands")}
                 </TabsTrigger>
                 <TabsTrigger 
                   value="featured"
-                  className="px-5 py-2 text-sm border-2 border-orange-500 font-medium transition-all data-[state=active]:text-white data-[state=active]:bg-blue-900 hover:bg-blue-900 hover:text-white data-[state=active]:hover:text-white"
+                  className="px-5 py-2 text-blue-900 text-sm border-2 border-orange-500 font-medium transition-all data-[state=active]:text-white data-[state=active]:bg-blue-900 hover:bg-blue-900 hover:text-white data-[state=active]:hover:text-white"
                 >
                   <Star className="w-4 h-4 mr-1" />
                   {t("services.promotions")}

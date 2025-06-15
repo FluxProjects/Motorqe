@@ -29,7 +29,7 @@ const HowItWorksSection2 = () => {
       <div className="max-w-7xl mx-auto px-4 text-center relative">
 
       <h2 className="text-3xl font-bold text-neutral-900 mb-2">
-          With Motorque
+          With Motorqe:
         </h2>
         <div className="w-40 h-1 bg-orange-500 mx-auto mb-20 rounded-full" />
 
@@ -53,9 +53,9 @@ const HowItWorksSection2 = () => {
         </div>
 
         <div className="mt-12 text-center">
-          <Link href="/sell-car">
+          <Link href="/browse-services">
              <a className="inline-block bg-orange-500 hover:bg-orange-600 text-white font-semibold px-6 py-2 rounded-full transition">
-            Sell your car
+            Service your car now
             </a>
           </Link>
         </div>

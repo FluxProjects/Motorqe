@@ -43,7 +43,7 @@ const GarageHome = () => {
      
 
       {/* Search Form */}
-      <SearchSection />
+      <SearchSection is_garage={true} />;
 
       {/* How It Works Section */}
       <HowItWorksSection2 />

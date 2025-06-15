@@ -69,6 +69,10 @@ const searchFormSchema = z.object({
 
 type SearchFormValues = z.infer<typeof searchFormSchema>;
 
+type CarSearchFormProps = {
+  is_garage?: boolean; // optional or required depending on your need
+};
+
 // Options for various select fields
 const fuelTypeOptions = [
   { value: "gasoline", label: "Gasoline" },
@@ -126,12 +130,16 @@ const tintedOptions = [
   { value: "false", label: "No" },
 ];
 
-const CarSearchForm = () => {
+
+
+const CarSearchForm = ({ is_garage }: CarSearchFormProps) => {
   const { t } = useTranslation();
   const language = i18n.language;
   const direction = language === "ar" ? "rtl" : "ltr";
   const [, navigate] = useLocation();
-  const [activeTab, setActiveTab] = useState<"all" | "new" | "scrap" | "garage">("all");
+   const [activeTab, setActiveTab] = useState<"all" | "new" | "scrap" | "garage">(
+    is_garage ? "garage" : "all"
+  );
   const [showAdvanced, setShowAdvanced] = useState(false);
   const { reset } = useForm();
 
@@ -1216,12 +1224,14 @@ const CarSearchForm = () => {
 
             {/* Search and Clear Buttons in a New Row */}
             <div className="col-span-4 flex flex-col md:flex-row justify-center items-center gap-4 mt-4">
-              <Button
-                type="submit"
-                className="bg-orange-500 rounded-full w-full md:w-auto"
-              >
-                {t("common.search")} {totalCount} Cars
-              </Button>
+             <Button
+              type="submit"
+              className="bg-orange-500 rounded-full w-full md:w-auto"
+            >
+              {t("common.search")}
+              {!is_garage && ` ${totalCount} Cars`}
+            </Button>
+
             </div>
 
             {/* Advanced Search Toggle */}
