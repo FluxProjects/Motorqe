@@ -145,15 +145,7 @@ export default function ServiceDetails() {
   );
 }
 
-useEffect(() => {
-  if (error) {
-    toast({
-      title: t("common.error"),
-      description: t("services.failedToLoad"),
-      variant: "destructive",
-    });
-  }
-}, [error]);
+
   const { service, showrooms, makes } = data;
 
   return (
