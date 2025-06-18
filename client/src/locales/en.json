@@ -1,8 +1,11 @@
 {
   "common": {
+    "noGarageFound" : "No Garage Found",
     "bookNow":"Book Now",
     "sortBy":"Sort By",
     "loadAll": "Load All",
+    "showAll" : "Show All",
+    "searchPlaceholder":"Search for garages...",
     "showMore": "Show More",
     "showLess": "Show Less",
     "selectServices":"Select Services",

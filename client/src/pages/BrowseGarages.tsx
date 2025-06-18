@@ -20,34 +20,13 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2 } from "lucide-react";
 
-// Utility function to geocode address using Google Maps API
-const geocodeAddress = async (
-  address: string
-): Promise<{ lat: number; lng: number } | null> => {
-  try {
-    const response = await fetch(
-      `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(
-        address
-      )}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`
-    );
-    const data = await response.json();
-    if (data.results && data.results.length > 0) {
-      return data.results[0].geometry.location;
-    }
-    return null;
-  } catch (error) {
-    console.error("Geocoding error:", error);
-    return null;
-  }
-};
-
 const BrowseGarages = () => {
   const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedMakes, setSelectedMakes] = useState<string[]>([]);
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
-  const [sortBy, setSortBy] = useState("distance");
-  const [maxDistance, setMaxDistance] = useState<string>("50");
+  const [sortBy, setSortBy] = useState("featured");
+  const [maxDistance, setMaxDistance] = useState<string>("0");
   const [userLocation, setUserLocation] = useState<{
     lat: number;
     lng: number;
@@ -56,15 +35,18 @@ const BrowseGarages = () => {
   const [isGeocoding, setIsGeocoding] = useState(false);
   const [geocodingProgress, setGeocodingProgress] = useState(0);
 
-  // Distance options for dropdown
-  const distanceOptions = [
-    { value: "5", label: "5 km" },
-    { value: "10", label: "10 km" },
-    { value: "25", label: "25 km" },
-    { value: "50", label: "50 km" },
-    { value: "100", label: "100 km" },
-    { value: "200", label: "200 km" },
-  ];
+
+const distanceOptions = [
+  { value: "0", label: t("common.showAll") }, // Add this as the first option
+  { value: "5", label: "5 km" },
+  { value: "10", label: "10 km" },
+  { value: "25", label: "25 km" },
+  { value: "50", label: "50 km" },
+  { value: "100", label: "100 km" },
+  { value: "200", label: "200 km" },
+];
+
+
 
   // Get user location
   useEffect(() => {
@@ -162,18 +144,17 @@ const BrowseGarages = () => {
 
             // Calculate distance if user location is available and showroom has address
            let distance = null;
-if (userLocation && showroom.location) {
-  const [lat, lng] = showroom.location.split(",").map(Number);
-  if (!isNaN(lat) && !isNaN(lng)) {
-    distance = calculateDistance(userLocation.lat, userLocation.lng, lat, lng);
-  }
-}
-
-
-            processedCount++;
-            setGeocodingProgress(
-              Math.round((processedCount / showrooms.length) * 100)
-            );
+            if (userLocation && showroom.location) {
+              const [lat, lng] = showroom.location.split(",").map(Number);
+              if (!isNaN(lat) && !isNaN(lng)) {
+                distance = calculateDistance(
+                  userLocation.lat,
+                  userLocation.lng,
+                  lat,
+                  lng
+                );
+              }
+            }
 
             return {
               ...showroom,
@@ -202,54 +183,57 @@ if (userLocation && showroom.location) {
   });
 
   const filteredShowrooms = showroomsWithServices
-    ?.filter((showroom: any) => {
-      const matchesSearch =
-        searchTerm === "" ||
-        showroom.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        showroom.nameAr?.toLowerCase().includes(searchTerm.toLowerCase());
+  ?.filter((showroom: any) => {
+    const matchesSearch =
+      searchTerm === "" ||
+      showroom.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      showroom.nameAr?.toLowerCase().includes(searchTerm.toLowerCase());
 
-      // Filter by makes
-      const matchesMakes =
-        selectedMakes.length === 0 ||
-        (showroomMakes &&
-          showroomMakes.some(
-            (sm: any) =>
-              sm.showroom_id === showroom.id &&
-              selectedMakes.includes(sm.make_id.toString())
-          ));
+    // Filter by makes
+    const matchesMakes =
+      selectedMakes.length === 0 ||
+      (showroomMakes &&
+        showroomMakes.some(
+          (sm: any) =>
+            sm.showroom_id === showroom.id &&
+            selectedMakes.includes(sm.make_id.toString())
+        ));
 
-      // Filter by services
-      const matchesServices =
+    // Filter by services
+    const matchesServices =
         selectedServices.length === 0 ||
         (showroom.services &&
           showroom.services.some((service: any) =>
             selectedServices.includes(service.id.toString())
           ));
 
-      // Filter by distance
-      const matchesDistance =
-        !userLocation ||
-        !showroom.distance ||
-        showroom.distance <= Number(maxDistance);
+    // Only filter by distance if maxDistance is explicitly set and userLocation exists
+    const matchesDistance =
+      !userLocation || 
+      maxDistance === "0" || // Add a "0" option for "Show all"
+      !showroom.distance ||
+      showroom.distance <= Number(maxDistance);
 
-      return (
-        matchesSearch && matchesMakes && matchesServices && matchesDistance
-      );
-    })
-    ?.sort((a: any, b: any) => {
-      switch (sortBy) {
-        case "distance":
-          if (a.distance === null) return 1;
-          if (b.distance === null) return -1;
-          return a.distance - b.distance;
-        case "featured":
-          return (b.is_featured ? 1 : 0) - (a.is_featured ? 1 : 0);
-        case "availability":
-          return (b.availability ? 1 : 0) - (a.availability ? 1 : 0);
-        default:
-          return 0;
-      }
-    });
+    return matchesSearch && matchesMakes && matchesServices && matchesDistance;
+  })
+  ?.sort((a: any, b: any) => {
+    switch (sortBy) {
+      case "distance":
+        // Only sort by distance if userLocation exists
+        if (!userLocation) return 0;
+        if (a.distance === null) return 1;
+        if (b.distance === null) return -1;
+        return a.distance - b.distance;
+      case "featured":
+        return (b.is_featured ? 1 : 0) - (a.is_featured ? 1 : 0);
+      case "availability":
+        return (b.availability ? 1 : 0) - (a.availability ? 1 : 0);
+      default:
+        return 0;
+    }
+  });
+
+
 
   // Handle service checkbox changes
   const handleServiceChange = (serviceId: string) => {
@@ -312,7 +296,7 @@ if (userLocation && showroom.location) {
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Left Column - Filters */}
-          <div className="lg:col-span-1 space-y-6">
+          <div className="bg-neutral-50 p-5 rounded-lg lg:col-span-1 space-y-6">
             {/* Search Results Count */}
             <div className="p-4 rounded-lg">
               <p className="font-medium">
