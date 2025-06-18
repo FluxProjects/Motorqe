@@ -42,12 +42,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
-  CarListing,
   User,
   Showroom,
-  ShowroomMake,
-  showroomMakes,
-  serviceBookings,
 } from "@shared/schema";
 import {
   Select,
@@ -83,9 +79,6 @@ const reportSchema = z.object({
 
 type ReportValues = z.infer<typeof reportSchema>;
 
-type CarListingWithShowroom = CarListing & {
-  showroom?: Showroom; // optional if it’s not always present
-};
 
 const GarageDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -93,7 +86,6 @@ const GarageDetails = () => {
   const language = i18n.language;
   const { isAuthenticated, user } = useAuth();
   const { toast } = useToast();
-  const [isFavorited, setIsFavorited] = useState(false);
   const [authModal, setAuthModal] = useState<
     "login" | "register" | "forget-password" | null
   >(null);
@@ -102,7 +94,6 @@ const GarageDetails = () => {
   const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
   const [selectedServiceIds, setSelectedServiceIds] = useState<number[]>([]);
   const [selectedServices, setSelectedServices] = useState<[]>([]);
-  const [selectedTab, setSelectedTab] = useState("description");
 
   const toggleService = (id: number) => {
     setSelectedServiceIds((prev) =>
@@ -136,19 +127,25 @@ const GarageDetails = () => {
   });
 
   // Fetch showroom car listings
-  const { data: listingServices = [], isLoading: isLoadingCarServices } =
+  const { data: showroomServices = [], isLoading: isLoadingCarServices } =
     useQuery<any[]>({
       queryKey: [`/api/showrooms/${id}/services`],
       enabled: !!id,
     });
 
   // Fetch showroom makes (brands they service)
-  const { data: makes = [], isLoading: isLoadingMakes } = useQuery<any[]>({
+  const { data: garageMakes = [], isLoading: isLoadingMakes } = useQuery<any[]>({
     queryKey: [`/api/garages/${id}/makes`],
     enabled: !!id,
   });
 
-  console.log("user data in car detail", user);
+ 
+
+  console.log("showroom data", showroom);
+
+   console.log("showroom makes", garageMakes);
+
+   console.log("showroom services", showroomServices);
 
   const {
     data: sellerData,
@@ -181,7 +178,7 @@ const GarageDetails = () => {
   });
 
   const handleBooking = () => {
-    const selected = listingServices.filter((service) =>
+    const selected = showroomServices.filter((service) =>
       selectedServiceIds.includes(service.id)
     );
     setSelectedServices(selected);
@@ -316,18 +313,15 @@ const GarageDetails = () => {
   // Format and prepare car data
   const title =
     language === "ar" && showroom.nameAr ? showroom.nameAr : showroom.name;
-  const description =
-    language === "ar" && showroom.descriptionAr
-      ? showroom.descriptionAr
-      : showroom.description;
 
   return (
     <div className="bg-white-100 pb-16">
       <div className="bg-white py-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
           {/* Back button and actions */}
           <div className="flex justify-between items-center mb-6">
-            <Link href="/browse">
+            <Link href="/home-garages">
               <Button
                 variant="ghost"
                 className="flex items-center text-blue-900"
@@ -377,10 +371,12 @@ const GarageDetails = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+
             {/* Images (3/4 width on md and above) */}
             <div className="md:col-span-3">
-              <CarImages images={showroom.images} title={showroom.name} is_garage={true}  />
+              <CarImages images={showroom.images ?? []} title={showroom.name} is_garage={true}  />
               <CarListingDetail
+                is_garage={true}
                 vehicleDescription={
                   showroom?.description ?? "No Description Available"
                 }
@@ -411,6 +407,7 @@ const GarageDetails = () => {
 
             {/* Car Summary (1/4 width on md and above) */}
             <div className="md:col-span-1">
+
               <div className="bg-white rounded-lg p-4 shadow-sm border top-24">
                 <h2 className="text-xl font-bold text-gray-900 mb-2">
                   {showroom.name}
@@ -420,11 +417,11 @@ const GarageDetails = () => {
                   <div className="w-full text-3xl text-blue-900">
                     {[
                       ...new Map(
-                        listingServices
+                        showroomServices
                           .filter(
                             (service) =>
                               service.status === "active" &&
-                              service.is_active === "true"
+                              service.is_active === true
                           )
                           .map((service) => [service.name, service]) // Key by service.name
                       ).values(),
@@ -498,9 +495,9 @@ const GarageDetails = () => {
                   {(showroom?.address || showroom?.addressAr) && (
                     <div className="flex space-x-2 mb-4">
                       <Button
-                        size="sm"
+                        size="xs"
                         variant="outline"
-                        className="flex-1 rounded-full bg-orange-500 text-white"
+                        className="pt-2 pb-2 flex-1 rounded-full bg-orange-500 text-white"
                         onClick={() =>
                           handleLocationMap(
                             showroom?.address || showroom?.addressAr
@@ -510,9 +507,9 @@ const GarageDetails = () => {
                         <MapPin className="h-3 w-3 mr-1" /> Location Map
                       </Button>
                       <Button
-                        size="sm"
+                        size="xs"
                         variant="outline"
-                        className="flex-1 rounded-full bg-orange-500 text-white"
+                        className="pt-2 pb-2 flex-1 rounded-full bg-orange-500 text-white"
                         onClick={() =>
                           handleGetDirection(
                             showroom?.address || showroom?.address_ar
@@ -582,8 +579,29 @@ const GarageDetails = () => {
                       </div>
                     </div>
                   )}
+                 
                 </div>
               )}
+
+              <div className="bg-white rounded-lg p-4 shadow-sm border top-24">
+                <h2 className="text-xl font-bold text-gray-900 mb-2">
+                  {t('common.carSpecialist')}
+                </h2>
+
+        
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex flex-wrap gap-3">
+                    {garageMakes.map((make) => (
+                      <img
+                        key={make.id}
+                        src={make.make_image || "/src/assets/toyota.png"}
+                        alt={make.make_name}
+                        className="h-10 w-auto object-contain"
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -750,7 +768,7 @@ const GarageDetails = () => {
           </DialogDescription>
           <ServiceBookingForm
             services={selectedServices}
-            userId={user?.id?.toString()}
+            userId={user.id.toString()}
             showroomId={id}
             isOpen={bookingDialogOpen}
             onSuccess={() => {

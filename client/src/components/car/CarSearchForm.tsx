@@ -25,7 +25,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Search, MapPin, Car, ChevronDown, ChevronUp } from "lucide-react";
-import { CarCategory, CarEngineCapacity, CarMake, CarService } from "@shared/schema";
+import { CarCategory, CarEngineCapacity, CarMake, CarModel, CarService } from "@shared/schema";
 import { fetchModelsByMake } from "@/lib/utils";
 import { MultiSelect } from "@/components/ui/multiselect";
 
@@ -198,47 +198,47 @@ const CarSearchForm = ({ is_garage }: CarSearchFormProps) => {
   const totalCount =
     categories?.reduce((sum, category) => sum + (category.count || 0), 0) || 0;
 
-  // Handle search form submission
-  const onSubmit = (values: SearchFormValues) => {
-    const params = new URLSearchParams();
+ // Handle search form submission
+const onSubmit = (values: SearchFormValues) => {
+  const params = new URLSearchParams();
 
-    Object.entries(values).forEach(([key, value]) => {
-      if (
-        value === undefined ||
-        value === null ||
-        value === "" ||
-        value === "all" ||
-        (Array.isArray(value) && value.length === 0)
-      ) {
-        return; // skip empty or default 'all' values
-      }
+  Object.entries(values).forEach(([key, value]) => {
+    if (
+      value === undefined ||
+      value === null ||
+      value === "" ||
+      value === "all" ||
+      (Array.isArray(value) && value.length === 0)
+    ) {
+      return; // skip empty or default 'all' values
+    }
 
-      // Arrays: append multiple entries with same key
-      if (Array.isArray(value)) {
-        value.forEach((v) => {
-          if (v !== "" && v !== "all") {
-            params.append(key, v.toString());
-          }
-        });
-      }
-      // Boolean values (like hasWarranty, hasInsurance)
-      else if (typeof value === "boolean") {
-        params.append(key, value ? "true" : "false");
-      }
-      // Sometimes boolean might come as string "true" or "false"
-      else if (value === "true" || value === "false") {
-        params.append(key, value);
-      } else {
-        params.append(key, value.toString());
-      }
-    });
+    // Arrays: append multiple entries with same key
+    if (Array.isArray(value)) {
+      value.forEach((v) => {
+        if (v !== "" && v !== "all") {
+          params.append(key, v.toString());
+        }
+      });
+    }
+    // Boolean values (like hasWarranty, hasInsurance)
+    else if (typeof value === "boolean") {
+      params.append(key, value ? "true" : "false");
+    }
+    // Sometimes boolean might come as string "true" or "false"
+    else if (value === "true" || value === "false") {
+      params.append(key, value);
+    } else {
+      params.append(key, value.toString());
+    }
+  });
 
-    // Navigate to /browse with query string
-    const queryString = params.toString();
-    const url = `/browse${queryString ? `?${queryString}` : ""}`;
-    navigate(url);
-  };
-
+  // Determine the base URL based on active tab
+  const baseUrl = activeTab === "garage" ? "/browse-garages" : "/browse";
+  const queryString = params.toString();
+  const url = `${baseUrl}${queryString ? `?${queryString}` : ""}`;
+  navigate(url);
+};
   // Determine which default fields to show based on active tab
   const showDefaultField = (fieldName: keyof SearchFormValues) => {
     if (activeTab === "all") {
@@ -338,6 +338,19 @@ const CarSearchForm = ({ is_garage }: CarSearchFormProps) => {
     return true;
   };
 
+  const makeOptions = [
+  { value: "all", label: t("common.all") },
+  ...makes?.map((make: CarMake) => ({
+    value: String(make.id),
+    label: make.name,
+  })) ?? [],
+];
+
+const modelOptions = models?.map((model: CarModel) => ({
+  value: String(model.id),
+  label: model.name,
+})) ?? [];
+
   return (
     <Card className="border-2 border-solid rounded-2xl border-neutral-700">
       <CardContent className="p-6">
@@ -369,33 +382,31 @@ const CarSearchForm = ({ is_garage }: CarSearchFormProps) => {
               {/* Make */}
               {showDefaultField("make") && (
                 <div className="flex-[1_0_calc(20%-16px)] min-w-[200px] max-w-[calc(20%-16px)]">
-                  <FormField
-                    control={form.control}
-                    name="make"
-                    render={({ field }) => (
-                      <FormItem className="w-full">
-                        <FormLabel>{t("car.make")}</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder={t("car.selectMake")} />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="all">{t("common.all")}</SelectItem>
-                            {makes?.map((make) => (
-                              <SelectItem key={make.id} value={make.id}>
-                                {make.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                <FormField
+                  control={form.control}
+                  name="make"
+                  render={({ field }) => (
+                    <FormItem className="w-full">
+                      <FormLabel>{t("car.make")}</FormLabel>
+                       <MultiSelect
+                            options={makeOptions}
+                            selected={
+                              field.value
+                                ? [String(field.value)]
+                                : []
+                            }
+                            onChange={(val: string[]) => {
+                              field.onChange(val.length > 0 ? val[0] : ""); // For single-select
+                            }}
+                            placeholder={t("car.selectMake")}
+                          />
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                 </div>
-              )}
+                )}
+
 
               {/* Model */}
               {showDefaultField("model") && (
@@ -406,26 +417,14 @@ const CarSearchForm = ({ is_garage }: CarSearchFormProps) => {
                     render={({ field }) => (
                       <FormItem className="w-full">
                         <FormLabel>{t("car.model")}</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder={t("car.selectModel")} />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {models?.length > 0 ? (
-                              models.map((model) => (
-                                <SelectItem key={model.id} value={model.id}>
-                                  {model.name}
-                                </SelectItem>
-                              ))
-                            ) : (
-                              <SelectItem value="all" disabled>
-                                {t("car.noModelsAvailable")}
-                              </SelectItem>
-                            )}
-                          </SelectContent>
-                        </Select>
+                         <MultiSelect
+                            options={modelOptions}
+                            selected={field.value ? [String(field.value)] : []}
+                            onChange={(val: string[]) => {
+                              field.onChange(val.length > 0 ? val[0] : ""); // Single select
+                            }}
+                            placeholder={t("car.selectModel")}
+                          />
                         <FormMessage />
                       </FormItem>
                     )}
@@ -628,30 +627,34 @@ const CarSearchForm = ({ is_garage }: CarSearchFormProps) => {
                   <FormField
                     control={form.control}
                     name="service"
-                    render={({ field }) => (
-                      <FormItem className="w-full">
-                        <FormLabel>{t("car.service")}</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder={t("car.selectService")} />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="all">{t("common.all")}</SelectItem>
-                            {carServices?.map((service) => (
-                              <SelectItem key={service.id} value={service.id}>
-                                {service.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                    render={({ field }) => {
+                      const serviceOptions = [
+                        { value: "all", label: t("common.all") },
+                        ...(carServices?.map((service) => ({
+                          value: String(service.id),
+                          label: service.name,
+                        })) ?? []),
+                      ];
+
+                      return (
+                        <FormItem className="w-full">
+                          <FormLabel>{t("car.service")}</FormLabel>
+                          <MultiSelect
+                            options={serviceOptions}
+                            selected={field.value ? [String(field.value)] : []}
+                            onChange={(val: string[]) => {
+                              field.onChange(val.length > 0 ? val[0] : "");
+                            }}
+                            placeholder={t("car.selectService")}
+                          />
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
                   />
                 </div>
               )}
+
             </div>
 
             {/* Advanced Filters Section */}

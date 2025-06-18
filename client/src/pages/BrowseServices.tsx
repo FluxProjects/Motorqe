@@ -1,22 +1,14 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
-import { Search, Star } from "lucide-react";
+import { Star } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import AllServicesSection from "@/components/services/AllServicesSection";
 import ServicesByMake from "@/components/services/ServicesByMakeSection";
 import FeaturedServicesSection from "@/components/services/FeaturedServicesSection";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useState } from "react";
 
 const BrowseServices = () => {
   const { t } = useTranslation();
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery] = useState("");
   const [selectedMake, setSelectedMake] = useState<number | null>(null);
 
   return (

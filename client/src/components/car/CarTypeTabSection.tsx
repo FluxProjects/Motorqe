@@ -25,44 +25,42 @@ const CarTypeTabsSection = () => {
   ];
 
   const staticBudgets: BudgetRange[] = [
-  { id: "1", name: "Under QAR 10,000", min: 0, max: 10000 },
-  { id: "2", name: "QAR 10,000 - QAR 20,000", min: 10000, max: 20000 },
-  { id: "3", name: "QAR 20,000 - QAR 30,000", min: 20000, max: 30000 },
-  { id: "4", name: "QAR 30,000 - QAR 40,000", min: 30000, max: 40000 },
-  { id: "5", name: "QAR 40,000 - QAR 50,000", min: 40000, max: 50000 },
-  { id: "6", name: "QAR 50,000 - QAR 60,000", min: 50000, max: 60000 },
-  { id: "7", name: "QAR 60,000 - QAR 70,000", min: 60000, max: 70000 },
-  { id: "8", name: "QAR 70,000 - QAR 80,000", min: 70000, max: 80000 },
-  { id: "9", name: "QAR 80,000 - QAR 100,000", min: 80000, max: 100000 },
-  { id: "10", name: "Above QAR 100,000", min: 100000, max: Infinity },
-];
+    { id: "1", name: "Under QAR 10,000", min: 0, max: 10000 },
+    { id: "2", name: "QAR 10,000 - QAR 20,000", min: 10000, max: 20000 },
+    { id: "3", name: "QAR 20,000 - QAR 30,000", min: 20000, max: 30000 },
+    { id: "4", name: "QAR 30,000 - QAR 40,000", min: 30000, max: 40000 },
+    { id: "5", name: "QAR 40,000 - QAR 50,000", min: 40000, max: 50000 },
+    { id: "6", name: "QAR 50,000 - QAR 60,000", min: 50000, max: 60000 },
+    { id: "7", name: "QAR 60,000 - QAR 70,000", min: 60000, max: 70000 },
+    { id: "8", name: "QAR 70,000 - QAR 80,000", min: 70000, max: 80000 },
+    { id: "9", name: "QAR 80,000 - QAR 100,000", min: 80000, max: 100000 },
+    { id: "10", name: "Above QAR 100,000", min: 100000, max: Infinity },
+  ];
 
-const staticYears: BudgetRange[] = [
-  { id: "1", name: "2016", min: 2016, max: 2016 },
-  { id: "2", name: "2017", min: 2017, max: 2017 },
-  { id: "3", name: "2018", min: 2018, max: 2018 },
-  { id: "4", name: "2019", min: 2019, max: 2019 },
-  { id: "5", name: "2020", min: 2020, max: 2020 },
-  { id: "6", name: "2021", min: 2021, max: 2021 },
-  { id: "7", name: "2022", min: 2022, max: 2022 },
-  { id: "8", name: "2023", min: 2023, max: 2023 },
-  { id: "9", name: "2024", min: 2024, max: 2024 },
-  { id: "10", name: "2025", min: 2025, max: 2025 },
-];
+  const staticYears: BudgetRange[] = [
+    { id: "1", name: "2016", min: 2016, max: 2016 },
+    { id: "2", name: "2017", min: 2017, max: 2017 },
+    { id: "3", name: "2018", min: 2018, max: 2018 },
+    { id: "4", name: "2019", min: 2019, max: 2019 },
+    { id: "5", name: "2020", min: 2020, max: 2020 },
+    { id: "6", name: "2021", min: 2021, max: 2021 },
+    { id: "7", name: "2022", min: 2022, max: 2022 },
+    { id: "8", name: "2023", min: 2023, max: 2023 },
+    { id: "9", name: "2024", min: 2024, max: 2024 },
+    { id: "10", name: "2025", min: 2025, max: 2025 },
+  ];
 
-
-const engineCapacityRanges: BudgetRange[] = [
-  { id: "1", name: "Under 1.0L", min: 0, max: 0.99 },
-  { id: "2", name: "1.0L - 1.4L", min: 1.0, max: 1.4 },
-  { id: "3", name: "1.5L - 1.9L", min: 1.5, max: 1.9 },
-  { id: "4", name: "2.0L - 2.4L", min: 2.0, max: 2.4 },
-  { id: "5", name: "2.5L - 2.9L", min: 2.5, max: 2.9 },
-  { id: "6", name: "3.0L - 3.9L", min: 3.0, max: 3.9 },
-  { id: "7", name: "4.0L - 4.9L", min: 4.0, max: 4.9 },
-  { id: "8", name: "5.0L - 5.9L", min: 5.0, max: 5.9 },
-  { id: "9", name: "6.0L and above", min: 6.0, max: Infinity },
-];
-
+  const engineCapacityRanges: BudgetRange[] = [
+    { id: "1", name: "Under 1.0L", min: 0, max: 0.99 },
+    { id: "2", name: "1.0L - 1.4L", min: 1.0, max: 1.4 },
+    { id: "3", name: "1.5L - 1.9L", min: 1.5, max: 1.9 },
+    { id: "4", name: "2.0L - 2.4L", min: 2.0, max: 2.4 },
+    { id: "5", name: "2.5L - 2.9L", min: 2.5, max: 2.9 },
+    { id: "6", name: "3.0L - 3.9L", min: 3.0, max: 3.9 },
+    { id: "7", name: "4.0L - 4.9L", min: 4.0, max: 4.9 },
+    { id: "8", name: "5.0L - 5.9L", min: 5.0, max: 5.9 },
+    { id: "9", name: "6.0L and above", min: 6.0, max: Infinity },
+  ];
 
   const {
     data: categories = [],
@@ -82,17 +80,26 @@ const engineCapacityRanges: BudgetRange[] = [
 
   const currentTab = activeType || tabs[0].key;
 
-  const famousMakes = ["Toyota", "Honda", "Kia", "Mercedes-Benz", "Audi", "Ford", "Chevrolet", "Lexus", "Volkswagen", "Hyundai"];
-
-
+  const famousMakes = [
+    "Toyota",
+    "Honda",
+    "Kia",
+    "Mercedes-Benz",
+    "Audi",
+    "Ford",
+    "Chevrolet",
+    "Lexus",
+    "Volkswagen",
+    "Hyundai",
+  ];
 
   return (
     <section className="bg-white py-20">
       <div className="max-w-7xl mx-auto px-4 text-center relative">
         <h2 className="text-3xl font-bold text-neutral-900 mb-2">
-            {t("common.browseByType")}
-          </h2>
-          <div className="w-40 h-1 bg-orange-500 mx-auto mb-20 rounded-full" />
+          {t("common.browseByType")}
+        </h2>
+        <div className="w-40 h-1 bg-orange-500 mx-auto mb-20 rounded-full" />
 
         {/* Tabs */}
         <div className="flex flex-wrap justify-center mb-8 gap-3">
@@ -118,27 +125,23 @@ const engineCapacityRanges: BudgetRange[] = [
               <CarCategoryCard key={cat.id} category={cat} />
             ))}
 
-         {currentTab === "brand" &&
-  makes
-    .filter((brand) => famousMakes.includes(brand.name))
-    .slice(0, 10)
-    .map((brand) => <CarMakeCard key={brand.id} make={brand} />)}
-
+          {currentTab === "brand" &&
+            makes
+              .filter((brand) => famousMakes.includes(brand.name))
+              .slice(0, 10)
+              .map((brand) => <CarMakeCard key={brand.id} make={brand} />)}
 
           {currentTab === "budget" &&
             staticBudgets.map((budget) => (
-              <CarBudgetCard
-                key={budget.id}
-                budget={budget}
-              />
+              <CarBudgetCard key={budget.id} budget={budget} />
             ))}
 
-            {currentTab === "year" &&
+          {currentTab === "year" &&
             staticYears.map((year) => (
               <CarYearCard key={year.id} yearRange={year} />
             ))}
 
-             {currentTab === "capacity" &&
+          {currentTab === "capacity" &&
             engineCapacityRanges.map((capacity) => (
               <CarCapacityCard key={capacity.id} capacity={capacity} />
             ))}
@@ -152,7 +155,6 @@ const engineCapacityRanges: BudgetRange[] = [
             </a>
           </Link>
         </div>
-
       </div>
     </section>
   );

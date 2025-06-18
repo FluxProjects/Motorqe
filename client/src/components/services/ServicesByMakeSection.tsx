@@ -1,166 +1,147 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Car, ChevronRight, Loader2 } from "lucide-react";
+import { Car, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import { Link } from "wouter";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { CarMake, CarService, Showroom } from "@shared/schema";
-import GarageServiceCard from "./GarageServiceCard";
+import { CarMake, CarService } from "@shared/schema";
 
-interface ServicesByMakeProps {
-  searchQuery: string;
-  selectedMake: number | null;
-  onSelectMake: (makeId: number | null) => void;
-}
-interface ShowroomService {
-    id: number;
-    showroomId: number;
-    serviceId: number;
-    price: number;
-    currency: string;
-    isFeatured: boolean;
-    service: CarService;
-    showroom: Showroom;
-  }
-
-export default function ServicesByMake({
-  searchQuery,
-  selectedMake,
-  onSelectMake,
-}: ServicesByMakeProps) {
+export default function ServicesByMake() {
   const { t } = useTranslation();
+  const [expandedMake, setExpandedMake] = useState<number | null>(null);
+  const [visibleMakesCount, setVisibleMakesCount] = useState(20);
 
-  const { data: makes = [] } = useQuery<CarMake[]>({
+  // Fetch all car makes
+  const { data: makes = [], isLoading: isLoadingMakes } = useQuery<CarMake[]>({
     queryKey: ["/api/car-makes"],
   });
 
-  const { data: allServices = [] } = useQuery<CarService[]>({
+  // Fetch all services
+  const { data: services = [], isLoading: isLoadingServices } = useQuery<CarService[]>({
     queryKey: ["/api/services"],
   });
 
-  const {
-    data: servicesByMake = [],
-    isLoading: isLoadingByMake,
-  } = useQuery<ShowroomService[]>({
-    queryKey: [`/api/services/makes/${selectedMake}`],
-    enabled: !!selectedMake,
-  });
-
-  // Grouped services by make
-  const servicesGroupedByMake = makes.reduce(
-    (acc, make) => {
-      const services = allServices.filter(
-        (service) => service.id === make.id
-      );
-      if (services.length > 0) {
-        acc[make.id] = {
-          make,
-          services,
-        };
-      }
-      return acc;
-    },
-    {} as Record<number, { make: CarMake; services: CarService[] }>
-  );
-
-  const filteredServicesByMake = servicesByMake.filter((service) => {
-    if (!searchQuery) return true;
-    const nameMatch = service.service.name?.toLowerCase().includes(searchQuery.toLowerCase());
-    const nameArMatch = service.service.nameAr?.includes(searchQuery);
-    return nameMatch || nameArMatch;
-  });
+  // Group makes into responsive rows
+  const makeRows = [];
+  const itemsPerRow = {
+    base: 2,    // Mobile: 2 columns
+    sm: 3,      // Tablet: 3 columns
+    lg: 5       // Desktop: 5 columns
+  };
   
+  // Create rows based on the largest breakpoint (lg:5)
+  for (let i = 0; i < Math.min(visibleMakesCount, makes.length); i += 5) {
+    makeRows.push(makes.slice(i, i + 5));
+  }
 
-  // Selected make view
-  if (selectedMake) {
-    if (isLoadingByMake) {
-      return (
-        <div className="flex justify-center py-12">
-          <Loader2 className="h-8 w-8 text-primary animate-spin" />
-        </div>
-      );
-    }
-
-    const selectedMakeName = makes.find((m) => m.id === selectedMake)?.name;
-
+  if (isLoadingMakes || isLoadingServices) {
     return (
-      <>
-        <div className="mb-4 flex items-center">
-          <h2 className="text-xl font-semibold">
-            {t("services.servicesFor")} {selectedMakeName}
-          </h2>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="ml-2"
-            onClick={() => onSelectMake(null)}
-          >
-            {t("common.clear")}
-          </Button>
-        </div>
-
-        {filteredServicesByMake.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredServicesByMake.map((service) => (
-              <GarageServiceCard
-                key={`make-${service.id}`}
-                service={service}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-12 text-neutral-500">
-            {searchQuery
-              ? t("services.noResults")
-              : t("services.noServicesForMake")}
-          </div>
-        )}
-      </>
+      <div className="flex justify-center py-12">
+        <Loader2 className="h-8 w-8 text-primary animate-spin" />
+      </div>
     );
   }
 
-  // Grouped view
   return (
-    <div className="space-y-8">
-      {Object.entries(servicesGroupedByMake).map(
-        ([makeId, { make, services }]) => (
-          <div key={makeId}>
-            <h2 className="text-xl font-semibold mb-4 flex items-center">
-              <Car className="h-5 w-5 mr-2 text-primary" />
-              {make.name}
-            </h2>
+    <div className="space-y-6">
+      {makeRows.map((row, rowIndex) => {
+        const isRowExpanded = row.some(make => make.id === expandedMake);
+        const expandedMakeServices = expandedMake 
+          ? services.filter(service => service.id === expandedMake)
+          : [];
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-              {services.slice(0, 5).map((service) => (
-                <Link
-                  key={`make-${makeId}-service-${service.id}`}
-                  href={`/services/${service.id}`}
-                  className="flex flex-col items-center p-4 rounded-lg hover:bg-gray-50 cursor-pointer"
+        return (
+          <div key={`row-${rowIndex}`} className="space-y-4">
+            {/* Makes Row - Responsive columns */}
+            <div className={`
+              grid 
+              grid-cols-2     /* Mobile: 2 columns */
+              sm:grid-cols-3  /* Tablet: 3 columns */
+              lg:grid-cols-5  /* Desktop: 5 columns */
+              gap-4
+            `}>
+              {row.map(make => (
+                <div
+                  key={`make-${make.id}`}
+                  className={`
+                    flex flex-col items-center p-4 rounded-lg cursor-pointer border-2
+                    transition-colors hover:bg-gray-50
+                    ${expandedMake === make.id ? 
+                      'border-orange-500' : 
+                      'border-transparent hover:border-gray-200'}
+                  `}
+                  onClick={() => setExpandedMake(expandedMake === make.id ? null : make.id)}
                 >
-                  <Avatar className="h-16 w-16 mb-2">
-                    <AvatarImage src={service.image} alt={service.name} />
+                  <Avatar className="h-16 w-16 mb-2 rounded-none">
+                    <AvatarImage className="rounded-none" src={make.image || undefined} />
                     <AvatarFallback>
-                      {service.name?.charAt(0) ?? "?"}
+                      {make.name.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <span className="text-sm font-medium text-center">
-                    {service.name}
+                    {make.name}
                   </span>
-                </Link>
+                </div>
               ))}
             </div>
 
-            {services.length > 5 && (
-              <div className="mt-4 text-right">
-                <Button variant="ghost" onClick={() => onSelectMake(make.id)}>
-                  {t("services.viewAll")}{" "}
-                  <ChevronRight className="h-4 w-4 ml-1" />
-                </Button>
+            {/* Services Row - Same responsive columns as makes */}
+            {isRowExpanded && (
+              <div className={`
+                grid 
+                grid-cols-2     /* Mobile: 2 columns */
+                sm:grid-cols-3  /* Tablet: 3 columns */
+                lg:grid-cols-5  /* Desktop: 5 columns */
+                gap-4 bg-gray-50 p-4
+              `}>
+                {expandedMakeServices.length > 0 ? (
+                  expandedMakeServices.map(service => (
+                    <div
+                      key={`service-${service.id}`}
+                      className="flex flex-col items-center p-4 bg-white border hover:shadow-sm"
+                    >
+                      <Avatar className="h-16 w-16 mb-2 rounded-none">
+                        <AvatarImage className="rounded-none" src={service.image || undefined} />
+                        <AvatarFallback>
+                          {service.name.charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-sm font-medium text-center">
+                        {service.name}
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <div className="col-span-full text-center py-4 text-gray-500">
+                    No services available for this make
+                  </div>
+                )}
               </div>
             )}
           </div>
-        )
-      )}
+        );
+      })}
+
+      {/* Pagination Controls */}
+      <div className="flex justify-center mt-6">
+        {visibleMakesCount < makes.length ? (
+          <Button className="bg-orange-500 text-white" onClick={() => setVisibleMakesCount(prev => prev + 20)}>
+            {t("common.showMore")}
+          </Button>
+        ) : (
+          makes.length > 20 && (
+            <Button
+              className="border-orange-500 text-orange-500 bg-white"
+              onClick={() => {
+                setVisibleMakesCount(20);
+                setExpandedMake(null);
+              }}
+            >
+              {t("common.showLess")}
+            </Button>
+          )
+        )}
+      </div>
     </div>
   );
 }

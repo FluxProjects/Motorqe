@@ -8,7 +8,7 @@ export interface ICarServiceStorage {
     getFeaturedServices(): Promise<CarService[]>;
     getShowroomServiceByServiceId(id: number): Promise<any>;
     getService(id: number): Promise<any>
-    getServicesByMake(makeId: number): Promise<ShowroomService[]>
+    getServicesByMake(makeId: number): Promise<any[]>
     createService(service: InsertCarService): Promise<CarService>;
     updateService(id: number, updates: Partial<InsertCarService>): Promise<CarService | undefined>;
     deleteService(id: number): Promise<void>;
@@ -34,6 +34,7 @@ export const CarServiceStorage = {
       cs.id AS service_id,
       cs.name AS service_name,
       cs.name_ar AS service_nameAr,
+      cs.image AS service_image,
       s.id AS showroom_id,
       s.name AS showroom_name,
       s.location AS showroom_location,
@@ -63,7 +64,7 @@ export const CarServiceStorage = {
         return result;
         },
 
-    async getServicesByMake(makeId: number): Promise<ShowroomService[]> {
+    async getServicesByMake(makeId: number): Promise<any[]> {
         const query = `
           SELECT ss.*, cs.*, s.* 
     FROM showroom_services ss

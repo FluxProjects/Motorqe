@@ -592,15 +592,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/garages/:id/makes", async (req, res) => {
     const garageId = Number(req.params.id);
+    if (isNaN(garageId)) {
+      return res.status(400).json({ message: "Invalid garage ID" });
+    }
     console.log(`Fetching makes for garage ID: ${garageId}`);
 
     try {
-      const makes = await storage.getShowroomMakes(garageId);
+      const makes = await storage.getGarageMakes(garageId);
       console.log(`Retrieved ${makes.length} makes for garages ID ${garageId}`);
+      
+      if (!makes || makes.length === 0) {
+        return res.status(404).json({ message: "No makes found for this garage" });
+      }
       res.json(makes);
     } catch (error) {
-      console.error("Failed to fetch showroom makes:", error);
-      res.status(500).json({ message: "Failed to fetch showroom makes", error });
+      console.error("Failed to fetch garage makes:", error);
+      res.status(500).json({ message: "Failed to fetch garage makes", error });
     }
   });
 

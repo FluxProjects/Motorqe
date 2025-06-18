@@ -1,11 +1,11 @@
 import { storage } from "server/storage";
 import { db } from "../db";
-import { ShowroomMake, InsertShowroomMake, CarMake } from "@shared/schema";
+import { ShowroomMake, CarMake } from "@shared/schema";
 
 export interface IShowroomServiceMakeStorage {
 
   getShowroomMakes(listingId: number): Promise<(ShowroomMake & { make?: CarMake })[]>;
-  getGarageMakes(serviceId: number): Promise<(ShowroomMake & { make?: CarMake })[]>;
+  getGarageMakes(garageId: number): Promise<(ShowroomMake & { make_id: number; make_name: string; make_image: string })[]>;
   getAllShowroomsMakes(): Promise<any>;
   addShowroomMake(serviceId: number, makeId: number): Promise<ShowroomMake>;
   removeShowroomMake(serviceId: number, makeId: number): Promise<void>;
@@ -37,23 +37,24 @@ export const ShowroomMakeStorage = {
     return enrichedMakes;
   },
 
-   async getGarageMakes(
-    showroomId: number
-  ): Promise<(ShowroomMake & { make?: CarMake })[]> {
-    const showroomMakes = await db.query(
-      'SELECT * FROM showroom_service_makes WHERE showroom_id = $1',
-      [showroomId]
-    );
+  async getGarageMakes(garageId: number): Promise<(ShowroomMake & { make_id: number; make_name: string; make_image: string })[]> {
+  const showroomMakes = await db.query(
+    `
+    SELECT 
+      ssm.*, 
+      cm.id AS make_id,
+      cm.name AS make_name,
+      cm.name_ar AS make_name_ar,
+      cm.image AS make_image
+    FROM showroom_service_makes ssm
+    JOIN car_makes cm ON ssm.make_id = cm.id
+    WHERE ssm.showroom_id = $1
+    `,
+    [garageId]
+  );
 
-    const enrichedMakes = await Promise.all(
-      showroomMakes.map(async (item) => {
-        const make = await storage.getCarMake(item.make_id); // Assuming `make_id` refers to `car_makes.id`
-        return { ...item, make };
-      })
-    );
-
-    return enrichedMakes;
-  },
+  return showroomMakes;
+},
 
   async addShowroomMake(serviceId: number, makeId: number): Promise<ShowroomMake> {
     const result = await db.query(

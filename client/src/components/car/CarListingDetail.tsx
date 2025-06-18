@@ -5,20 +5,24 @@ interface TabNavigationProps {
   vehicleDescription: string;
   vehicleDescriptionAr: string;
   is_showroom?: boolean;
+  is_garage?: boolean;
 }
 
 export function CarListingDetail({
   vehicleDescription,
   vehicleDescriptionAr,
   is_showroom,
+  is_garage,
 }: TabNavigationProps) {
   const [activeTab, setActiveTab] = useState("car-details");
 
-  if (is_showroom) {
+  if (is_showroom || is_garage) {
     return (
       <div className="mb-6">
         <div className="bg-white rounded-lg p-4 shadow-sm border">
-          <h2 className="text-xl font-semibold mb-3">Showroom Description:</h2>
+          <h2 className="text-xl font-semibold mb-3">
+            {is_showroom ? "Showroom Description:" : "Garage Description:"}
+          </h2>
           <div className="text-gray-700 leading-relaxed space-y-4">
             <p>{vehicleDescription}</p>
             <p dir="rtl" className="text-right">{vehicleDescriptionAr}</p>
@@ -30,6 +34,7 @@ export function CarListingDetail({
       </div>
     );
   }
+
 
   const tabs = [
     { id: "car-details", label: "Car Details" },

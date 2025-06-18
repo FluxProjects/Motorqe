@@ -54,7 +54,6 @@ const Header = ({ openAuthModal }: HeaderProps) => {
 
   useEffect(() => {
     pages.forEach((page, idx) => {
-      console.log(`pages[${idx}]:`, page);
     });
     if (error) {
       console.warn("usePagesByPlacement error:", error);

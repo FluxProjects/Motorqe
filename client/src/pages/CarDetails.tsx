@@ -720,9 +720,9 @@ const CarDetails = () => {
                   {(car?.showroom?.address || car?.showroom?.addressAr) && (
                     <div className="flex space-x-2 mb-4">
                       <Button
-                        size="sm"
+                        size="xs"
                         variant="outline"
-                        className="flex-1 rounded-full bg-orange-500 text-white"
+                        className="pt-2 pb-2 flex-1 rounded-full bg-orange-500 text-white"
                         onClick={() =>
                           handleLocationMap(
                             car?.showroom?.address || car?.showroom?.addressAr
@@ -732,9 +732,9 @@ const CarDetails = () => {
                         <MapPin className="h-3 w-3 mr-1" /> Location Map
                       </Button>
                       <Button
-                        size="sm"
+                        size="xs"
                         variant="outline"
-                        className="flex-1 rounded-full bg-orange-500 text-white"
+                        className="pt-2 pb-2 flex-1 rounded-full bg-orange-500 text-white"
                         onClick={() =>
                           handleGetDirection(
                             car?.showroom?.address || car?.showroom?.addressAr

@@ -1,33 +1,93 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { CarMake } from "@shared/schema";
-import { Wrench } from "lucide-react";
 import { GarageCard } from "@/components/showroom/GarageCard";
+import CarSearchForm from "@/components/car/CarSearchForm";
+import { MultiSelect } from "@/components/ui/multiselect";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Loader2 } from "lucide-react";
 
+// Utility function to geocode address using Google Maps API
+const geocodeAddress = async (
+  address: string
+): Promise<{ lat: number; lng: number } | null> => {
+  try {
+    const response = await fetch(
+      `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(
+        address
+      )}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`
+    );
+    const data = await response.json();
+    if (data.results && data.results.length > 0) {
+      return data.results[0].geometry.location;
+    }
+    return null;
+  } catch (error) {
+    console.error("Geocoding error:", error);
+    return null;
+  }
+};
 
 const BrowseGarages = () => {
- const [searchParams, setSearchParams] = useState<URLSearchParams>();
   const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedMake, setSelectedMake] = useState("all");
-  const [selectedService, setSelectedService] = useState("all");
-  const [selectedTab, setSelectedTab] = useState(() => {
-    // Determine initial tab based on parameters
-    if (searchParams?.get('make_id')) return 'makes';
-    if (searchParams?.get('service_id')) return 'services';
-    return 'all';
-  });
+  const [selectedMakes, setSelectedMakes] = useState<string[]>([]);
+  const [selectedServices, setSelectedServices] = useState<string[]>([]);
+  const [sortBy, setSortBy] = useState("distance");
+  const [maxDistance, setMaxDistance] = useState<string>("50");
+  const [userLocation, setUserLocation] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const [isGeocoding, setIsGeocoding] = useState(false);
+  const [geocodingProgress, setGeocodingProgress] = useState(0);
+
+  // Distance options for dropdown
+  const distanceOptions = [
+    { value: "5", label: "5 km" },
+    { value: "10", label: "10 km" },
+    { value: "25", label: "25 km" },
+    { value: "50", label: "50 km" },
+    { value: "100", label: "100 km" },
+    { value: "200", label: "200 km" },
+  ];
+
+  // Get user location
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          });
+        },
+        (error) => {
+          setLocationError(error.message);
+        }
+      );
+    } else {
+      setLocationError("Geolocation is not supported by this browser.");
+    }
+  }, []);
 
   const { data: showrooms, isLoading } = useQuery({
     queryKey: ["/api/garages"],
-    queryFn: () =>
-      apiRequest("GET", "/api/garages").then((res) => res.json()),
+    queryFn: () => apiRequest("GET", "/api/garages").then((res) => res.json()),
   });
 
   const { data: makes } = useQuery({
@@ -49,11 +109,32 @@ const BrowseGarages = () => {
     queryFn: () => apiRequest("GET", "/api/services").then((res) => res.json()),
   });
 
-  // Fetch services for each showroom in parallel
+  // Calculate distance between two coordinates (Haversine formula)
+  const calculateDistance = useCallback(
+    (lat1: number, lon1: number, lat2: number, lon2: number) => {
+      const R = 6371; // Earth radius in km
+      const dLat = ((lat2 - lat1) * Math.PI) / 180;
+      const dLon = ((lon2 - lon1) * Math.PI) / 180;
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos((lat1 * Math.PI) / 180) *
+          Math.cos((lat2 * Math.PI) / 180) *
+          Math.sin(dLon / 2) *
+          Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c; // Distance in km
+    },
+    []
+  );
+
+  // Fetch services and geocode addresses
   const { data: showroomsWithServices } = useQuery({
     queryKey: ["showrooms-with-services"],
     queryFn: async () => {
       if (!showrooms) return [];
+
+      setIsGeocoding(true);
+      let processedCount = 0;
 
       const showroomsData = await Promise.all(
         showrooms.map(async (showroom: any) => {
@@ -63,8 +144,7 @@ const BrowseGarages = () => {
               `/api/showrooms/${showroom.id}/services`
             ).then((res) => res.json());
 
-            console.log("servicesResponse", servicesResponse);
-            // Transform services to match expected structure
+            // Transform services
             const uniqueServices = Array.from(
               new Map(
                 servicesResponse.map((item: any) => [
@@ -80,114 +160,145 @@ const BrowseGarages = () => {
               ).values()
             );
 
+            // Calculate distance if user location is available and showroom has address
+           let distance = null;
+if (userLocation && showroom.location) {
+  const [lat, lng] = showroom.location.split(",").map(Number);
+  if (!isNaN(lat) && !isNaN(lng)) {
+    distance = calculateDistance(userLocation.lat, userLocation.lng, lat, lng);
+  }
+}
+
+
+            processedCount++;
+            setGeocodingProgress(
+              Math.round((processedCount / showrooms.length) * 100)
+            );
+
             return {
               ...showroom,
               services: uniqueServices,
+              distance,
             };
           } catch (error) {
-            console.error(
-              `Failed to fetch services for showroom ${showroom.id}`,
-              error
+            console.error(`Failed to process showroom ${showroom.id}`, error);
+            processedCount++;
+            setGeocodingProgress(
+              Math.round((processedCount / showrooms.length) * 100)
             );
             return {
               ...showroom,
               services: [],
+              distance: null,
             };
           }
         })
       );
 
+      setIsGeocoding(false);
       return showroomsData;
     },
-    enabled: !!showrooms,
+    enabled: !!showrooms && !!userLocation,
   });
 
-  console.log("showroomsWithServices", showroomsWithServices);
-  const filteredShowrooms = showroomsWithServices?.filter((showroom: any) => {
-  const matchesSearch =
-    searchTerm === '' ||
-    showroom.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    showroom.nameAr?.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredShowrooms = showroomsWithServices
+    ?.filter((showroom: any) => {
+      const matchesSearch =
+        searchTerm === "" ||
+        showroom.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        showroom.nameAr?.toLowerCase().includes(searchTerm.toLowerCase());
 
-  // Filter by make - works with URL parameter
-  const matchesMake =
-    selectedMake === 'all' ||
-    (showroomMakes &&
-      showroomMakes.some(
-        (sm: any) =>
-          sm.showroom_id === showroom.id &&
-          sm.make_id.toString() === selectedMake
-      ));
+      // Filter by makes
+      const matchesMakes =
+        selectedMakes.length === 0 ||
+        (showroomMakes &&
+          showroomMakes.some(
+            (sm: any) =>
+              sm.showroom_id === showroom.id &&
+              selectedMakes.includes(sm.make_id.toString())
+          ));
 
-  // Filter by service - works with URL parameter
-  const matchesService =
-    selectedService === 'all' ||
-    (showroom.services &&
-      showroom.services.some(
-        (service: any) => service.id.toString() === selectedService
-      ));
+      // Filter by services
+      const matchesServices =
+        selectedServices.length === 0 ||
+        (showroom.services &&
+          showroom.services.some((service: any) =>
+            selectedServices.includes(service.id.toString())
+          ));
 
-  // Apply filters based on active tab
-  if (selectedTab === 'makes') {
-    return matchesSearch && matchesMake;
-  } else if (selectedTab === 'services') {
-    return matchesSearch && matchesService;
-  }
-  return matchesSearch; // For 'all' tab
-});
+      // Filter by distance
+      const matchesDistance =
+        !userLocation ||
+        !showroom.distance ||
+        showroom.distance <= Number(maxDistance);
 
-// Helper function to update URL
-  const updateUrlParams = (params: Record<string, string>) => {
-    const newParams = new URLSearchParams(searchParams?.toString());
-    Object.entries(params).forEach(([key, value]) => {
-      if (value && value !== 'all') {
-        newParams.append(key, value);
-      } else {
-        newParams.delete(key);
+      return (
+        matchesSearch && matchesMakes && matchesServices && matchesDistance
+      );
+    })
+    ?.sort((a: any, b: any) => {
+      switch (sortBy) {
+        case "distance":
+          if (a.distance === null) return 1;
+          if (b.distance === null) return -1;
+          return a.distance - b.distance;
+        case "featured":
+          return (b.is_featured ? 1 : 0) - (a.is_featured ? 1 : 0);
+        case "availability":
+          return (b.availability ? 1 : 0) - (a.availability ? 1 : 0);
+        default:
+          return 0;
       }
     });
 
-    // Update URL without navigating
-      const newUrl = `${window.location.pathname}?${newParams.toString()}`;
-      window.history.pushState({ path: newUrl }, "", newUrl);
-
-      // Update searchParams state
-      setSearchParams(newParams);
-   
-  };
-
-// Update handlers to also update URL
-  const handleSearchChange = (term: string) => {
-    setSearchTerm(term);
-    updateUrlParams({ search: term });
-  };
-
-  const handleMakeChange = (makeId: string) => {
-    setSelectedMake(makeId);
-    setSelectedTab('makes');
-    updateUrlParams({ make: makeId, service: '' });
-  };
-
+  // Handle service checkbox changes
   const handleServiceChange = (serviceId: string) => {
-    setSelectedService(serviceId);
-    setSelectedTab('services');
-    updateUrlParams({ service: serviceId, make: '' });
+    setSelectedServices((prev) =>
+      prev.includes(serviceId)
+        ? prev.filter((id) => id !== serviceId)
+        : [...prev, serviceId]
+    );
   };
 
-  const renderGarages = () =>
-    isLoading ? (
-      Array.from({ length: 8 }).map((_, i) => (
-        <Skeleton key={i} className="h-80 w-full rounded-lg" />
-      ))
-    ) : filteredShowrooms && filteredShowrooms?.length > 0 ? (
-      filteredShowrooms.map((garages: any) => (
-        <GarageCard key={garages.id} garage={garages} />
-      ))
-    ) : (
-      <div className="col-span-full text-center py-12">
-        <p className="text-slate-500">{t("garage.noGarageFound")}</p>
+  const renderGarages = () => {
+    if (isLoading || isGeocoding) {
+      return (
+        <div className="space-y-6">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <Skeleton key={i} className="h-80 w-full rounded-lg" />
+          ))}
+          {isGeocoding && (
+            <div className="flex items-center justify-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>Geocoding addresses... {geocodingProgress}%</span>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    if (!filteredShowrooms || filteredShowrooms.length === 0) {
+      return (
+        <div className="col-span-full text-center py-12">
+          <p className="text-slate-500">{t("common.noGarageFound")}</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-6">
+        {filteredShowrooms.map((garage: any) => (
+          <GarageCard
+            key={garage.id}
+            garage={garage}
+            isList={true}
+            distance={garage.distance}
+            showDistance={sortBy === "distance"}
+          />
+        ))}
       </div>
     );
+  };
 
   return (
     <div className="bg-white min-h-screen py-8">
@@ -199,143 +310,165 @@ const BrowseGarages = () => {
           <div className="w-40 h-1 bg-orange-500 mx-auto rounded-full" />
         </div>
 
-        <div className="md:flex md:gap-6">
-          <Tabs
-            value={selectedTab}
-            onValueChange={setSelectedTab}
-            defaultValue="all"
-            className="w-full"
-          >
-            <div className="flex flex-col md:flex-row justify-between gap-4 mb-8">
-              {/* Updated TabsList with new styling */}
-              <div className="flex flex-wrap justify-left gap-3 w-full">
-                <TabsList className="flex flex-wrap justify-center gap-3 bg-transparent p-0">
-                  <TabsTrigger
-                    value="all"
-                    className={`px-5 py-2 text-sm font-medium transition-all ${
-                      selectedTab === "all"
-                        ? "text-orange-500 border-b-4 border-b-orange-500 hover:font-bold"
-                        : "text-blue-900"
-                    }`}
-                  >
-                    {t("garage.allGarages")}
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="makes"
-                    className={`px-5 py-2 text-sm font-medium transition-all ${
-                      selectedTab === "makes"
-                        ? "text-orange-500 border-b-4 border-b-orange-500 hover:font-bold"
-                        : "text-blue-900"
-                    }`}
-                  >
-                    {t("showroom.byMake")}
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="services"
-                    className={`px-5 py-2 text-sm font-medium transition-all ${
-                      selectedTab === "services"
-                        ? "text-orange-500 border-b-4 border-b-orange-500 hover:font-bold"
-                        : "text-blue-900"
-                    }`}
-                  >
-                    {t("showroom.byService")}
-                  </TabsTrigger>
-                </TabsList>
-              </div>
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          {/* Left Column - Filters */}
+          <div className="lg:col-span-1 space-y-6">
+            {/* Search Results Count */}
+            <div className="p-4 rounded-lg">
+              <p className="font-medium">
+                {filteredShowrooms?.length || 0} {t("common.resultsFound")}
+              </p>
+              {locationError && (
+                <p className="text-sm text-red-500 mt-1">{locationError}</p>
+              )}
+            </div>
 
+            {/* Search Bar */}
+            <div>
+              <Label className="block mb-2 font-medium">
+                {t("common.search")}
+              </Label>
               <Input
-                placeholder={t("garage.searchPlaceholder")}
-                className="max-w-md"
+                placeholder={t("common.searchPlaceholder")}
                 value={searchTerm}
-                onChange={(e) => handleSearchChange(e.target.value)}
+                onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
 
-            {/* Rest of your existing TabsContent components remain the same */}
-            <TabsContent value="all">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 gap-6">
-                {renderGarages()}
+            {/* Distance Filter - Dropdown version */}
+            {userLocation && (
+              <div>
+                <Label className="block mb-2 font-medium">
+                  {t("common.distance")}
+                </Label>
+                <Select value={maxDistance} onValueChange={setMaxDistance}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select distance" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {distanceOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-            </TabsContent>
+            )}
 
-            <TabsContent value="makes">
-              <div className="flex flex-wrap gap-2 mb-6">
-                <Badge
-                   onClick={() => handleMakeChange("all")}
-                  className={`cursor-pointer ${
-                    selectedMake === "all"
-                      ? "bg-blue-900 text-white"
-                      : "border border-blue-900 text-blue-900 bg-transparent hover:bg-blue-900 hover:text-white"
-                  }`}
-                >
-                  {t("showroom.allMakes")}
-                </Badge>
+            {/* Car Makes Multi-Select */}
+            <div>
+              <Label className="block mb-2 font-medium">
+                {t("common.makes")}
+              </Label>
+              <MultiSelect
+                options={
+                  makes?.map((make: CarMake) => ({
+                    value: make.id.toString(),
+                    label: make.name,
+                    icon: (
+                      <img
+                        src={make.image || "https://placehold.co/24x24"}
+                        alt={make.name}
+                        className="w-6 h-6 mr-2"
+                      />
+                    ),
+                  })) || []
+                }
+                selected={selectedMakes}
+                onChange={setSelectedMakes}
+                placeholder={t("common.selectMakes")}
+              />
+            </div>
 
-                {makes?.map((make: CarMake) => (
-                  <Badge
-                    key={make.id}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => handleMakeChange(make.id.toString())}
-                    className={`cursor-pointer select-none flex items-center gap-2 ${
-                      selectedMake === make.id.toString()
-                        ? "bg-blue-900 text-white"
-                        : "border border-blue-900 text-blue-900 bg-transparent hover:bg-blue-900 hover:text-white"
-                    }`}
-                  >
-                    <img
-                      src={make.image || "https://placehold.co/24x24"}
-                      alt={make.name}
-                      className="w-6 h-6"
-                    />
-                    {make.name}
-                  </Badge>
-                ))}
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 gap-6">
-                {renderGarages()}
-              </div>
-            </TabsContent>
-
-            <TabsContent value="services">
-              <div className="flex flex-wrap gap-2 mb-6">
-                <Badge
-                 onClick={() => handleServiceChange("all")}
-                  className={`cursor-pointer ${
-                    selectedService === "all"
-                      ? "bg-blue-900 text-white"
-                      : "border border-blue-900 text-blue-900 bg-transparent hover:bg-blue-900 hover:text-white"
-                  }`}
-                >
-                  {t("showroom.allServices")}
-                </Badge>
+            {/* Services Checkboxes */}
+            <div>
+              <Label className="block mb-2 font-medium">
+                {t("common.service")}
+              </Label>
+              <div className="space-y-3">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="all-services"
+                    checked={selectedServices.length === 0}
+                    onCheckedChange={() => setSelectedServices([])}
+                  />
+                  <Label htmlFor="all-services">
+                    {t("common.allServices")}
+                  </Label>
+                </div>
 
                 {services?.map((service: any) => (
-                  <Badge
-                    key={service.id}
-                    onClick={() => handleServiceChange(service.id.toString())}
-                    className={`cursor-pointer flex items-center gap-1 ${
-                      selectedService === service.id.toString()
-                        ? "bg-blue-900 text-white"
-                        : "border border-blue-900 text-blue-900 bg-transparent hover:bg-blue-900 hover:text-white"
-                    }`}
-                  >
-                     <img
-      src={service.image}
-      alt={service.name}
-      className="w-4 h-4 object-contain"
-    />
-                    {service.name}
-                  </Badge>
+                  <div key={service.id} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`service-${service.id}`}
+                      checked={selectedServices.includes(service.id.toString())}
+                      onCheckedChange={() =>
+                        handleServiceChange(service.id.toString())
+                      }
+                    />
+                    <Label
+                      htmlFor={`service-${service.id}`}
+                      className="flex items-center gap-2"
+                    >
+                      <img
+                        src={service.image}
+                        alt={service.name}
+                        className="w-5 h-5 object-contain"
+                      />
+                      {service.name}
+                    </Label>
+                  </div>
                 ))}
               </div>
+            </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 gap-6">
-                {renderGarages()}
+            {/* Clear Filters Button */}
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => {
+                setSelectedMakes([]);
+                setSelectedServices([]);
+                setSearchTerm("");
+                setMaxDistance("50");
+                setSortBy("distance");
+              }}
+            >
+              {t("common.clearFilters")}
+            </Button>
+          </div>
+
+          {/* Right Column - Content */}
+          <div className="lg:col-span-3 space-y-6">
+            <CarSearchForm is_garage={true} />
+            <div className="space-y-2 w-fit ml-auto">
+              {/* Sort Options */}
+              <div className="flex items-center gap-2 w-fit ml-auto">
+                <Label className="font-medium">{t("common.sortBy")}</Label>
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger className="w-[180px]">
+                    {" "}
+                    {/* Optional: set width */}
+                    <SelectValue placeholder="Select sort option" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="distance">
+                      {t("common.distance")}
+                    </SelectItem>
+                    <SelectItem value="featured">
+                      {t("common.featured")}
+                    </SelectItem>
+                    <SelectItem value="availability">
+                      {t("common.availability")}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-            </TabsContent>
-          </Tabs>
+            </div>
+
+            {renderGarages()}
+          </div>
         </div>
       </div>
     </div>
