@@ -23,8 +23,8 @@ export const RegisterFormWrapper = ({
       email: "",
       password: "",
       confirmPassword: "",
-      role: "BUYER",
-      roleId: 1,
+      role: "SELLER",
+      roleId: 2,
       termsAgreement: true,
     },
   });

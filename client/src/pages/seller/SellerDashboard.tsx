@@ -179,7 +179,7 @@ const SellerDashboard = () => {
   ];
 
   return (
-    <ProtectedRoute allowedRoles={["SELLER"]}>
+
       <div className="min-h-screen bg-neutral-100 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="bg-white rounded-xl shadow-sm overflow-hidden">
@@ -655,7 +655,6 @@ const SellerDashboard = () => {
           </DialogContent>
         </Dialog>
       </div>
-    </ProtectedRoute>
   );
 };
 

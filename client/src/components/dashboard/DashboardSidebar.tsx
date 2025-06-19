@@ -17,124 +17,122 @@ const DashboardSidebar = ({ type }: SidebarProps) => {
   const { user } = useAuth();
   const [location] = useLocation();
 
-  const role = roleMapping?.[Number(user?.roleId)] ?? null;
+  const role = roleMapping?.[Number(user?.roleId)] ?? 'USER';
 
   const linksMapping: Record<Role, { href: string; label: string; icon: string }[]> = {
     BUYER: [
       { href: '/buyer-dashboard', label: t('common.dashboard'), icon: 'ri-dashboard-line' },
       { href: '/buyer-dashboard/messages', label: t('common.messages'), icon: 'ri-mail-line' },
-      { href: '/buyer-dashboard/profile', label: t('common.profile'), icon: 'ri-user-2-line' },
+      { href: '/buyer-dashboard/profile', label: t('common.profile'), icon: 'ri-user-line' },
     ],
     SELLER: [
       { href: '/seller-dashboard', label: t('common.dashboard'), icon: 'ri-dashboard-line' },
-      { href: '/seller-dashboard/listings', label: t('seller.myListings'), icon: 'ri-car-fill' },
+      { href: '/seller-dashboard/listings', label: t('seller.myListings'), icon: 'ri-car-line' },
       { href: '/seller-dashboard/messages', label: t('common.messages'), icon: 'ri-mail-line' },
-      { href: '/seller-dashboard/profile', label: t('common.profile'), icon: 'ri-user-2-line' },
+      { href: '/seller-dashboard/profile', label: t('common.profile'), icon: 'ri-user-line' },
     ],
     DEALER: [
       { href: '/showroom-dashboard', label: t('common.dashboard'), icon: 'ri-dashboard-line' },
-      { href: '/showroom-dashboard/listings', label: t('showroom.manageListings'), icon: 'ri-car-fill' },
-       { href: '/showroom-dashboard/messages', label: t('showroom.messages'), icon: 'ri-mail-line' },
-      { href: '/showroom-dashboard/profile', label: t('showroom.profile'), icon: 'ri-user-2-line' },
+      { href: '/showroom-dashboard/listings', label: t('showroom.manageListings'), icon: 'ri-car-line' },
+      { href: '/showroom-dashboard/messages', label: t('showroom.messages'), icon: 'ri-mail-line' },
+      { href: '/showroom-dashboard/profile', label: t('showroom.profile'), icon: 'ri-user-line' },
     ],
     GARAGE: [
       { href: '/showroom-dashboard', label: t('showroom.dashboard'), icon: 'ri-dashboard-line' },
-      { href: '/showroom-dashboard/servicelistings', label: t('admin.manageServiceListings'), icon: 'ri-service-line' },
-      { href: '/showroom-dashboard/servicebookings', label: t('admin.manageServiceBookings'), icon: 'ri-service-line' },
+      { href: '/showroom-dashboard/servicelistings', label: t('admin.manageServiceListings'), icon: 'ri-tools-line' },
+      { href: '/showroom-dashboard/servicebookings', label: t('admin.manageServiceBookings'), icon: 'ri-calendar-check-line' },
       { href: '/showroom-dashboard/messages', label: t('showroom.messages'), icon: 'ri-mail-line' },
-      { href: '/showroom-dashboard/profile', label: t('showroom.profile'), icon: 'ri-user-2-line' },
+      { href: '/showroom-dashboard/profile', label: t('showroom.profile'), icon: 'ri-user-line' },
     ],
     MODERATOR: [
       { href: '/admin', label: t('common.dashboard'), icon: 'ri-dashboard-line' },
-      { href: '/admin/listings', label: t('admin.manageListings'), icon: 'ri-car-fill' },
-      { href: '/admin/servicelistings', label: t('admin.manageServiceListings'), icon: 'ri-service-line' },
-      { href: '/admin/servicebookings', label: t('admin.manageServiceBookings'), icon: 'ri-service-line' },
-      { href: '/admin/messages', label: t('admin.manageMessages'), icon: 'ri-mail-line' },
-      { href: '/admin/profile', label: t('common.profile'), icon: 'ri-user-2-line' },
+      { href: '/admin/listings', label: t('admin.manageListings'), icon: 'ri-car-line' },
+      { href: '/admin/servicelistings', label: t('admin.manageServiceListings'), icon: 'ri-tools-line' },
+      { href: '/admin/servicebookings', label: t('admin.manageServiceBookings'), icon: 'ri-calendar-check-line' },
+      { href: '/admin/messages', label: t('admin.manageMessages'), icon: 'ri-chat-3-line' },
+      { href: '/admin/profile', label: t('common.profile'), icon: 'ri-user-line' },
     ],
     SENIOR_MODERATOR: [
       { href: '/admin', label: t('common.dashboard'), icon: 'ri-dashboard-line' },
-      { href: '/admin/listings', label: t('admin.manageListings'), icon: 'ri-car-fill' },
-      { href: '/admin/servicelistings', label: t('admin.manageServiceListings'), icon: 'ri-service-line' },
-      { href: '/admin/servicebookings', label: t('admin.manageServiceBookings'), icon: 'ri-service-line' },
-      { href: '/admin/messages', label: t('admin.manageMessages'), icon: 'ri-mail-line' },
-      { href: '/admin/profile', label: t('common.profile'), icon: 'ri-user-2-line' },
+      { href: '/admin/listings', label: t('admin.manageListings'), icon: 'ri-car-line' },
+      { href: '/admin/servicelistings', label: t('admin.manageServiceListings'), icon: 'ri-tools-line' },
+      { href: '/admin/servicebookings', label: t('admin.manageServiceBookings'), icon: 'ri-calendar-check-line' },
+      { href: '/admin/messages', label: t('admin.manageMessages'), icon: 'ri-chat-3-line' },
+      { href: '/admin/profile', label: t('common.profile'), icon: 'ri-user-line' },
     ],
     ADMIN: [
       { href: '/admin', label: t('common.dashboard'), icon: 'ri-dashboard-line' },
-      { href: '/admin/listings', label: t('admin.manageListings'), icon: 'ri-car-fill' },
-      { href: '/admin/servicelistings', label: t('admin.manageServiceListings'), icon: 'ri-service-line' },
-      { href: '/admin/servicebookings', label: t('admin.manageServiceBookings'), icon: 'ri-service-line' },
+      { href: '/admin/listings', label: t('admin.manageListings'), icon: 'ri-car-line' },
+      { href: '/admin/servicelistings', label: t('admin.manageServiceListings'), icon: 'ri-tools-line' },
+      { href: '/admin/servicebookings', label: t('admin.manageServiceBookings'), icon: 'ri-calendar-check-line' },
       { href: '/admin/inspections', label: t('admin.manageCarInspections'), icon: 'ri-search-eye-line' },
-      { href: '/admin/messages', label: t('admin.manageMessages'), icon: 'ri-mail-line' },
-      { href: '/admin/users', label: t('admin.manageUsers'), icon: 'ri-user-2-line' },
-      { href: '/admin/settings', label: t('admin.siteSettings'), icon: 'ri-settings-2-line' },
-      { href: '/admin/content', label: t('admin.cms'), icon: 'ri-pages-line' },
-      { href: '/admin/profile', label: t('common.profile'), icon: 'ri-user-2-line' },
+      { href: '/admin/messages', label: t('admin.manageMessages'), icon: 'ri-chat-3-line' },
+      { href: '/admin/users', label: t('admin.manageUsers'), icon: 'ri-user-settings-line' },
+      { href: '/admin/settings', label: t('admin.siteSettings'), icon: 'ri-settings-3-line' },
+      { href: '/admin/content', label: t('admin.cms'), icon: 'ri-layout-text-window-line' },
+      { href: '/admin/profile', label: t('common.profile'), icon: 'ri-user-line' },
     ],
     SUPER_ADMIN: [
-  { href: '/admin', label: t('common.dashboard'), icon: 'ri-dashboard-line' },
-  { href: '/admin/listings', label: t('admin.manageListings'), icon: 'ri-car-line' },
-  { href: '/admin/servicelistings', label: t('admin.manageServiceListings'), icon: 'ri-tools-line' },
-  { href: '/admin/servicebookings', label: t('admin.manageServiceBookings'), icon: 'ri-calendar-check-line' },
-  { href: '/admin/inspections', label: t('admin.manageCarInspections'), icon: 'ri-search-eye-line' },
-  { href: '/admin/promotions', label: t('admin.managePromotionPackages'), icon: 'ri-price-tag-3-line' },
-  { href: '/admin/messages', label: t('admin.manageMessages'), icon: 'ri-chat-3-line' },
-  { href: '/admin/users', label: t('admin.manageUsers'), icon: 'ri-user-settings-line' },
-  { href: '/admin/settings', label: t('admin.siteSettings'), icon: 'ri-settings-3-line' },
-  { href: '/admin/content', label: t('admin.cms'), icon: 'ri-layout-text-window-line' },
-  { href: '/admin/sliders', label: t('admin.manageSliders'), icon: 'ri-slideshow-line' },
-  { href: '/admin/blogs', label: t('admin.manageBlogs'), icon: 'ri-article-line' },
-  { href: '/admin/ads', label: t('admin.manageBannerAds'), icon: 'ri-billboard-line' },
-  { href: '/admin/profile', label: t('admin.manageProfile'), icon: 'ri-user-line' },
-]
-,
+      { href: '/admin', label: t('common.dashboard'), icon: 'ri-dashboard-line' },
+      { href: '/admin/listings', label: t('admin.manageListings'), icon: 'ri-car-line' },
+      { href: '/admin/servicelistings', label: t('admin.manageServiceListings'), icon: 'ri-tools-line' },
+      { href: '/admin/servicebookings', label: t('admin.manageServiceBookings'), icon: 'ri-calendar-check-line' },
+      { href: '/admin/inspections', label: t('admin.manageCarInspections'), icon: 'ri-search-eye-line' },
+      { href: '/admin/promotions', label: t('admin.managePromotionPackages'), icon: 'ri-price-tag-3-line' },
+      { href: '/admin/messages', label: t('admin.manageMessages'), icon: 'ri-chat-3-line' },
+      { href: '/admin/users', label: t('admin.manageUsers'), icon: 'ri-user-settings-line' },
+      { href: '/admin/settings', label: t('admin.siteSettings'), icon: 'ri-settings-3-line' },
+      { href: '/admin/content', label: t('admin.cms'), icon: 'ri-layout-text-window-line' },
+      { href: '/admin/sliders', label: t('admin.manageSliders'), icon: 'ri-slideshow-line' },
+      { href: '/admin/blogs', label: t('admin.manageBlogs'), icon: 'ri-article-line' },
+      { href: '/admin/ads', label: t('admin.manageBannerAds'), icon: 'ri-billboard-line' },
+      { href: '/admin/profile', label: t('admin.manageProfile'), icon: 'ri-user-line' },
+    ],
   };
 
-  const links = linksMapping?.[role];
+  const links = linksMapping?.[role as Role];
 
-   const getBackgroundColor = () => {
+  const getBackgroundColor = () => {
     switch (type) {
       case 'BUYER': return 'bg-white border-r border-gray-200';
-      case 'SELLER': return 'bg-[#1e293b] text-white';  // slate-800
-      case 'DEALER': return 'bg-[#0f172a] text-white'; // slate-900
-      case 'GARAGE': return 'bg-[#064e3b] text-white'; // emerald-900
+      case 'SELLER': return 'bg-slate-800 text-white';
+      case 'DEALER': return 'bg-slate-900 text-white';
+      case 'GARAGE': return 'bg-emerald-900 text-white';
       case 'MODERATOR':
       case 'SENIOR_MODERATOR':
       case 'ADMIN':
-      case 'SUPER_ADMIN': return 'bg-[#9a3412] text-white'; // orange-800
-      default: return 'bg-[#0f172a]'; // slate-900
+      case 'SUPER_ADMIN': return 'bg-orange-800 text-white';
+      default: return 'bg-slate-900 text-white';
     }
   };
 
   const getLinkStyles = (isActive: boolean) => {
-    const base = "flex items-center px-4 py-3 rounded-lg transition-colors duration-200";
+    const base = 'flex items-center px-4 py-3 rounded-lg transition-colors duration-200';
     if (isActive) {
       switch (type) {
-        case 'BUYER': return cn(base, "bg-[#e0f2fe] text-[#0369a1] font-medium"); // blue-100 and blue-700
-        case 'SELLER': return cn(base, "bg-[#334155] text-white font-medium"); // slate-700
-        case 'DEALER': return cn(base, "bg-[#1e293b] text-white font-medium"); // slate-800
-        case 'GARAGE': return cn(base, "bg-[#065f46] text-white font-medium"); // emerald-800
+        case 'BUYER': return cn(base, 'bg-blue-100 text-blue-700 font-medium');
+        case 'SELLER': return cn(base, 'bg-slate-700 text-white font-medium');
+        case 'DEALER': return cn(base, 'bg-slate-800 text-white font-medium');
+        case 'GARAGE': return cn(base, 'bg-emerald-800 text-white font-medium');
         case 'MODERATOR':
         case 'SENIOR_MODERATOR':
         case 'ADMIN':
-        case 'SUPER_ADMIN': return cn(base, "bg-[#c2410c] text-white font-medium"); // orange-700
-        default: return cn(base, "bg-[#1e293b] text-white font-medium"); // slate-800
+        case 'SUPER_ADMIN': return cn(base, 'bg-orange-700 text-white font-medium');
+        default: return cn(base, 'bg-slate-800 text-white font-medium');
       }
     }
     switch (type) {
-      case 'BUYER': return cn(base, "text-gray-700 hover:bg-gray-100");
-      case 'SELLER': return cn(base, "text-[#cbd5e1] hover:bg-[#334155]"); // slate-300 and slate-700
-      case 'DEALER': return cn(base, "text-[#94a3b8] hover:bg-[#1e293b]"); // slate-400 and slate-800
-      case 'GARAGE': return cn(base, "text-[#a7f3d0] hover:bg-[#065f46]"); // emerald-200 and emerald-800
+      case 'BUYER': return cn(base, 'text-gray-700 hover:bg-gray-100');
+      case 'SELLER': return cn(base, 'text-slate-300 hover:bg-slate-700');
+      case 'DEALER': return cn(base, 'text-slate-400 hover:bg-slate-800');
+      case 'GARAGE': return cn(base, 'text-emerald-200 hover:bg-emerald-800');
       case 'MODERATOR':
       case 'SENIOR_MODERATOR':
       case 'ADMIN':
-      case 'SUPER_ADMIN': return cn(base, "text-[#fed7aa] hover:bg-[#c2410c]"); // orange-200 and orange-700
-      default: return cn(base, "text-[#94a3b8] hover:bg-[#1e293b]"); // slate-400 and slate-800
+      case 'SUPER_ADMIN': return cn(base, 'text-orange-200 hover:bg-orange-700');
+      default: return cn(base, 'text-slate-400 hover:bg-slate-800');
     }
   };
-
 
   return (
     <div className={`p-6 ${getBackgroundColor()} ${type === 'ADMIN' ? 'min-h-screen' : ''}`}>
@@ -144,10 +142,10 @@ const DashboardSidebar = ({ type }: SidebarProps) => {
           <AvatarFallback>{user?.username?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
         </Avatar>
         <div>
-          <h3 className={`font-medium ${type !== 'BUYER' ? 'text-white' : ''}`}>
+          <h3 className={`font-medium ${type !== 'SELLER' ? 'text-white' : ''}`}>
             {user?.firstName || user?.username || 'User'}
           </h3>
-          <p className={`text-sm ${type === 'BUYER' ? 'text-white' : 'text-neutral-50'}`}>
+          <p className={`text-sm ${type === 'SELLER' ? 'text-white' : 'text-neutral-50'}`}>
             {role}
           </p>
         </div>

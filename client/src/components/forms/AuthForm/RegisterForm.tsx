@@ -1,5 +1,4 @@
 import { UseFormReturn } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import {
@@ -78,7 +77,7 @@ export const RegisterForm = ({
           control={form?.control}
           defaultValue="SELLER"
           render={({ field }) => (
-            <div role="radiogroup" className="mb-10 gap-2 flex space-x-4">
+            <div role="radiogroup" className="mb-10 gap-2 space-x-4 hidden">
               <div className="flex items-center space-x-2">
                 <input
                   type="radio"

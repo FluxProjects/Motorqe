@@ -768,7 +768,7 @@ const GarageDetails = () => {
           </DialogDescription>
           <ServiceBookingForm
             services={selectedServices}
-            userId={user.id.toString()}
+            userId={user?.id?.toString()}
             showroomId={id}
             isOpen={bookingDialogOpen}
             onSuccess={() => {
