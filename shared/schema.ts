@@ -1446,7 +1446,7 @@ export interface AdminCarListing {
   end_date?: Date;
 }
 
-export type AdminCarListingAction = 'publish' | 'edit' | 'approve' | 'reject' | 'feature' | 'delete' | 'sold';
+export type AdminCarListingAction = 'publish' | 'edit' | 'approve' | 'reject' | 'feature' | 'unfeature' | 'delete' | 'sold';
 
 // Car Services Filter Interface
 export interface CarServiceFilters {
@@ -1653,7 +1653,7 @@ export interface AdminServiceListing {
   end_date?: Date;
 }
 
-export type ServiceListingAction = 'publish' | 'edit' | 'approve' | 'reject' | 'feature' | 'delete';
+export type ServiceListingAction = 'publish' | 'edit' | 'approve' | 'reject' | 'feature' |'unfeature' | 'delete';
 
 // Extended types for service management
 export interface ServiceCategory {

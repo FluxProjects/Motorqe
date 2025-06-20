@@ -96,7 +96,7 @@ export const useServiceListingFormHandler = (onSuccess?: () => void) => {
        } else if (role === "ADMIN" || role === "SUPER_ADMIN") {
         navigate("/admin/servicelistings");
       } else if ( role === "GARAGE") {
-        navigate("/showroom-dashboard/servicelistings");
+        navigate("/garage-dashboard/servicelistings");
       }
 
       console.log("✅ Redirect complete");

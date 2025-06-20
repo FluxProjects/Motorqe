@@ -118,6 +118,8 @@ export const useListingFormHandler = (onSuccess?: () => void) => {
         navigate("/admin/listings");
       } else if (role === "DEALER") {
         navigate("/showroom-dashboard/listings");
+      } else if (role === "GARAGE") {
+        navigate("/garage-dashboard/servicelistings");
       }
 
       console.log("✅ Redirect complete");

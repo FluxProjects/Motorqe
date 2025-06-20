@@ -59,8 +59,10 @@ export const useRegisterHandler = () => {
         navigate("/buyer-dashboard");
       } else if (data.user.roleId === 2) {
         navigate("/seller-dashboard");
-      } else if (data.user.roleId === 3 || data.user.roleId === 4) {
+      } else if (data.user.roleId === 3) {
         navigate("/showroom-dashboard");
+      } else if (data.user.roleId === 4) {
+      navigate("/garage-dashboard");
       } else if ([5, 6, 7, 8].includes(data.user.roleId)) {
         navigate("/admin");
       } else {

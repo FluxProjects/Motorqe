@@ -1,160 +1,242 @@
-import { useAuth } from "@/contexts/AuthContext";
-import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { roleMapping } from "@shared/permissions";
-import { useServiceBookingManage } from "@/hooks/user-servicebookingmanage";
-import { ServiceBookingFilters } from "@/components/services/bookings/ServiceBookingFilters";
-import { ServiceBookingTable } from "@/components/services/bookings/ServiceBookingTable";
-import { ServiceBookingDetailDialog } from "@/components/services/bookings/ServiceBookingDetailDialog";
-import { ServiceBookingActionDialog } from "@/components/services/bookings/ServiceBookingActionDialog";
-import { ServiceBookingFormDialog } from "@/components/services/bookings/ServiceBookingFormDialog";
-import { Plus, RefreshCw } from "lucide-react";
-import { useTranslation } from "react-i18next";
-import { Permission } from "@shared/permissions";
-import { PermissionGuard } from "@/components/PermissionGuard";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card } from "@/components/ui/card";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Check, X, MoreHorizontal, Phone, MessageCircle, Ban, Calendar } from "lucide-react";
+import type { ServiceBooking } from "@shared/schema";
+import GarageNavigation from "@/components/dashboard/GarageNavigation";
+import { format } from "date-fns";
 
-const ManageServiceBookings = () => {
-  const { user } = useAuth();
-  const { t } = useTranslation();
+export default function ManageServiceBookings() {
+  const [activeTab, setActiveTab] = useState<"requests" | "today">("requests");
+  const [sortBy, setSortBy] = useState("old bookings");
+  const queryClient = useQueryClient();
 
-  const {
-    // State
-    currentTab,
-    setCurrentTab,
-    searchQuery,
-    setSearchQuery,
-    filters,
-    setFilters,
-    viewDialogOpen,
-    setViewDialogOpen,
-    actionDialogOpen,
-    setActionDialogOpen,
-    currentBooking,
-    actionType,
-    actionReason,
-    setActionReason,
-    actionInProgress,
-    setFormDialogOpen,
-    formDialogOpen,
-    isEditing,
+ const today = format(new Date(), "yyyy-MM-dd");
 
-    // Data
-    bookings,
-    isLoading,
+const { data: bookings = [], isLoading } = useQuery({
+  queryKey: ["/api/service-bookings"],
+  select: (data: ServiceBooking[]) =>
+    data.filter((booking) =>
+      activeTab === "requests"
+        ? booking.status === "pending"
+        : booking.status === "confirmed" && booking.scheduledAt === today
+    ),
+});
 
-    // Functions
-    handleSearch,
-    resetFilters,
-    handleViewBooking,
-    handleEditBooking,
-    handleCreateBooking,
-    handleAction,
-    confirmAction,
-    getStatusBadge,
-    refetch,
-  } = useServiceBookingManage();
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: number; status: string }) => {
+      const response = await fetch(`/api/service-bookings/${id}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      if (!response.ok) throw new Error("Failed to update status");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/service-bookings"] });
+    },
+  });
 
-  return (
-    <div className="min-h-screen bg-white py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-          <div className="md:flex">
-            {/* Admin Sidebar */}
-            <div className="hidden md:block">
-              <DashboardSidebar type={roleMapping[user?.roleId] || "ADMIN"} />
-            </div>
+  const deleteBookingMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await fetch(`/api/service-bookings/${id}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) throw new Error("Failed to delete booking");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/service-bookings"] });
+    },
+  });
 
-            {/* Main Content */}
-            <div className="flex-1 p-6 overflow-auto">
-              <div className="max-w-7xl mx-auto">
-                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-8 gap-4">
-                  <div>
-                    <h1 className="text-3xl font-bold">
-                      {t("bookings.manageServiceBookings")}
-                    </h1>
-                    <p className="text-slate-400 mt-1">
-                      {t("bookings.serviceBookingsDesc")}
-                    </p>
-                  </div>
+  const handleConfirm = (id: number) => {
+    updateStatusMutation.mutate({ id, status: "confirmed" });
+  };
 
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <Button
-                      variant="default"
-                      className="bg-orange-500 hover:bg-orange-500/50"
-                      onClick={() => refetch()}
-                      disabled={isLoading}
-                    >
-                      <RefreshCw
-                        className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`}
-                      />
-                      {t("common.refresh")}
-                    </Button>
+  const handleReject = (id: number) => {
+    updateStatusMutation.mutate({ id, status: "rejected" });
+  };
 
-                  </div>
-                </div>
+  const handleCall = (mobileNo: string) => {
+    window.open(`tel:${mobileNo}`, '_self');
+  };
 
-                <ServiceBookingFilters
-                  currentTab={currentTab}
-                  setCurrentTab={setCurrentTab}
-                  searchQuery={searchQuery}
-                  setSearchQuery={setSearchQuery}
-                  filters={filters}
-                  setFilters={setFilters}
-                  handleSearch={handleSearch}
-                  resetFilters={resetFilters}
-                  refetch={refetch}
-                  isLoading={isLoading}
-                />
+  const handleWhatsapp = (mobileNo: string) => {
+    const cleanNumber = mobileNo.replace(/[^\d]/g, '');
+    window.open(`https://wa.me/${cleanNumber}`, '_blank');
+  };
 
-                <ServiceBookingTable
-                  bookings={bookings || []}
-                  isLoading={isLoading}
-                  resetFilters={resetFilters}
-                  handleViewBooking={handleViewBooking}
-                  handleEditBooking={handleEditBooking}
-                  handleAction={handleAction}
-                  getStatusBadge={getStatusBadge}
-                />
-              </div>
-            </div>
+  const handleCancel = (id: number) => {
+    deleteBookingMutation.mutate(id);
+  };
 
-            {/* Dialogs */}
-            {currentBooking && (
-              <>
-                <ServiceBookingDetailDialog
-                  booking={currentBooking}
-                  open={viewDialogOpen}
-                  onOpenChange={setViewDialogOpen}
-                  handleAction={handleAction}
-                />
+  const handleReschedule = (id: number) => {
+    console.log("Reschedule booking:", id);
+    // Implement reschedule functionality
+  };
 
-                <ServiceBookingActionDialog
-                  booking={currentBooking}
-                  actionType={actionType}
-                  open={actionDialogOpen}
-                  onOpenChange={setActionDialogOpen}
-                  actionReason={actionReason}
-                  setActionReason={setActionReason}
-                  actionInProgress={actionInProgress}
-                  confirmAction={confirmAction}
-                />
+  const getInitials = (name: string) => {
+    return name.split(' ').map(n => n[0]).join('').toUpperCase();
+  };
 
-                <PermissionGuard permission={Permission.MANAGE_BOOKINGS}>
-                  <ServiceBookingFormDialog
-                    booking={currentBooking}
-                    isEditing={isEditing}
-                    open={formDialogOpen}
-                    onOpenChange={setFormDialogOpen}
-                    onSuccess={refetch}
-                  />
-                </PermissionGuard>
-              </>
-            )}
-          </div>
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-gray-500">Loading bookings...</div>
         </div>
       </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      
+      {/* Sub Navigation */}
+      <div className="bg-white border-b border-gray-200">
+        <GarageNavigation />
+      </div>
+
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-semibold text-gray-900">Bookings:</h1>
+          <Select value={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger className="w-48">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="old bookings">sort by old bookings</SelectItem>
+              <SelectItem value="new bookings">sort by new bookings</SelectItem>
+              <SelectItem value="date">sort by date</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <Card className="bg-white rounded-2xl shadow-sm border-2 border-motoroe-orange overflow-hidden">
+          {/* Tab Headers */}
+          <div className="flex border-b border-gray-200">
+            <button
+              onClick={() => setActiveTab("requests")}
+              className={`flex-1 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === "requests"
+                  ? "border-motoroe-orange text-motoroe-orange bg-gray-50"
+                  : "border-transparent text-gray-500 hover:text-motoroe-orange"
+              }`}
+            >
+              <div className="flex items-center justify-center space-x-2">
+                <div className="w-6 h-6 bg-motoroe-orange rounded-full flex items-center justify-center text-white text-xs">
+                  📋
+                </div>
+                <span>Booking Requests</span>
+              </div>
+            </button>
+            <button
+              onClick={() => setActiveTab("today")}
+              className={`flex-1 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === "today"
+                  ? "border-motoroe-blue text-motoroe-blue bg-blue-50"
+                  : "border-transparent text-gray-500 hover:text-motoroe-blue"
+              }`}
+            >
+              <div className="flex items-center justify-center space-x-2">
+                <div className="w-6 h-6 bg-motoroe-blue rounded-full flex items-center justify-center text-white text-xs">
+                  📧
+                </div>
+                <span>Todays Bookings</span>
+              </div>
+            </button>
+          </div>
+
+          {/* Content */}
+          <div className="p-6">
+            {bookings.length === 0 ? (
+              <div className="text-center py-12 text-gray-500">
+                No {activeTab === "requests" ? "booking requests" : "bookings for today"} found.
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {bookings.map((booking) => (
+                  <div key={booking.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div className="flex items-center space-x-4">
+                      <Avatar className="h-12 w-12">
+                        <AvatarFallback className="bg-gray-300 text-gray-700">
+                          {getInitials(booking.user.first_name)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <h3 className="font-medium text-gray-900">{booking.user.first_name}</h3>
+                        <p className="text-sm text-gray-600">
+                          {booking.vehicleMake} {booking.vehicleModel}
+                        </p>
+                        <p className="text-xs text-gray-500">{booking.user.phone}</p>
+                      </div>
+                    </div>
+
+                    <div className="text-center">
+                      <p className="text-sm font-medium text-gray-900">Booking Date & Time</p>
+                      <p className="text-xs text-gray-500">{booking.scheduledAt}</p>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48">
+                          <DropdownMenuItem onClick={() => handleCall(booking.user.phone)}>
+                            <Phone className="h-4 w-4 mr-2 text-blue-500" />
+                            Call
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleWhatsapp(booking.user.phone)}>
+                            <MessageCircle className="h-4 w-4 mr-2 text-green-500" />
+                            Whatsapp
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleCancel(booking.id)}>
+                            <Ban className="h-4 w-4 mr-2 text-red-500" />
+                            Cancel
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleReschedule(booking.id)}>
+                            <Calendar className="h-4 w-4 mr-2 text-blue-500" />
+                            Reschedule
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+
+                      <Button
+                        onClick={() => handleConfirm(booking.id)}
+                        size="sm"
+                        className="bg-green-500 hover:bg-green-600 text-white rounded-full p-2"
+                        disabled={updateStatusMutation.isPending}
+                      >
+                        <Check className="h-4 w-4" />
+                      </Button>
+
+                      <Button
+                        onClick={() => handleReject(booking.id)}
+                        size="sm"
+                        variant="destructive"
+                        className="bg-red-500 hover:bg-red-600 text-white rounded-full p-2"
+                        disabled={updateStatusMutation.isPending}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </Card>
+      </main>
     </div>
   );
-};
-
-export default ManageServiceBookings;
+}

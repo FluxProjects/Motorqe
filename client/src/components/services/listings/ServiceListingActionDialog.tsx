@@ -18,12 +18,12 @@ import { Permission, roleMapping, hasPermission } from "@shared/permissions";
 interface ServiceListingActionDialogProps {
   service: AdminServiceListing;
   actionType: ServiceListingAction;
-   open: boolean;
-   onOpenChange: (open: boolean) => void;
-   actionReason: string;
-   setActionReason: (reason: string) => void;
-   actionInProgress: boolean;
-   confirmAction: () => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  actionReason: string;
+  setActionReason: (reason: string) => void;
+  actionInProgress: boolean;
+  confirmAction: () => void;
 }
 
 export const ServiceListingActionDialog = ({
@@ -39,7 +39,7 @@ export const ServiceListingActionDialog = ({
   const { t } = useTranslation();
   const { user } = useAuth();
 
-   const isListingOwner = user && service?.user?.id === user.id;
+  const isListingOwner = user && service?.user?.id === user.id;
 
   const hasActionPermission = () => {
     if (!user) return false;
@@ -49,20 +49,21 @@ export const ServiceListingActionDialog = ({
 
     switch (actionType) {
       case "feature":
-        return hasPermission(roleName, Permission.MANAGE_SERVICE_PROMOTIONS);
+      case "unfeature":
+        return hasPermission(roleName, Permission.MANAGE_PROMOTIONS);
       case "approve":
       case "reject":
-        return hasPermission(roleName, Permission.MANAGE_SHOWROOM_SERVICES);
+        return hasPermission(roleName, Permission.APPROVE_LISTINGS);
       case "publish":
         return (
-                    (isListingOwner && hasPermission(roleName, Permission.MANAGE_OWN_SERVICES)) ||
-                    hasPermission(roleName, Permission.MANAGE_ALL_SERVICES)
-                );
+          (isListingOwner && hasPermission(roleName, Permission.MANAGE_OWN_SERVICES)) ||
+          hasPermission(roleName, Permission.MANAGE_ALL_SERVICES)
+        );
       case "delete":
         return (
-          (service?.showroomId === service?.showroom?.id && 
-           hasPermission(roleName, Permission.MANAGE_OWN_SERVICES)) ||
-          hasPermission(roleName, Permission.MANAGE_ALL_SERVICES));
+          (isListingOwner && hasPermission(roleName, Permission.MANAGE_OWN_SERVICES)) ||
+          hasPermission(roleName, Permission.MANAGE_ALL_SERVICES)
+        );
       default:
         return false;
     }
@@ -72,12 +73,12 @@ export const ServiceListingActionDialog = ({
     if (!hasActionPermission()) return true;
 
     switch (actionType) {
-        case "reject":
-            return !actionReason.trim();
-        default:
-            return false;
+      case "reject":
+        return !actionReason.trim();
+      default:
+        return false;
     }
-};
+  };
 
   if (!hasActionPermission()) {
     return null;
@@ -87,35 +88,45 @@ export const ServiceListingActionDialog = ({
     switch (actionType) {
       case "feature":
         return {
-          title: service.isFeatured 
-            ? t("services.unfeatureService")
-            : t("services.featureService"),
-          description: service.isFeatured
-            ? t("services.unfeatureServiceDesc")
-            : t("services.featureServiceDesc"),
+          title: t("admin.featureListing"),
+          description: t("admin.featureListingDesc"),
+          icon: <Star className="h-4 w-4 mr-2" />,
+          buttonClass: "bg-yellow-600 hover:bg-yellow-700",
+        };
+      case "unfeature":
+        return {
+          title: t("admin.unfeatureListing"),
+          description: t("admin.unfeatureListingDesc"),
           icon: <Star className="h-4 w-4 mr-2" />,
           buttonClass: "bg-yellow-600 hover:bg-yellow-700",
         };
       case "approve":
         return {
-          title: t("services.activateService"),
-          description: t("services.activateServiceDesc"),
+          title: t("admin.approveListing"),
+          description: t("admin.approveListingDesc"),
           icon: <Check className="h-4 w-4 mr-2" />,
           buttonClass: "bg-green-700 hover:bg-green-800",
         };
       case "reject":
         return {
-          title: t("services.deactivateService"),
-          description: t("services.deactivateServiceDesc"),
+          title: t("admin.rejectListing"),
+          description: t("admin.rejectListingDesc"),
           icon: <X className="h-4 w-4 mr-2" />,
           buttonClass: "bg-red-700 hover:bg-red-800",
         };
       case "delete":
         return {
-          title: t("services.deleteService"),
-          description: t("services.deleteServiceDesc"),
+          title: t("admin.deleteListing"),
+          description: t("admin.deleteListingDesc"),
           icon: <Trash2 className="h-4 w-4 mr-2" />,
           buttonClass: "bg-red-700 hover:bg-red-800",
+        };
+      case "publish":
+        return {
+          title: t("admin.publishListing"),
+          description: t("admin.publishListingDesc"),
+          icon: <Check className="h-4 w-4 mr-2" />,
+          buttonClass: "bg-blue-700 hover:bg-blue-800",
         };
       default:
         return {
@@ -131,159 +142,74 @@ export const ServiceListingActionDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-          <DialogContent className="bg-slate-800 text-white border-slate-700">
-              <DialogHeader>
-                  <DialogTitle className="text-white">
-                      {actionType === "publish" && t("admin.publishListing")}
-                      {actionType === "approve" && t("admin.approveListing")}
-                      {actionType === "reject" && t("admin.rejectListing")}
-                      {actionType === "feature" && t("admin.featureListing")}
-                      {actionType === "delete" && t("admin.deleteListing")}
-                  </DialogTitle>
-                  <DialogDescription className="text-slate-400">
-                      {actionType === "publish" && t("admin.publishListingDesc")}
-                      {actionType === "approve" && t("admin.approveListingDesc")}
-                      {actionType === "reject" && t("admin.rejectListingDesc")}
-                      {actionType === "feature" && t("admin.featureListingDesc")}
-                      {actionType === "delete" && (
-                          <>
-                              {isListingOwner
-                                  ? t("admin.deleteOwnListingDesc")
-                                  : t("admin.deleteListingDesc")}
-                          </>
-                      )}
-                  </DialogDescription>
-              </DialogHeader>
+      <DialogContent className="bg-slate-800 text-white border-slate-700">
+        <DialogHeader>
+          <DialogTitle className="text-white">{title}</DialogTitle>
+          <DialogDescription className="text-slate-400">
+            {description}
+          </DialogDescription>
+        </DialogHeader>
 
-                                {actionType === "feature" && (
-                                    <div className="space-y-2">
-                                        <div className="flex items-center space-x-2">
-                                            <Checkbox
-                                                id="featured"
-                                                defaultChecked={true}
-                                                className="border-slate-500 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
-                                            />
-                                            <Label htmlFor="featured" className="text-slate-300">
-                                                {t("admin.markAsFeatured")}
-                                            </Label>
-                                        </div>
-                                        <p className="text-sm text-slate-400">
-                                            {t("admin.featuredListingInfo")}
-                                        </p>
-                                    </div>
-                                )}
-              
-                                {actionType === "delete" && (
-                                    <div className={`p-3 rounded-md text-sm ${
-                                        isListingOwner 
-                                            ? "bg-amber-900/20 border border-amber-800 text-amber-300"
-                                            : "bg-red-900/20 border border-red-800 text-red-300"
-                                    }`}>
-                                        <p>
-                                            {isListingOwner
-                                                ? t("admin.deleteOwnListingWarning")
-                                                : t("admin.deleteListingWarning")}
-                                        </p>
-                                    </div>
-                                )}
-
-        <div className="space-y-4 py-4">
-          {actionType === "feature" && (
-            <div className="space-y-2">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="featured"
-                  defaultChecked={true}
-                  className="border-slate-500 data-[state=checked]:bg-yellow-600 data-[state=checked]:border-yellow-600"
-                />
-                <Label htmlFor="featured" className="text-slate-300">
-                  {t("services.markAsFeatured")}
-                </Label>
-              </div>
-              <p className="text-sm text-slate-400">
-                {t("services.featuredServiceInfo")}
-              </p>
+        {actionType === "feature" && (
+          <div className="space-y-2">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="featured"
+                defaultChecked={true}
+                className="border-slate-500 data-[state=checked]:bg-yellow-600 data-[state=checked]:border-yellow-600"
+              />
+              <Label htmlFor="featured" className="text-slate-300">
+                {t("admin.markAsFeatured")}
+              </Label>
             </div>
-          )}
+            <p className="text-sm text-slate-400">
+              {t("admin.featuredListingInfo")}
+            </p>
+          </div>
+        )}
 
-          {actionType === "delete" && (
-            <div className="p-3 rounded-md text-sm bg-red-900/20 border border-red-800 text-red-300">
-              <p>{t("services.deleteServiceWarning")}</p>
-            </div>
-          )}
-        </div>
+        {actionType === "delete" && (
+          <div
+            className={`p-3 rounded-md text-sm ${
+              isListingOwner
+                ? "bg-amber-900/20 border border-amber-800 text-amber-300"
+                : "bg-red-900/20 border border-red-800 text-red-300"
+            }`}
+          >
+            <p>
+              {isListingOwner
+                ? t("admin.deleteOwnListingWarning")
+                : t("admin.deleteListingWarning")}
+            </p>
+          </div>
+        )}
 
         <DialogFooter>
-                  <Button
-                      variant="outline"
-                      onClick={() => onOpenChange(false)}
-                      className="border-slate-600 text-slate-300 hover:bg-slate-700"
-                      disabled={actionInProgress}
-                  >
-                      {t("common.cancel")}
-                  </Button>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            className="border-slate-600 text-slate-300 hover:bg-slate-700"
+            disabled={actionInProgress}
+          >
+            {t("common.cancel")}
+          </Button>
 
-                  <Button
-                      onClick={confirmAction}
-                      disabled={isActionDisabled() || actionInProgress}
-                      className={`
-                        ${
-                              actionType === "publish"
-                                  ? "bg-green-700 hover:bg-green-800"
-                                  : ""
-                          }  
-                        ${
-                              actionType === "approve"
-                                  ? "bg-green-700 hover:bg-green-800"
-                                  : ""
-                          }
-                          ${
-                              actionType === "reject"
-                                  ? "bg-amber-700 hover:bg-amber-800"
-                                  : ""
-                          }
-                          ${
-                              actionType === "feature"
-                                  ? "bg-blue-700 hover:bg-blue-800"
-                                  : ""
-                          }
-                          ${
-                              actionType === "delete"
-                                  ? "bg-red-700 hover:bg-red-800"
-                                  : ""
-                          }
-                          text-white
-                      `}
-                  >
-                      {actionInProgress ? (
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                          <>
-                              {actionType === "publish" && (
-                                  <Check className="h-4 w-4 mr-2" />
-                              )}
-                              {actionType === "approve" && (
-                                  <Check className="h-4 w-4 mr-2" />
-                              )}
-                              {actionType === "reject" && (
-                                  <X className="h-4 w-4 mr-2" />
-                              )}
-                              {actionType === "feature" && (
-                                  <Star className="h-4 w-4 mr-2" />
-                              )}
-                              {actionType === "delete" && (
-                                  <Trash2 className="h-4 w-4 mr-2" />
-                              )}
-                          </>
-                      )}
-                     {actionType === "publish" && t("admin.publishListing")}
-                      {actionType === "approve" && t("admin.approveListing")}
-                      {actionType === "reject" && t("admin.rejectListing")}
-                      {actionType === "feature" && t("admin.featureListing")}
-                      {actionType === "delete" && t("admin.deleteListing")}
-                  </Button>
-              </DialogFooter>
-          </DialogContent>
-      </Dialog>
+          <Button
+            onClick={confirmAction}
+            disabled={isActionDisabled() || actionInProgress}
+            className={`${buttonClass} text-white`}
+          >
+            {actionInProgress ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <>
+                {icon}
+                {title}
+              </>
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };

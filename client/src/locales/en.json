@@ -621,6 +621,9 @@
   },
   "admin": {
     "inactive":"Inactive",
+    "actionSuccess": "Action Successful",
+    "featureService": "Feature Service",
+    "unfeatureService": "Unfeature Service",
     "removed":"Removed",
     "allVerifications":"All Verifications",
     "createBannerAd":"Add New Banner",

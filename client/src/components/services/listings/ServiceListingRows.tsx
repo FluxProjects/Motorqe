@@ -14,7 +14,6 @@ import {
   Star,
   Check,
   X,
-  Wrench,
   Pencil,
   Trash2,
   CheckCircle,
@@ -52,7 +51,10 @@ export const ServiceListingRows = ({
     <TableRow key={service.id} className="border-neutral-300">
       <TableCell>
         <div className="flex items-center font-medium">
-          <Wrench className="h-4 w-4 mr-2" />
+          <img 
+          src={service?.service?.image}  
+          className="h-10 w-10 mr-2"       
+          />
           {service?.service?.name || t("services.unknownService")}
         </div>
       </TableCell>
@@ -78,8 +80,8 @@ export const ServiceListingRows = ({
         )}
       </TableCell>
       <TableCell>
-  {service?.created_at ? new Date(service.created_at).toLocaleString() : "—"}
-</TableCell>
+        {service?.created_at ? new Date(service.created_at).toLocaleString() : "—"}
+      </TableCell>
       <TableCell className="text-right">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -137,13 +139,21 @@ export const ServiceListingRows = ({
             {service.status === "active" && (
               <>
                 <PermissionGuard permission={Permission.MANAGE_PROMOTIONS}>
-                  {!service.is_featured && (
+                  {service.is_featured ? (
+                    <DropdownMenuItem
+                      className="hover:bg-slate-700 focus:bg-slate-700"
+                      onClick={() => handleAction(service, "unfeature")}
+                    >
+                      <Star className="mr-2 h-4 w-4 text-yellow-500" />
+                      {t("admin.unfeatureService")}
+                    </DropdownMenuItem>
+                  ) : (
                     <DropdownMenuItem
                       className="hover:bg-slate-700 focus:bg-slate-700"
                       onClick={() => handleAction(service, "feature")}
                     >
                       <Star className="mr-2 h-4 w-4 text-yellow-500" />
-                      {t("admin.featureservice")}
+                      {t("admin.featureService")}
                     </DropdownMenuItem>
                   )}
                 </PermissionGuard>

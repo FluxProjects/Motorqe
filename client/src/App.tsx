@@ -53,6 +53,7 @@ import SellerManageSettings from "./pages/seller/ManageSettings";
 // 🏢 Showroom Pages
 import ShowroomDashboard from "./pages/showroom/ShowroomDashboard";
 import ShowroomManageSettings from "./pages/showroom/ManageSettings";
+import GarageDashboard from "./components/dashboard/GarageDashboard";
 
 // 🛠️ Admin Pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -231,16 +232,7 @@ function functionStaticPage({ keyParam }: { keyParam: string }) {
               <ManageListings />
             </ProtectedRoute>
           </Route>
-          <Route path="/showroom-dashboard/servicelistings">
-            <ProtectedRoute permissions={[Permission.MANAGE_OWN_SERVICES]}>
-              <ManageServiceListings />
-            </ProtectedRoute>
-          </Route>
-          <Route path="/showroom-dashboard/servicebookings">
-            <ProtectedRoute permissions={[Permission.MANAGE_OWN_BOOKINGS]}>
-              <ManageServiceBookings />
-            </ProtectedRoute>
-          </Route>
+         
           <Route path="/showroom-dashboard/settings">
             <ProtectedRoute permissions={[Permission.MANAGE_SHOWROOM_PROFILE]}>
               <ShowroomManageSettings />
@@ -259,6 +251,22 @@ function functionStaticPage({ keyParam }: { keyParam: string }) {
           <Route path="/showroom-dashboard/staff">
             <ProtectedRoute permissions={[Permission.MANAGE_SHOWROOM_STAFF]}>
               <ShowroomManageSettings />
+            </ProtectedRoute>
+          </Route>
+
+          <Route path="/garage-dashboard">
+            <ProtectedRoute permissions={[Permission.CREATE_SHOWROOM_PROFILE]} fallback="/">
+              <GarageDashboard />
+            </ProtectedRoute>
+          </Route>
+           <Route path="/garage-dashboard/servicelistings">
+            <ProtectedRoute permissions={[Permission.MANAGE_OWN_SERVICES]}>
+              <ManageServiceListings />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/garage-dashboard/servicebookings">
+            <ProtectedRoute permissions={[Permission.MANAGE_OWN_BOOKINGS]}>
+              <ManageServiceBookings />
             </ProtectedRoute>
           </Route>
 

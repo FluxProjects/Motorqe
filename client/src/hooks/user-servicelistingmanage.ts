@@ -473,6 +473,13 @@ if ('ok' in serviceDetailsResponse && serviceDetailsResponse.ok) {
           featured: true,
         });
         break;
+        case "unfeature":
+        performAction.mutate({
+          id: currentService.id,
+          action: "feature",
+          featured: false,
+        });
+        break;
       case "delete":
         performAction.mutate({
           id: currentService.id,

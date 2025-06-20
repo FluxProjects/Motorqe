@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useLocation, useNavigate } from "wouter";
+import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import Login from "@/pages/Login";
@@ -18,11 +18,14 @@ export function LoginRedirect() {
         case "SELLER":
           navigate("/seller-dashboard");
           break;
-        case "SHOWROOM":
+        case "DEALER":
           navigate("/showroom-dashboard");
           break;
-        case "BUYER":
-          navigate("/buyer-dashboard");
+        case "GARAGE":
+          navigate("/garage-dashboard");
+          break;
+        case "SUPER_ADMIN":
+          navigate("/admin");
           break;
         default:
           // For other roles or no role, stay on login page

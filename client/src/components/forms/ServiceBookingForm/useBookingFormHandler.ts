@@ -69,7 +69,7 @@ export const useServiceBookingFormHandler = (onSuccess?: () => void) => {
       if (role === "ADMIN" || role === "SUPER_ADMIN") {
         navigate("/admin/bookings");
       } else if (role === "DEALER" || role === "GARAGE") {
-        navigate("/showroom-dashboard/bookings");
+        navigate("/garage-dashboard/bookings");
       } else {
         navigate("/bookings");
       }

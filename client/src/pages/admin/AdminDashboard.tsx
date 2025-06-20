@@ -94,11 +94,11 @@ const Badge = ({ role }: { role: string }) => {
       bgColor = "bg-blue-900/30";
       textColor = "text-blue-400";
       break;
-    case "buyer":
+    case "garage":
       bgColor = "bg-green-900/30";
       textColor = "text-green-400";
       break;
-    case "both":
+    case "dealer":
       bgColor = "bg-purple-900/30";
       textColor = "text-purple-400";
       break;

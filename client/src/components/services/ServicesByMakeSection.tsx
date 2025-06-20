@@ -43,7 +43,7 @@ export default function ServicesByMake() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {makeRows.map((row, rowIndex) => {
         const isRowExpanded = row.some(make => make.id === expandedMake);
         const expandedMakeServices = expandedMake 
@@ -58,13 +58,13 @@ export default function ServicesByMake() {
               grid-cols-2     /* Mobile: 2 columns */
               sm:grid-cols-3  /* Tablet: 3 columns */
               lg:grid-cols-5  /* Desktop: 5 columns */
-              gap-4
+              gap-2
             `}>
               {row.map(make => (
                 <div
                   key={`make-${make.id}`}
                   className={`
-                    flex flex-col items-center p-4 rounded-lg cursor-pointer border-2
+                    flex flex-col items-center p-2 rounded-lg cursor-pointer border-2
                     transition-colors hover:bg-gray-50
                     ${expandedMake === make.id ? 
                       'border-orange-500' : 
@@ -72,8 +72,8 @@ export default function ServicesByMake() {
                   `}
                   onClick={() => setExpandedMake(expandedMake === make.id ? null : make.id)}
                 >
-                  <Avatar className="h-16 w-16 mb-2 rounded-none">
-                    <AvatarImage className="rounded-none" src={make.image || undefined} />
+                  <Avatar className="h-24 w-24 mb-2 rounded-none overflow-hidden flex items-center justify-center">
+                    <AvatarImage className="max-h-24 w-auto object-contain rounded-none" src={make.image || undefined} />
                     <AvatarFallback>
                       {make.name.charAt(0).toUpperCase()}
                     </AvatarFallback>
@@ -92,16 +92,16 @@ export default function ServicesByMake() {
                 grid-cols-2     /* Mobile: 2 columns */
                 sm:grid-cols-3  /* Tablet: 3 columns */
                 lg:grid-cols-5  /* Desktop: 5 columns */
-                gap-4 bg-gray-50 p-4
+                gap-2
               `}>
                 {expandedMakeServices.length > 0 ? (
                   expandedMakeServices.map(service => (
                     <div
                       key={`service-${service.id}`}
-                      className="flex flex-col items-center p-4 bg-white border hover:shadow-sm"
+                      className="flex flex-col items-center p-2 bg-white border hover:shadow-sm"
                     >
-                      <Avatar className="h-16 w-16 mb-2 rounded-none">
-                        <AvatarImage className="rounded-none" src={service.image || undefined} />
+                      <Avatar className="h-16 w-16 mb-2 rounded-none overflow-hidden flex items-center justify-center">
+                        <AvatarImage className="max-h-24 w-auto object-contain rounded-none" src={service.image || undefined} />
                         <AvatarFallback>
                           {service.name.charAt(0).toUpperCase()}
                         </AvatarFallback>

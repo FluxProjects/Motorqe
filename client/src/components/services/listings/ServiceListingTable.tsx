@@ -66,6 +66,10 @@ export const ServiceListingTable = ({
         color: "bg-red-100 text-red-800",
         text: t("services.expired"),
       },
+       feature: {
+        color: "bg-red-100 text-red-800",
+        text: t("services.feature"),
+      },
       rejected: {
         color: "bg-red-100 text-red-800",
         text: t("services.rejected"),

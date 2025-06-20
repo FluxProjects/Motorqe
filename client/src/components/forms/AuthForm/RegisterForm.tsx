@@ -77,8 +77,8 @@ export const RegisterForm = ({
           control={form?.control}
           defaultValue="SELLER"
           render={({ field }) => (
-            <div role="radiogroup" className="mb-10 gap-2 space-x-4 hidden">
-              <div className="flex items-center space-x-2">
+            <div role="radiogroup" className="mb-10 flex gap-2 space-x-4">
+              <div className="flex items-center space-x-2 justify-center">
                 <input
                   type="radio"
                   id="seller"

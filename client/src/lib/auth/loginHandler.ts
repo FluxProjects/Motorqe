@@ -40,7 +40,7 @@ export const useLoginHandler = () => {
         BUYER: "/buyer-dashboard",
         SELLER: "/seller-dashboard",
         DEALER: "/showroom-dashboard",
-        GARAGE: "/showroom-dashboard",
+        GARAGE: "/garage-dashboard",
         MODERATOR: "/admin",
         ADMIN: "/admin",
         SUPER_ADMIN: "/admin",

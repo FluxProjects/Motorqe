@@ -17,6 +17,7 @@ export const getDashboardPathForRole = (role: Role): string => {
     case "SELLER":
       return "/seller-dashboard";
     case "DEALER":
+      return "/garage-dashboard";
     case "GARAGE":
       return "/showroom-dashboard";
     case "MODERATOR":
@@ -225,11 +226,11 @@ export const RoleBadge = ({
       bgColor = "bg-blue-100";
       textColor = "text-blue-800 hover:text-white";
       break;
-    case "buyer":
+    case "garage":
       bgColor = "bg-green-100";
       textColor = "text-green-800 hover:text-white";
       break;
-    case "both":
+    case "dealer":
       bgColor = "bg-purple-100";
       textColor = "text-purple-800 hover:text-white";
       break;

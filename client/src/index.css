@@ -2,6 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+    /* MOTOROE Brand Colors */
+  --motoroe-blue: hsl(215, 92%, 40%);
+  --motoroe-blue-light: hsl(214, 95%, 59%);
+  --motoroe-orange: hsl(19, 91%, 48%);
+  --motoroe-gray: hsl(220, 13%, 52%);
+}
+
 @layer base {
   * {
     @apply border-border;
@@ -11,6 +19,8 @@
     @apply font-sans antialiased bg-background text-foreground;
   }
 }
+
+
 
 
 /* Ribbon Styling */
@@ -170,4 +180,64 @@
   
   .slider.orange::-moz-range-thumb {
     background: #ea580c;
+  }
+
+  .motoroe-blue {
+    color: var(--motoroe-blue);
+  }
+  
+  .motoroe-blue-light {
+    color: var(--motoroe-blue-light);
+  }
+  
+  .motoroe-orange {
+    color: var(--motoroe-orange);
+  }
+  
+  .motoroe-gray {
+    color: var(--motoroe-gray);
+  }
+  
+  .bg-motoroe-blue {
+    background-color: var(--motoroe-blue);
+  }
+  
+  .bg-motoroe-blue-light {
+    background-color: var(--motoroe-blue-light);
+  }
+  
+  .bg-motoroe-orange {
+    background-color: var(--motoroe-orange);
+  }
+  
+  .bg-motoroe-gray {
+    background-color: var(--motoroe-gray);
+  }
+  
+  .border-motoroe-orange {
+    border-color: var(--motoroe-orange);
+  }
+  
+  .text-motoroe-blue {
+    color: var(--motoroe-blue);
+  }
+  
+  .text-motoroe-orange {
+    color: var(--motoroe-orange);
+  }
+  
+  .hover\:text-motoroe-blue:hover {
+    color: var(--motoroe-blue);
+  }
+  
+  .hover\:text-motoroe-orange:hover {
+    color: var(--motoroe-orange);
+  }
+  
+  .hover\:bg-motoroe-orange:hover {
+    background-color: var(--motoroe-orange);
+  }
+  
+  .gradient-motoroe {
+    background: linear-gradient(135deg, var(--motoroe-blue) 0%, var(--motoroe-blue-light) 100%);
   }
