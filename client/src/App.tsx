@@ -52,8 +52,11 @@ import SellerManageSettings from "./pages/seller/ManageSettings";
 
 // 🏢 Showroom Pages
 import ShowroomDashboard from "./pages/showroom/ShowroomDashboard";
-import ShowroomManageSettings from "./pages/showroom/ManageSettings";
-import GarageDashboard from "./components/dashboard/GarageDashboard";
+import GarageDashboard from "./pages/showroom/GarageDashboard";
+import GarageServiceListings from "./pages/showroom/GarageServiceListings";
+import GarageServiceBookings from "./pages/showroom/GarageServiceBookings";
+import GarageMessaging from "./pages/showroom/GarageMessages";
+import GarageProfile from "./pages/showroom/GarageProfile";
 
 // 🛠️ Admin Pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -68,6 +71,7 @@ import ManageServiceListings from "./pages/admin/ManageServiceListings";
 import ManageServiceBookings from "./pages/admin/ManageServiceBookings";
 import ManageCarInspections from "./pages/admin/ManageCarInspections";
 import ManagePromotionPackages from "./pages/admin/ManagePromtionPackages";
+import AdminAddGarage from "./pages/admin/AdminAddGarage";
 
 
 
@@ -233,11 +237,6 @@ function functionStaticPage({ keyParam }: { keyParam: string }) {
             </ProtectedRoute>
           </Route>
          
-          <Route path="/showroom-dashboard/settings">
-            <ProtectedRoute permissions={[Permission.MANAGE_SHOWROOM_PROFILE]}>
-              <ShowroomManageSettings />
-            </ProtectedRoute>
-          </Route>
           <Route path="/showroom-dashboard/profile">
             <ProtectedRoute permissions={[Permission.MANAGE_SHOWROOM_PROFILE]}>
               <ManageProfile />
@@ -248,11 +247,6 @@ function functionStaticPage({ keyParam }: { keyParam: string }) {
               <ManageMessages />
             </ProtectedRoute>
           </Route>
-          <Route path="/showroom-dashboard/staff">
-            <ProtectedRoute permissions={[Permission.MANAGE_SHOWROOM_STAFF]}>
-              <ShowroomManageSettings />
-            </ProtectedRoute>
-          </Route>
 
           <Route path="/garage-dashboard">
             <ProtectedRoute permissions={[Permission.CREATE_SHOWROOM_PROFILE]} fallback="/">
@@ -261,12 +255,22 @@ function functionStaticPage({ keyParam }: { keyParam: string }) {
           </Route>
            <Route path="/garage-dashboard/servicelistings">
             <ProtectedRoute permissions={[Permission.MANAGE_OWN_SERVICES]}>
-              <ManageServiceListings />
+              <GarageServiceListings />
             </ProtectedRoute>
           </Route>
           <Route path="/garage-dashboard/servicebookings">
             <ProtectedRoute permissions={[Permission.MANAGE_OWN_BOOKINGS]}>
-              <ManageServiceBookings />
+              <GarageServiceBookings />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/garage-dashboard/messaging">
+            <ProtectedRoute permissions={[Permission.MANAGE_OWN_BOOKINGS]}>
+              <GarageMessaging />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/garage-dashboard/profile">
+            <ProtectedRoute permissions={[Permission.MANAGE_SHOWROOM_PROFILE]}>
+              <GarageProfile />
             </ProtectedRoute>
           </Route>
 
@@ -303,6 +307,11 @@ function functionStaticPage({ keyParam }: { keyParam: string }) {
           <Route path="/admin/users">
             <ProtectedRoute permissions={[Permission.MANAGE_ALL_USERS]}>
               <AdminManageUsers />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/admin/addgarage">
+            <ProtectedRoute permissions={[Permission.MANAGE_ALL_USERS]}>
+              <AdminAddGarage />
             </ProtectedRoute>
           </Route>
           <Route path="/admin/settings">

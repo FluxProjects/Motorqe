@@ -8,6 +8,7 @@ import { verifyToken } from "./services/auth";
 import { InsertBannerAd, InsertBlogPost, InsertHeroSlider, InsertPromotionPackage, InsertServicePromotionPackage, InsertShowroom, InsertStaticContent, ShowroomService } from "@shared/schema";
 import { Role, roleIdMapping } from "@shared/permissions";
 import multer from "multer";
+import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize database with dummy data
@@ -1458,7 +1459,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
  */
 
   // get all services
-  app.get("/api/services", async (_req, res) => {
+  app.get("/api/services", async (req, res) => {
     try {
       const services = await storage.getAllServices();
       res.json(services);
@@ -1468,7 +1469,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/services/featured", async (_req, res) => {
+  app.get("/api/services/featured", async (req, res) => {
     try {
       console.log("inside features service route");
       const services = await storage.getAllFeaturedServices();
@@ -1565,6 +1566,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const service = await storage.getShowroomServiceByServiceId(id);
       if (!service) return res.status(404).json({ message: "Service not found" });
+      await storage.createShowroomServiceInteraction(id, "visits");
 
       res.json(service);
     } catch (error) {
@@ -1654,7 +1656,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // isActive
-      if (req.query.is_active) {
+      if (req.query.is_active && req.query.is_active !== "all") {
         console.log("Processing is_active filter with value:", req.query.is_active);
         filters.is_active = req.query.is_active === "true";
         console.log("Added is_active filter:", filters.is_active);
@@ -1786,6 +1788,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         availability,
         isFeatured = false,
         isActive = true,
+        status = "active",
         package_id,
         start_date,
         end_date
@@ -1804,20 +1807,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Validate dates if promotion package is provided
-      if (package_id) {
-        if (!start_date || !end_date) {
-          console.log("❌ Missing promotion dates");
-          return res.status(400).json({ message: "Start and end dates are required for promotions" });
-        }
+      let startDate: Date | null = null;
+      let endDate: Date | null = null;
 
-        const startDate = new Date(start_date);
-        const endDate = new Date(end_date);
+      const packageId = package_id || 1;
+
+      if (packageId) {
+        startDate = start_date ? new Date(start_date) : new Date(); // ✅ Default to now
+         endDate = end_date ? new Date(end_date) : new Date(startDate.getTime() + 3 * 24 * 60 * 60 * 1000);
+
+        if (!endDate) {
+          console.log("❌ End date is required when package_id is provided");
+          return res.status(400).json({ message: "End date is required for promotions" });
+        }
 
         if (startDate >= endDate) {
           console.log("❌ Invalid date range");
           return res.status(400).json({ message: "End date must be after start date" });
         }
       }
+
 
       console.log("🛠 Creating showroom service with data:", {
         showroomId,
@@ -1828,7 +1837,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         descriptionAr,
         availability,
         isFeatured,
-        isActive
+        isActive,
+        status
       });
 
       const newService = await storage.createShowroomService({
@@ -1845,17 +1855,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log("✅ Service created with ID:", newService.id);
 
-      if (package_id && start_date && end_date) {
+      if (packageId && start_date && end_date) {
         console.log("📣 Creating promotion with:", {
           serviceId: newService.id,
-          packageId: package_id,
+          packageId: packageId,
           startDate: start_date,
           endDate: end_date,
         });
 
         await storage.createServicePromotion({
           serviceId: newService.id,
-          packageId: package_id,
+          packageId: packageId,
           startDate: start_date,
           endDate: end_date,
           transactionId: null,
@@ -2057,6 +2067,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
+
+
+  app.get("/api/showroom/:id/booking-stats", async (req, res) => {
+  try {
+    const showroomId = Number(req.params.id);
+    if (isNaN(showroomId)) return res.status(400).json({ message: "Invalid showroom ID" });
+
+    const stats = await storage.getShowroomBookingStats(showroomId);
+    res.json(stats);
+  } catch (error) {
+    console.error("❌ Error fetching booking stats:", error);
+    res.status(500).json({ message: "Failed to fetch booking stats" });
+  }
+});
+
+app.get("/api/showroom/:id/service-interactions", async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid showroom ID" });
+
+    const stats = await storage.getShowroomServiceInteractionStats(id);
+    res.json(stats);
+  } catch (error) {
+    console.error("❌ Error fetching stats:", error);
+    res.status(500).json({ message: "Failed to fetch service interactions" });
+  }
+});
 
 
   app.get("/api/service-bookings", async (req, res) => {
@@ -2545,6 +2582,29 @@ app.put("/api/service-bookings/:id/actions", async (req, res) => {
       res.status(500).json({ message: "Failed to send reply", error });
     }
   });
+
+  app.patch("/api/messages/:id/status", async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+
+  if (!status) {
+    return res.status(400).json({ message: "Status is required" });
+  }
+
+  try {
+    const updatedMessage = await storage.updateMessageStatus(Number(id), status);
+
+    if (!updatedMessage) {
+      return res.status(404).json({ message: "Message not found or status unchanged" });
+    }
+
+    res.status(200).json({ message: "Message status updated", data: updatedMessage });
+  } catch (error) {
+    console.error("❌ Failed to update message status:", error);
+    res.status(500).json({ message: "Failed to update message status", error });
+  }
+});
+
 
   // Search History
   app.get("/api/search-history/:userId", async (req, res) => {

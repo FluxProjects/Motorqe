@@ -41,9 +41,9 @@ const roleId = user?.role_id;
  const isGarage = user?.roleId === 4;
 
 const { data: showrooms = [], isLoading, refetch } = useQuery<Showroom[]>({
-  queryKey: [isGarage ? "user-garages" : "user-showrooms", user.id],
+  queryKey: ["user-showrooms", user.id],
   queryFn: () =>
-    fetch(`/api/${isGarage ? "garages" : "showrooms"}/user/${user.id}`).then((res) =>
+    fetch(`/api/showrooms/user/${user.id}`).then((res) =>
       res.json()
     ),
   enabled: !!user?.id,

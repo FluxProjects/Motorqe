@@ -484,6 +484,30 @@ export type InsertShowroomService = z.infer<typeof insertShowroomServiceSchema>;
 export type ShowroomService = typeof showroomServices.$inferSelect;
 
 // =============================================
+// SHOWROOM SERVICE INTERACTION TABLE
+// =============================================
+
+export const showroomServiceInteractions = pgTable("showroom_service_interactions", {
+  id: serial("id").primaryKey(),
+
+  showroomServiceId: integer("showroom_service_id")
+    .references(() => showroomServices.id)
+    .notNull(),
+
+  interactionType: text("interaction_type").notNull(), // 'visits', 'calls', 'messages', etc.
+
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull()
+});
+
+export const insertShowroomServiceInteractionSchema = createInsertSchema(showroomServiceInteractions).pick({
+  showroomServiceId: true,
+  interactionType: true
+});
+
+export type InsertShowroomServiceInteraction = z.infer<typeof insertShowroomServiceInteractionSchema>;
+export type ShowroomServiceInteraction = typeof showroomServiceInteractions.$inferSelect
+
+// =============================================
 // SERVICE BOOKINGS TABLE
 // Stores user bookings for showroom services
 // =============================================

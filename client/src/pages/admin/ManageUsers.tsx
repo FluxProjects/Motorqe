@@ -67,6 +67,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { roleMapping } from "@shared/permissions";
 import { RoleBadge } from "@/lib/utils";
+import { navigate } from "wouter/use-browser-location";
 
 const ManageUsers = () => {
   const { t } = useTranslation();
@@ -344,12 +345,10 @@ const ManageUsers = () => {
                     <Button
                       variant="outline"
                       className="hover:bg-blue-900 border-blue-700 hover:text-white"
-                      onClick={() => {
-                        /* Handle add user */
-                      }}
+                      onClick={() => navigate("/admin/addgarage")}
                     >
                       <UserPlus className="h-4 w-4 mr-2" />
-                      {t("admin.addUser")}
+                      {t("admin.addGarage")}
                     </Button>
                   </div>
                 </div>

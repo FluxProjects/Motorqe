@@ -2,8 +2,9 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, CartesianGrid } from "recharts";
 import { Monitor, Smartphone } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 
-const chartData = [
+const dummyChartData = [
   { time: '1', desktop: 400, mobile: 200 },
   { time: '2', desktop: 420, mobile: 220 },
   { time: '3', desktop: 380, mobile: 180 },
@@ -42,6 +43,16 @@ const buttonClicks = [
 ];
 
 export default function GarageAnalytics() {
+  const { data: fetchedChartData, isLoading } = useQuery({
+    queryKey: ["garage-visit-chart"],
+    queryFn: async () => {
+      const res = await fetch("/api/showroom/visit-chart");
+      const data = await res.json();
+      return Array.isArray(data) && data.length > 0 ? data : null;
+    },
+  });
+
+  const chartData = fetchedChartData ?? dummyChartData;
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       {/* Left Column - Analytics Cards */}

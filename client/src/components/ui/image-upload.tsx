@@ -63,6 +63,7 @@ const handleFileChange = useCallback(
 
   return (
     <div className="space-y-4">
+       <div className="grid">
       {currentImage ? (
         <div className="relative group">
           <div className="rounded-md overflow-hidden border">
@@ -84,14 +85,14 @@ const handleFileChange = useCallback(
           )}
         </div>
       ) : (
-        <div className="flex items-center justify-center h-64 bg-gray-100 rounded-md border-2 border-dashed border-gray-300">
+        <div className="flex items-center justify-center bg-gray-100 rounded-md border-2 border-dashed border-gray-300 aspect-square">
           {isUploading ? (
             <div className="flex flex-col items-center">
               <Loader2 className="h-8 w-8 text-gray-500 animate-spin mb-2" />
               <span className="text-gray-500">Uploading...</span>
             </div>
           ) : (
-            <div className="text-center">
+            <div className="text-center p-4">
               <ImageIcon className="mx-auto h-12 w-12 text-gray-400" />
               <div className="mt-4 flex justify-center">
                 <label className="cursor-pointer">
@@ -113,6 +114,7 @@ const handleFileChange = useCallback(
           )}
         </div>
       )}
+    </div>
 
       {error && (
         <p className="mt-2 text-sm text-red-600" id="file-upload-error">

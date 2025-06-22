@@ -1,5 +1,11 @@
 {
   "common": {
+    "servicesAndPrices":"Service and Prices",
+    "selectService":"Select Service",
+    "description":"Description",
+    "welcome": "Welcome",
+    "clearSearch": "Clear Search",
+    "addService": "Add Service",
     "noGarageFound" : "No Garage Found",
     "bookNow":"Book Now",
     "sortBy":"Sort By",
@@ -621,6 +627,7 @@
   },
   "admin": {
     "inactive":"Inactive",
+    "addGarage" :"Add Garage",
     "actionSuccess": "Action Successful",
     "featureService": "Feature Service",
     "unfeatureService": "Unfeature Service",

@@ -1,10 +1,10 @@
-import GarageDashboardCards from "./GarageDashboardCards";
-import GarageAnalytics from "./GarageAnalytics";
+import GarageDashboardCards from "../../components/showroom/GarageDashboardCards";
+import GarageAnalytics from "../../components/showroom/GarageAnalytics";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
 import { roleMapping } from "@shared/permissions";
-import GarageNavigation from "./GarageNavigation";
+import GarageNavigation from "../../components/showroom/GarageNavigation";
 
 
 export default function GarageDashboard() {

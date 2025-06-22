@@ -3,6 +3,7 @@ import { ServiceBooking, InsertServiceBooking } from "@shared/schema";
 
 export interface IServiceBookingStorage {
 
+    getShowroomBookingStats(showroomId: number): Promise<void>;
     getAllServiceBookings(filter?: Partial<ServiceBooking>, sortBy?: keyof ServiceBooking, sortOrder?: 'asc' | 'desc'  // No default value here
         ): Promise<ServiceBooking[]>;
     getServiceBookingsByUser(userId: number): Promise<ServiceBooking[]>;
@@ -17,10 +18,34 @@ export interface IServiceBookingStorage {
 
 export const ServiceBookingStorage = {
 
+  async getShowroomBookingStats(showroomId: number): Promise<void> {
+  const query = `
+    SELECT
+      COUNT(*) FILTER (
+        WHERE DATE(scheduled_at) = CURRENT_DATE
+      ) AS today_bookings,
+      COUNT(*) FILTER (
+        WHERE DATE(scheduled_at) > CURRENT_DATE
+      ) AS upcoming_bookings,
+      COUNT(*) FILTER (
+        WHERE status = 'pending'
+      ) AS pending_bookings
+    FROM service_bookings
+    WHERE showroom_id = $1;
+  `;
+
+  const [row] = await db.query(query, [showroomId]);
+  return {
+    today: Number(row.today_bookings),
+    upcoming: Number(row.upcoming_bookings),
+    pending: Number(row.pending_bookings),
+  };
+},
+
     async getAllServiceBookings(
-      filter?: Partial<ServiceBooking> & {
-        user_id?: number;        // This should match s.user_id (showroom owner)
-        customer_id?: number;    // This should match sb.user_id (customer who booked)
+      filter?: {
+        user_id?: number;        // Showroom owner (s.user_id)
+        customer_id?: number;    // Booking customer (sb.user_id)
         service_id?: number;
         showroom_id?: number;
         status?: string;
@@ -31,7 +56,7 @@ export const ServiceBookingStorage = {
         price_from?: number;
         price_to?: number;
       },
-      sortBy?: keyof ServiceBooking,
+      sortBy?: 'id' | 'price' | 'scheduled_at' | 'created_at' | 'status',
       sortOrder: 'asc' | 'desc' = 'asc'
     ): Promise<ServiceBooking[]> {
       console.log('--- START: getAllServiceBookings ---');
@@ -50,7 +75,7 @@ export const ServiceBookingStorage = {
         LEFT JOIN users cu ON sb.user_id = cu.id
         LEFT JOIN showroom_services ss ON sb.service_id = ss.id
         LEFT JOIN car_services cs ON ss.service_id = cs.id
-        LEFT JOIN showrooms s ON sb.showroom_id = s.id
+        LEFT JOIN showrooms s ON ss.showroom_id = s.id
         LEFT JOIN users su ON s.user_id = su.id
       `;
 
@@ -58,83 +83,83 @@ export const ServiceBookingStorage = {
       const values: any[] = [];
       let paramIndex = 1;
 
-      for (const key in filter) {
-        const value = filter[key as keyof typeof filter];
-        if (value === undefined || value === null) continue;
+      if (filter) {
+        for (const key in filter) {
+          const value = filter[key as keyof typeof filter];
+          if (value === undefined || value === null) continue;
 
-        switch (key) {
-          case 'user_id':
-            // Filter for showroom owner's user ID
-            whereClauses.push(`s.user_id = $${paramIndex}`);
-            values.push(value);
-            break;
+          switch (key) {
+            case 'user_id':
+              whereClauses.push(`s.user_id = $${paramIndex}`);
+              values.push(value);
+              break;
 
-          case 'customer_id':
-            // Filter for customer (who booked the service)
-            whereClauses.push(`sb.user_id = $${paramIndex}`);
-            values.push(value);
-            break;
+            case 'customer_id':
+              whereClauses.push(`sb.user_id = $${paramIndex}`);
+              values.push(value);
+              break;
 
-          case 'service_id':
-          case 'showroom_id':
-            whereClauses.push(`sb.${key} = $${paramIndex}`);
-            values.push(value);
-            break;
+            case 'service_id':
+              whereClauses.push(`sb.service_id = $${paramIndex}`);
+              values.push(value);
+              break;
 
-          case 'status':
-            whereClauses.push(`sb.status = $${paramIndex}`);
-            values.push(value);
-            break;
+            case 'showroom_id':
+              whereClauses.push(`s.id = $${paramIndex}`);
+              values.push(value);
+              break;
 
-          case 'scheduled_from':
-            whereClauses.push(`sb.scheduled_at >= $${paramIndex}`);
-            values.push(new Date(value).toISOString());
-            break;
+            case 'status':
+              whereClauses.push(`sb.status = $${paramIndex}`);
+              values.push(value);
+              break;
 
-          case 'scheduled_to': {
-            const date = new Date(value);
-            date.setUTCHours(23, 59, 59, 999);
-            whereClauses.push(`sb.scheduled_at <= $${paramIndex}`);
-            values.push(date.toISOString());
-            break;
+            case 'scheduled_from':
+              whereClauses.push(`sb.scheduled_at >= $${paramIndex}`);
+              values.push(new Date(value).toISOString());
+              break;
+
+            case 'scheduled_to': {
+              const date = new Date(value);
+              date.setUTCHours(23, 59, 59, 999);
+              whereClauses.push(`sb.scheduled_at <= $${paramIndex}`);
+              values.push(date.toISOString());
+              break;
+            }
+
+            case 'created_from':
+              whereClauses.push(`sb.created_at >= $${paramIndex}`);
+              values.push(new Date(value).toISOString());
+              break;
+
+            case 'created_to': {
+              const date = new Date(value);
+              date.setUTCHours(23, 59, 59, 999);
+              whereClauses.push(`sb.created_at <= $${paramIndex}`);
+              values.push(date.toISOString());
+              break;
+            }
+
+            case 'price_from':
+              whereClauses.push(`sb.price >= $${paramIndex}`);
+              values.push(value);
+              break;
+
+            case 'price_to':
+              whereClauses.push(`sb.price <= $${paramIndex}`);
+              values.push(value);
+              break;
           }
 
-          case 'created_from':
-            whereClauses.push(`sb.created_at >= $${paramIndex}`);
-            values.push(new Date(value).toISOString());
-            break;
-
-          case 'created_to': {
-            const date = new Date(value);
-            date.setUTCHours(23, 59, 59, 999);
-            whereClauses.push(`sb.created_at <= $${paramIndex}`);
-            values.push(date.toISOString());
-            break;
-          }
-
-          case 'price_from':
-            whereClauses.push(`sb.price >= $${paramIndex}`);
-            values.push(value);
-            break;
-
-          case 'price_to':
-            whereClauses.push(`sb.price <= $${paramIndex}`);
-            values.push(value);
-            break;
+          paramIndex++;
         }
-
-        paramIndex++;
       }
 
       if (whereClauses.length > 0) {
         baseQuery += ' WHERE ' + whereClauses.join(' AND ');
       }
 
-      const validSortFields: (keyof ServiceBooking)[] = [
-        'id', 'price', 'scheduled_at', 'created_at', 'status'
-      ];
-
-      if (sortBy && validSortFields.includes(sortBy)) {
+      if (sortBy) {
         baseQuery += ` ORDER BY sb.${sortBy} ${sortOrder.toUpperCase()}`;
       }
 
@@ -143,8 +168,8 @@ export const ServiceBookingStorage = {
 
       try {
         const result = await db.query(baseQuery, values);
-        console.log('Rows:', result.length);
-        return result;
+        // If using node-postgres (pg), return result.rows
+        return result.rows ?? result;
       } catch (err) {
         console.error('Query failed:', err);
         throw err;
