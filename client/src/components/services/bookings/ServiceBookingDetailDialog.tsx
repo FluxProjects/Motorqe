@@ -9,13 +9,13 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Eye, Check, X, Calendar, Clock, Wrench, User, MapPin, Trash2, CheckCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { AdminServiceBooking } from "@shared/schema";
+import { AdminServiceBooking, ServiceBooking } from "@shared/schema";
 
 interface ServiceBookingDetailDialogProps {
-  booking: AdminServiceBooking;
+  booking: ServiceBooking;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  handleAction: (booking: AdminServiceBooking, action: 'confirm' | 'reschedule' | 'complete' | 'cancel' | 'reject') => void;
+  handleAction: (booking: ServiceBooking, action: 'confirm' | 'reschedule' | 'complete' | 'cancel' | 'reject') => void;
 }
 
 export const ServiceBookingDetailDialog = ({

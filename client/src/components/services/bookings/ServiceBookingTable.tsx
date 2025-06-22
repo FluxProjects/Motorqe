@@ -2,15 +2,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Loader2, Calendar, Wrench, Badge } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { NoListingsFound } from "@/components/listings/NoListingFound";
-import { AdminServiceBooking, ServiceBookingAction } from "@shared/schema";
+import { AdminServiceBooking, ServiceBooking, ServiceBookingAction } from "@shared/schema";
 
 interface ServiceBookingTableProps {
-  bookings?: AdminServiceBooking[];
+  bookings?: ServiceBooking[];
   isLoading: boolean;
   resetFilters: () => void;
-  handleViewBooking: (booking: AdminServiceBooking) => void;
-  handleEditBooking: (booking: AdminServiceBooking) => void;
-  handleAction: (booking: AdminServiceBooking, action: ServiceBookingAction) => void;
+  handleViewBooking: (booking: ServiceBooking) => void;
+  handleEditBooking: (booking: ServiceBooking) => void;
+  handleAction: (booking: ServiceBooking, action: ServiceBookingAction) => void;
   getStatusBadge: (status: string) => React.ReactNode;
 }
 

@@ -1,10 +1,11 @@
 // components/admin/listings/ListingFormDialog.tsx
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ServiceBookingForm } from "@/components/forms/ServiceBookingForm/ServiceBookingForm";
-import { AdminServiceBooking } from "@shared/schema"
+import { AdminServiceBooking, ServiceBooking } from "@shared/schema"
 
 interface BookingFormDialogProps {
-  booking?: AdminServiceBooking | null;
+  booking?: ServiceBooking;
+  isEditing: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess?: () => void;
@@ -12,6 +13,7 @@ interface BookingFormDialogProps {
 
 export const ServiceBookingFormDialog = ({
   booking,
+  isEditing,
   open,
   onOpenChange,
   onSuccess,

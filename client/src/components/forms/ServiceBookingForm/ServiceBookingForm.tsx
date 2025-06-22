@@ -6,7 +6,7 @@ import { Permission } from "@shared/permissions";
 import { useServiceBookingFormHandler } from "./useBookingFormHandler";
 import { ServiceBookingFormSteps } from "./ServiceBookingFormSteps";
 import { ProgressHeader } from "@/components/layout/ProgressHeader";
-import { ServiceBookingFormData, AdminServiceBooking } from "@shared/schema";
+import { ServiceBookingFormData, AdminServiceBooking, ServiceBooking } from "@shared/schema";
 
 const steps = [
   "Service Selection",
@@ -17,7 +17,7 @@ const steps = [
 ];
 
 interface Props {
-  booking?: AdminServiceBooking | null;
+  booking?: ServiceBooking | null;
   onSuccess?: () => void;
 }
 
@@ -36,7 +36,7 @@ export function ServiceBookingForm({ booking, onSuccess }: Props) {
         userId: booking.userId.toString(),
         showroomId: booking.showroomId?.toString(),
         scheduledAt: new Date(booking.scheduledAt).toISOString(),
-        notes: booking.notes,
+        notes: booking.notes || '',
         price: booking.price,
         currency: booking.currency || "QAR",
         status: booking.status,
@@ -56,9 +56,9 @@ export function ServiceBookingForm({ booking, onSuccess }: Props) {
 
   const { mutate } = useServiceBookingFormHandler(onSuccess);
 
-  const onSubmitHandler = (action: 'draft' | 'submit') =>
+  const onSubmitHandler = (action: 'draft' | 'publish') =>
     rhfHandleSubmit(async (data) => {
-      const status = (action === 'submit' ? 'pending' : 'draft') as ServiceBookingFormData['status'];
+      const status = (action === 'publish' ? 'pending' : 'draft') as ServiceBookingFormData['status'];
       const payload = {
         ...data,
         status,
@@ -91,7 +91,7 @@ export function ServiceBookingForm({ booking, onSuccess }: Props) {
             updateData={updateData}
             nextStep={nextStep}
             prevStep={prevStep}
-            handleSubmit={(action: 'draft' | 'submit') => onSubmitHandler(action)()}
+            handleSubmit={(action: 'draft' | 'publish') => onSubmitHandler(action)()}
             booking={booking}
           />
         </PermissionGuard>

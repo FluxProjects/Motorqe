@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { ServiceBooking, ServiceBookingAction } from "@shared/schema";
+import { AdminServiceBooking, ServiceBooking, ServiceBookingAction } from "@shared/schema";
 import { useAuth } from "@/contexts/AuthContext";
 import { roleMapping } from "@shared/permissions";
 

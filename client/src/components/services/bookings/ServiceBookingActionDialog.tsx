@@ -11,12 +11,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Check, X, Clock, Trash2, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { AdminServiceBooking, ServiceBookingAction } from "@shared/schema";
+import { AdminServiceBooking, ServiceBooking, ServiceBookingAction } from "@shared/schema";
 import { useAuth } from "@/contexts/AuthContext";
 import { Permission, roleMapping, hasPermission } from "@shared/permissions";
 
 interface ServiceBookingActionDialogProps {
-  booking: AdminServiceBooking;
+  booking: ServiceBooking;
   actionType: ServiceBookingAction;
   open: boolean;
   onOpenChange: (open: boolean) => void;
