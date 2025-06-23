@@ -19,6 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2 } from "lucide-react";
+import { useNavigate, useSearchParams } from "react-router-dom"; // or `next/router` for Next.js
 
 const BrowseGarages = () => {
   const { t } = useTranslation();
@@ -26,6 +27,7 @@ const BrowseGarages = () => {
   const [selectedMakes, setSelectedMakes] = useState<string[]>([]);
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState("featured");
+  const [isMobileService, setIsMobileService] = useState<boolean | null>(null);
   const [maxDistance, setMaxDistance] = useState<string>("0");
   const [userLocation, setUserLocation] = useState<{
     lat: number;
@@ -34,7 +36,27 @@ const BrowseGarages = () => {
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isGeocoding, setIsGeocoding] = useState(false);
   const [geocodingProgress, setGeocodingProgress] = useState(0);
+  const [searchParams] = useSearchParams();
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const navigate = useNavigate();
 
+useEffect(() => {
+  const makesParam = searchParams.getAll("make");
+  const servicesParam = searchParams.getAll("service");
+  const distanceParam = searchParams.get("distance");
+  const mobileParam = searchParams.get("mobile");
+  const sortParam = searchParams.get("sort");
+  const searchParam = searchParams.get("search")?.trim();
+
+  if (makesParam.length) setSelectedMakes(makesParam);
+  if (servicesParam.length) setSelectedServices(servicesParam);
+  if (distanceParam) setMaxDistance(distanceParam);
+  if (mobileParam) setIsMobileService(mobileParam === "true");
+  if (sortParam) setSortBy(sortParam);
+  if (searchParam) setSearchTerm(searchParam);
+
+  setIsInitialLoad(false);
+}, [searchParams]);
 
 const distanceOptions = [
   { value: "0", label: t("common.showAll") }, // Add this as the first option
@@ -214,7 +236,12 @@ const distanceOptions = [
       !showroom.distance ||
       showroom.distance <= Number(maxDistance);
 
-    return matchesSearch && matchesMakes && matchesServices && matchesDistance;
+    // Filter by mobile service
+    const matchesMobileService = 
+      isMobileService === null || 
+      showroom.is_mobile_service === isMobileService;
+
+    return matchesSearch && matchesMakes && matchesServices && matchesDistance && matchesMobileService;
   })
   ?.sort((a: any, b: any) => {
     switch (sortBy) {
@@ -283,6 +310,22 @@ const distanceOptions = [
       </div>
     );
   };
+
+  useEffect(() => {
+  
+    if (isInitialLoad) return;
+
+  const params = new URLSearchParams();
+
+  selectedMakes.forEach((make) => params.append("make", make));
+  selectedServices.forEach((service) => params.append("service", service));
+  if (maxDistance !== "0") params.set("distance", maxDistance);
+  if (isMobileService !== null) params.set("mobile", isMobileService.toString());
+  if (sortBy) params.set("sort", sortBy);
+  if (searchTerm) params.set("search", searchTerm);
+
+  navigate({ search: params.toString() }, { replace: true });
+}, [selectedMakes, selectedServices, maxDistance, isMobileService, sortBy, searchTerm]);
 
   return (
     <div className="bg-white min-h-screen py-8">
@@ -407,6 +450,35 @@ const distanceOptions = [
               </div>
             </div>
 
+            {/* Mobile Service Filter */}
+            <div className="space-y-3">
+              <Label className="block font-medium">Mobile Service</Label>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="mobile-service-all"
+                  checked={isMobileService === null}
+                  onCheckedChange={() => setIsMobileService(null)}
+                />
+                <Label htmlFor="mobile-service-all">All</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="mobile-service-yes"
+                  checked={isMobileService === true}
+                  onCheckedChange={() => setIsMobileService(true)}
+                />
+                <Label htmlFor="mobile-service-yes">Mobile Service Only</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="mobile-service-no"
+                  checked={isMobileService === false}
+                  onCheckedChange={() => setIsMobileService(false)}
+                />
+                <Label htmlFor="mobile-service-no">Non-Mobile Service Only</Label>
+              </div>
+            </div>
+
             {/* Clear Filters Button */}
             <Button
               variant="outline"
@@ -417,6 +489,7 @@ const distanceOptions = [
                 setSearchTerm("");
                 setMaxDistance("50");
                 setSortBy("distance");
+                setIsMobileService(null);
               }}
             >
               {t("common.clearFilters")}

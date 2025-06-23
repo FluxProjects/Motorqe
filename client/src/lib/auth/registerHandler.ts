@@ -33,6 +33,7 @@ export const useRegisterHandler = () => {
           lastName: values.lastName,
           username: values.username,
           email: values.email,
+          phone: null,
           password: values.password,
           confirmPassword: values.confirmPassword,
           role: uppercaseRole,

@@ -60,7 +60,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   })
 
   app.post("/api/auth/register", async (req, res) => {
-    const { firstName, lastName, username, email, password, confirmPassword, role, termsAgreement } = req.body;
+    const { firstName, lastName, username, email, phone, password, confirmPassword, role, termsAgreement } = req.body;
     console.log("Registration request received from", email);
 
     // Basic validation (you can add more as needed)
@@ -80,6 +80,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         username,
         email,
         password,
+        phone,
         role,
       });
       res.cookie('token', token, {
@@ -506,6 +507,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to fetch showrooms", error });
     }
   });
+
+  app.get("/api/showroomsgarages", async (req, res) => {
+  const isMainOnly = req.query.main === "true";
+
+  try {
+    const showrooms = await storage.getAllShowroomsGarages(isMainOnly);
+    res.json(showrooms);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch showrooms", error });
+  }
+});
+
 
   app.get("/api/garages", async (_req, res) => {
     try {

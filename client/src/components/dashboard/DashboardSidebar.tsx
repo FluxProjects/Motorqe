@@ -80,6 +80,7 @@ const DashboardSidebar = ({ type }: SidebarProps) => {
       { href: '/admin/inspections', label: t('admin.manageCarInspections'), icon: 'ri-search-eye-line' },
       { href: '/admin/promotions', label: t('admin.managePromotionPackages'), icon: 'ri-price-tag-3-line' },
       { href: '/admin/messages', label: t('admin.manageMessages'), icon: 'ri-chat-3-line' },
+      { href: '/admin/showrooms', label: t('admin.manageShowrooms'), icon: 'ri-slideshow-line' },
       { href: '/admin/users', label: t('admin.manageUsers'), icon: 'ri-user-settings-line' },
       { href: '/admin/settings', label: t('admin.siteSettings'), icon: 'ri-settings-3-line' },
       { href: '/admin/content', label: t('admin.cms'), icon: 'ri-layout-text-window-line' },

@@ -1,12 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { Link } from "wouter";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CarService } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useState } from "react";
 import { Button } from "../ui/button";
+import { useNavigate } from "react-router-dom";
 
 interface ServiceWrapper {
   service: CarService;
@@ -15,6 +15,7 @@ interface ServiceWrapper {
 export default function AllServicesSection({ searchQuery }: { searchQuery: string }) {
   const { t } = useTranslation();
   const [showAll, setShowAll] = useState(false);
+   const navigate = useNavigate();
 
   const fetchAllServices = async (): Promise<ServiceWrapper[]> => {
     const response = await apiRequest("GET", "/api/services");
@@ -56,21 +57,22 @@ export default function AllServicesSection({ searchQuery }: { searchQuery: strin
     <>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
         {visibleServices.map((service) => (
-          <Link
-            key={`service-${service.id}`}
-            href={`/services/${service.id}`}
+         <div
+            key={`garages-${service?.id}`}
+            onClick={() => navigate(`/browse-garages?service=${service?.id}&sort=featured`)}
             className="flex flex-col items-center bg-white rounded-md border-2 border-neutral-300 p-4 hover:bg-neutral-50 cursor-pointer"
           >
+
             <Avatar className="h-16 w-16 mb-2 rounded-none overflow-hidden flex items-center justify-center">
               <AvatarImage
-                src={service.image}
-                alt={service.name}
+                src={service?.image}
+                alt={service?.name}
                 className="max-h-24 w-auto object-contain rounded-none"
               />
-              <AvatarFallback>{service.name?.charAt(0)}</AvatarFallback>
+              <AvatarFallback>{service?.name?.charAt(0)}</AvatarFallback>
             </Avatar>
-            <span className="text-sm font-medium text-center">{service.name}</span>
-          </Link>
+            <span className="text-sm font-medium text-center">{service?.name}</span>
+          </div>
         ))}
       </div>
 

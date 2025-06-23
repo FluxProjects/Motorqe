@@ -9,7 +9,6 @@ import { useState } from "react";
 const BrowseServices = () => {
   const { t } = useTranslation();
   const [searchQuery] = useState("");
-  const [selectedMake, setSelectedMake] = useState<number | null>(null);
 
   return (
   <div className="bg-white min-h-screen py-8">
@@ -60,11 +59,7 @@ const BrowseServices = () => {
           </TabsContent>
 
           <TabsContent value="byMake" className="mt-6">
-            <ServicesByMake
-              searchQuery={searchQuery}
-              selectedMake={selectedMake}
-              onSelectMake={setSelectedMake}
-            />
+            <ServicesByMake />
           </TabsContent>
 
           <TabsContent value="featured" className="mt-6">

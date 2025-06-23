@@ -6,6 +6,7 @@ export interface IShowroomStorage {
 
     getAllShowrooms(): Promise<Showroom[]>;
     getAllGarages(): Promise<Showroom[]>;
+    getAllShowroomsGarages(mainOnly: boolean): Promise<Showroom[]>;
     getShowroom(id: number): Promise<Showroom | undefined>;
     getGarage(id: number): Promise<Showroom | undefined>;
     createShowroom(showroom: InsertShowroom): Promise<Showroom>;
@@ -26,6 +27,14 @@ export const ShowroomStorage = {
     async getAllGarages(): Promise<Showroom[]> {
         return await db.query('SELECT * FROM showrooms WHERE is_garage = $1 ORDER BY name', [true]);
     },
+
+    async getAllShowroomsGarages(mainOnly: boolean = false): Promise<Showroom[]> {
+  if (mainOnly) {
+    return await db.query("SELECT * FROM showrooms WHERE is_main = true ORDER BY name");
+  }
+
+  return await db.query("SELECT * FROM showrooms ORDER BY name");
+},
 
     async getShowroom(id: number): Promise<Showroom | undefined> {
         const result = await db.query('SELECT * FROM showrooms WHERE is_garage = $1 AND id = $2 LIMIT 1', [false, id]);

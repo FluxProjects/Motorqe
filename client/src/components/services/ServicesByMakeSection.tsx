@@ -5,11 +5,15 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CarMake, CarService } from "@shared/schema";
+import { useNavigate } from "react-router-dom";
+
 
 export default function ServicesByMake() {
   const { t } = useTranslation();
   const [expandedMake, setExpandedMake] = useState<number | null>(null);
   const [visibleMakesCount, setVisibleMakesCount] = useState(20);
+  const navigate = useNavigate();
+
 
   // Fetch all car makes
   const { data: makes = [], isLoading: isLoadingMakes } = useQuery<CarMake[]>({
@@ -70,7 +74,7 @@ export default function ServicesByMake() {
                       'border-orange-500' : 
                       'border-transparent hover:border-gray-200'}
                   `}
-                  onClick={() => setExpandedMake(expandedMake === make.id ? null : make.id)}
+                  onClick={() => navigate(`/browse-garages?make=${make.id}&sort=featured`)}
                 >
                   <Avatar className="h-24 w-24 mb-2 rounded-none overflow-hidden flex items-center justify-center">
                     <AvatarImage className="max-h-24 w-auto object-contain rounded-none" src={make.image || undefined} />
@@ -97,7 +101,7 @@ export default function ServicesByMake() {
                 {expandedMakeServices.length > 0 ? (
                   expandedMakeServices.map(service => (
                     <div
-                      key={`service-${service.id}`}
+                      key={`garages-${service.id}`}
                       className="flex flex-col items-center p-2 bg-white border hover:shadow-sm"
                     >
                       <Avatar className="h-16 w-16 mb-2 rounded-none overflow-hidden flex items-center justify-center">
@@ -124,12 +128,15 @@ export default function ServicesByMake() {
 
       {/* Pagination Controls */}
       <div className="flex justify-center mt-6">
-        {visibleMakesCount < makes.length ? (
-          <Button className="bg-orange-500 text-white" onClick={() => setVisibleMakesCount(prev => prev + 20)}>
-            {t("common.showMore")}
-          </Button>
-        ) : (
-          makes.length > 20 && (
+        {makes.length > 20 && (
+          visibleMakesCount < makes.length ? (
+            <Button
+              className="bg-orange-500 text-white"
+              onClick={() => setVisibleMakesCount(makes.length)}
+            >
+              {t("common.showAll")}
+            </Button>
+          ) : (
             <Button
               className="border-orange-500 text-orange-500 bg-white"
               onClick={() => {
@@ -141,6 +148,7 @@ export default function ServicesByMake() {
             </Button>
           )
         )}
+
       </div>
     </div>
   );

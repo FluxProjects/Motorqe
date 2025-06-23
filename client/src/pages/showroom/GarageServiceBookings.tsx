@@ -199,7 +199,7 @@ export default function GarageServiceBookings() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen">
       <GarageNavigation />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -217,14 +217,14 @@ export default function GarageServiceBookings() {
           </Select>
         </div>
 
-        <Card className="bg-white rounded-2xl shadow-sm border-2 border-motoroe-orange overflow-hidden">
-          <div className="flex border-b border-gray-200">
+        <Card className="bg-neutral-50 rounded-2xl shadow-sm border-2 border-orange-500 overflow-hidden">
+          <div className="flex border-b border-orange-200">
             <button
               onClick={() => setActiveTab("pending")}
               className={`flex-1 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === "pending"
-                  ? "border-motoroe-orange text-motoroe-orange bg-gray-50"
-                  : "border-transparent text-gray-500 hover:text-motoroe-orange"
+                  ? "border-orange-500 text-orange-500"
+                  : "border-transparent text-orange-500"
               }`}
             >
               <div className="flex items-center justify-center space-x-2">
@@ -238,8 +238,8 @@ export default function GarageServiceBookings() {
               onClick={() => setActiveTab("confirmed")}
               className={`flex-1 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === "confirmed"
-                  ? "border-motoroe-blue text-motoroe-blue bg-blue-50"
-                  : "border-transparent text-gray-500 hover:text-motoroe-blue"
+                  ? "border-blue-900 text-blue-900"
+                  : "border-transparent text-blue-900"
               }`}
             >
               <div className="flex items-center justify-center space-x-2">
@@ -265,7 +265,7 @@ export default function GarageServiceBookings() {
                 {bookings.map((booking) => (
                   <div
                     key={booking.id}
-                    className="flex flex-col md:flex-row justify-between p-4 bg-gray-50 rounded-lg gap-4"
+                    className="flex flex-col md:flex-row justify-between pt-4 pb-4 bg-neutral-50 gap-4 border-b-2 border-orange-500/25"
                   >
                     <div className="flex items-center space-x-4">
                       {booking.id}

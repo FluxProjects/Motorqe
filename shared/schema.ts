@@ -153,6 +153,8 @@ export const showrooms = pgTable("showrooms", {
   images: text("images").array(),
   isFeatured: boolean('is_featured').default(false),
   isGarage: boolean('is_garage').default(false),
+  isMobileService: boolean('is_mobile_service').default(false),
+  rating: integer('rating'),
 });
 
 export const insertShowroomSchema = createInsertSchema(showrooms).pick({
@@ -172,6 +174,8 @@ export const insertShowroomSchema = createInsertSchema(showrooms).pick({
   images: true,
   isFeatured: true,
   isGarage: true,
+  isMobileService: true,
+  rating: true,
 });
 
 export type InsertShowroom = z.infer<typeof insertShowroomSchema>;

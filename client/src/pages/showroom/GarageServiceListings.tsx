@@ -233,7 +233,7 @@ export default function GarageServiceListings() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen">
       <GarageNavigation />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <h1 className="text-2xl font-semibold text-gray-900 mb-8">
@@ -244,7 +244,7 @@ export default function GarageServiceListings() {
           {/* Dashboard cards */}
         </div>
 
-        <Card className="bg-white rounded-2xl shadow-sm border-2 border-motoroe-orange p-8">
+        <Card className="bg-neutral-50 rounded-2xl shadow-sm border-2 border-motoroe-orange p-8">
           <div className="text-center mb-8">
             <h1 className="text-2xl font-semibold text-gray-900 mb-2">
               {t("common.servicesAndPrices")}
@@ -254,27 +254,24 @@ export default function GarageServiceListings() {
 
           <div className="space-y-6">
             {services.map((service, index) => (
-              <div key={service.id || `new-${index}`} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+              <div key={service.id || `new-${index}`} className="grid grid-cols-1 md:grid-cols-3 gap-4 pl-40 pr-40 items-center justify-center">
+                
+                
+                
                 <div className="flex items-end gap-2">
                   <div className="flex-1">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {t("common.service")} {index + 1}
-                    </label>
-                    <Select
-                      value={service.serviceId?.toString() || ""}
-                      onValueChange={(value) => updateService(service.id, "serviceId", value)}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder={t("common.selectService")} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {serviceOptions.map((option) => (
-                          <SelectItem key={option.id} value={option.id.toString()}>
-                            {option.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        {t("common.service")} {index + 1}
+                      </label>
+                      <Input
+                        value={service.description}
+                        onChange={(e) => updateService(service.id, "description", e.target.value)}
+                        className="w-full"
+                      />
+                    </div>
+                    
                   </div>
                  
                 </div>
@@ -293,20 +290,28 @@ export default function GarageServiceListings() {
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {t("common.description")}
+                <div className="flex items-end gap-2">
+                  <div className="flex-1">
+                   <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {t("common.category")}
                   </label>
-                  <Input
-                    value={service.description}
-                    onChange={(e) => updateService(service.id, "description", e.target.value)}
-                    className="w-full"
-                  />
-                </div>
-
-                {/* Status field removed from UI but still exists in data */}
-
-                 <Button
+                  <Select
+                      value={service.serviceId?.toString() || ""}
+                      onValueChange={(value) => updateService(service.id, "serviceId", value)}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder={t("common.selectCategory")} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {serviceOptions.map((option) => (
+                          <SelectItem key={option.id} value={option.id.toString()}>
+                            {option.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button
                     variant="ghost"
                     size="icon"
                     className="h-10 w-10 text-red-500 hover:bg-red-50"
@@ -314,6 +319,13 @@ export default function GarageServiceListings() {
                   >
                     <Trash2 className="h-5 w-5" />
                   </Button>
+                </div>
+
+                
+
+                {/* Status field removed from UI but still exists in data */}
+
+                 
               </div>
             ))}
           </div>

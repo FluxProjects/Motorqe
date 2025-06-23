@@ -71,6 +71,7 @@ import ManageServiceListings from "./pages/admin/ManageServiceListings";
 import ManageServiceBookings from "./pages/admin/ManageServiceBookings";
 import ManageCarInspections from "./pages/admin/ManageCarInspections";
 import ManagePromotionPackages from "./pages/admin/ManagePromtionPackages";
+import ManageShowrooms from "./pages/admin/ManageShowrooms";
 import AdminAddGarage from "./pages/admin/AdminAddGarage";
 
 
@@ -307,6 +308,11 @@ function functionStaticPage({ keyParam }: { keyParam: string }) {
           <Route path="/admin/users">
             <ProtectedRoute permissions={[Permission.MANAGE_ALL_USERS]}>
               <AdminManageUsers />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/admin/showrooms">
+            <ProtectedRoute permissions={[Permission.MANAGE_ALL_USERS]}>
+              <ManageShowrooms />
             </ProtectedRoute>
           </Route>
           <Route path="/admin/addgarage">

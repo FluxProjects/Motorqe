@@ -73,19 +73,21 @@ export async function registerUser({
   lastName,
   username,
   email,
+  phone,
   password,
   role
 }: {
   firstName: string;
-  lastName: string;
+  lastName?: string;
   username: string;
   email: string;
+  phone?: string;
   password: string;
   role: string;
 }) {
 
   // Validate input
-  if (!email || !password || !firstName || !lastName || !username || !role) {
+  if (!email || !password || !firstName || !username || !role) {
     throw new Error("All fields are required");
   }
 
@@ -115,8 +117,8 @@ export async function registerUser({
   const insertResult = await db.query(
     `INSERT INTO users (email, password, username, first_name, last_name, role_id, phone) 
      VALUES ($1, $2, $3, $4, $5, (SELECT id FROM roles WHERE name = $6), $7) 
-     RETURNING id, first_name as "firstName", last_name as "lastName", username, email, role_id as "roleId"`,
-    [email, hashedPassword, username, firstName, lastName, role, null] // Assuming phone is optional or null
+     RETURNING id, first_name as "firstName", last_name as "lastName", username, email, phone, role_id as "roleId"`,
+    [email, hashedPassword, username, firstName, lastName, role, phone] // Assuming phone is optional or null
   );
 
   const newUser = insertResult[0];

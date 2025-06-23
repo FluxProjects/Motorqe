@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm, Control } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -26,26 +25,11 @@ import {
   ArrowLeft,
   MapPin as MapPinIcon
 } from "lucide-react";
+import { insertShowroomSchema, Showroom, User } from "@shared/schema";
+import { useAuth } from "@/contexts/AuthContext";
+import { useTranslation } from "react-i18next";
+import Footer from "@/components/layout/Footer";
 
-// Define your schema
-const garageSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  nameAr: z.string().optional(),
-  description: z.string().optional(),
-  descriptionAr: z.string().optional(),
-  address: z.string().optional(),
-  addressAr: z.string().optional(),
-  location: z.string().optional(),
-  phone: z.string().optional(),
-  timing: z.string().optional(),
-  isMainBranch: z.boolean().default(false),
-  logo: z.string().optional(),
-  images: z.array(z.string()).optional(),
-  userId: z.string().optional(),
-  isGarage: z.boolean().default(true),
-});
-
-type GarageFormValues = z.infer<typeof garageSchema>;
 
 type ServiceForm = {
   serviceId: string;
@@ -55,6 +39,8 @@ type ServiceForm = {
 };
 
 export default function AdminAddGarage() {
+  const { t } = useTranslation();
+  const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
   const [step, setStep] = useState<1 | 2>(1);
   const [garageLogo, setGarageLogo] = useState<string>("");
@@ -63,14 +49,26 @@ export default function AdminAddGarage() {
     { serviceId: "", price: 0, description: "", featured: false }
   ]);
 
+  const [contact, setContact] = useState<any>([
+    {
+      username: "",
+      firstName: null,
+      lastName: null,
+      email: "",
+      phone: null,
+      password: "",
+      
+    }
+  ]);
+
   // Fetch car services for dropdown
   const { data: carServices = [] } = useQuery<CarService[]>({
     queryKey: ["car-services"],
     queryFn: () => apiRequest("GET", "/api/services").then(res => res.json()),
   });
 
-  const form = useForm<GarageFormValues>({
-    resolver: zodResolver(garageSchema),
+  const form = useForm<Showroom>({
+    resolver: zodResolver(insertShowroomSchema),
     defaultValues: {
       name: "",
       nameAr: "",
@@ -84,39 +82,105 @@ export default function AdminAddGarage() {
       isMainBranch: false,
       logo: "",
       images: [],
-      userId: "",
       isGarage: true,
+      isMobileService: false,
+      isFeatured: false
     },
   });
 
-  // Create garage mutation
-  const createGarageMutation = useMutation({
-    mutationFn: async (data: GarageFormValues) => {
-      const garageResponse = await apiRequest("POST", "/api/garages", {
-        ...data,
+  
+
+  // Modify your handleSubmit function in AdminAddGarage component
+  const handleSubmit = async () => {
+    console.log("Submit initiated");
+    
+    // Manually get form values instead of relying onSubmit
+    const formValues = form.getValues();
+    
+    try {
+      // Validate all fields
+  
+
+      // Check required files
+      if (!garageLogo) {
+        toast({ title: "Error", description: "Logo is required" });
+        return;
+      }
+
+      const contactEmail = contact.email;
+
+    const username = contactEmail.split('@')[0]
+      .replace(/[^a-zA-Z0-9_]/g, '') // Remove special chars except underscore
+      .toLowerCase(); // Convert to lowercase
+
+    if (!username) {
+      throw new Error("Invalid email format for username generation");
+    }
+
+      console.log("Submitting:", { formValues, garageLogo, garageImages, services });
+
+      // 1. First register the user (using contact form data)
+      const userRegistrationData = {
+        username: username,
+        firstName: contact.firstName,
+        lastName: contact.lastName,
+        email: contact.email,
+        phone: contact.phone,
+        password: "defaultPassword123", // You might want to generate this or have user input
+        confirmPassword: "defaultPassword123",
+        role: "GARAGE", // Or whatever role you need
+        termsAgreement: true
+      };
+
+      const registerResponse = await apiRequest("POST", "/api/auth/register", userRegistrationData);
+      if (!registerResponse.ok) {
+        throw new Error("Failed to register user");
+      }
+      
+      const { user: registeredUser } = await registerResponse.json();
+      console.log("user registered", user);
+      // 2. Then create the garage with the registered user's ID
+      const garageResponse = await apiRequest("POST", "/api/showrooms", {
+        ...formValues,
         logo: garageLogo,
         images: garageImages,
+        isGarage: true,
+        userId: registeredUser.id, // Use the registered user's ID
       });
+
+      if (!garageResponse.ok) {
+        throw new Error("Failed to create garage");
+      }
+
       const garage = await garageResponse.json();
-      
+      console.log("garage registered", garage);
+
+      // 3. Finally create services for the garage
       if (services.length > 0) {
         await Promise.all(
-          services.map(service => 
-            apiRequest("POST", "/api/garage-services", {
-              garageId: garage.id,
+          services.map(async (service, index) => {
+            const servicePayload = {
+              showroomId: garage.id,
               serviceId: service.serviceId,
               price: service.price,
               description: service.description,
               featured: service.featured,
-              status: "active"
-            })
-          )
+              status: "active",
+            };
+
+            console.log(`Creating service ${index + 1}:`, servicePayload);
+
+            const response = await apiRequest("POST", "/api/showroom/services/", servicePayload);
+            const data = await response.json();
+
+            console.log(`Service ${index + 1} creation response:`, data);
+            return data;
+          })
         );
       }
-      
-      return garage;
-    },
-    onSuccess: () => {
+
+
+      // Success handling
       toast({
         title: "Success",
         description: "Garage and services created successfully",
@@ -127,23 +191,15 @@ export default function AdminAddGarage() {
       setGarageImages([]);
       setServices([{ serviceId: "", price: 0, description: "", featured: false }]);
       setStep(1);
-    },
-    onError: (error: Error) => {
+
+    } catch (error: any) {
+      console.error("Submission error:", error);
       toast({
         title: "Error",
-        description: error.message || "Failed to create garage",
+        description: error.message || "Failed to complete the process",
         variant: "destructive",
       });
-    },
-  });
-
-  const onSubmit = (data: GarageFormValues) => {
-    createGarageMutation.mutate({
-      ...data,
-      logo: garageLogo,
-      images: garageImages,
-      isGarage: true,
-    });
+    }
   };
 
   const addService = () => {
@@ -186,29 +242,29 @@ export default function AdminAddGarage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <>
+    <div className="p-20">
       {/* Stepper */}
       <div className="max-w-4xl mx-auto mb-8">
-        <div className="flex items-center justify-between">
-          <div className={`flex items-center ${step === 1 ? "text-blue-600" : "text-gray-400"}`}>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step === 1 ? "bg-blue-600 text-white" : "bg-gray-200"}`}>
+        <div className="flex items-center justify-center">
+          <div className={`flex items-center ${step === 1 ? "text-orange-500" : "text-neutral-700"}`}>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step === 1 ? "bg-orange-600 text-white" : "bg-neutral-700 text-white"}`}>
               1
             </div>
             <span className="ml-2 font-medium">Garage Details</span>
             <ChevronRight className="mx-2 w-5 h-5" />
           </div>
           
-          <div className={`flex items-center ${step === 2 ? "text-blue-600" : "text-gray-400"}`}>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step === 2 ? "bg-blue-600 text-white" : "bg-gray-200"}`}>
+          <div className={`flex items-center ${step === 2 ? "text-orange-500" : "text-neutral-700"}`}>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step === 2 ? "bg-orange-600 text-white" : "bg-neutral-700 text-white"}`}>
               2
             </div>
-            <span className="ml-2 font-medium">Services</span>
+            <span className="ml-2 font-medium">Review</span>
           </div>
         </div>
       </div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="max-w-4xl mx-auto">
           {/* Step 1: Garage Details */}
           {step === 1 && (
             <Card>
@@ -217,11 +273,38 @@ export default function AdminAddGarage() {
               </CardHeader>
               <CardContent className="space-y-6">
                 
+                 <div className="grid grid-cols-1 gap-4">
+                    {/* Is Featured */}
+                    <FormField
+                      control={form.control as Control<Showroom>}
+                      name="isFeatured"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Type of Listing</FormLabel>
+                          <Select
+                            value={String(field.value)}
+                            onValueChange={(value) => field.onChange(value === "true")}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select..." />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="true">Standard</SelectItem>
+                              <SelectItem value="false">Featured</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
 
                 {/* Name */}
                 <div className="grid grid-cols-1 gap-4">
                   <FormField
-                    control={form.control as Control<GarageFormValues>}
+                    control={form.control as Control<Showroom>}
                     name="name"
                     render={({ field }) => (
                       <FormItem>
@@ -234,13 +317,13 @@ export default function AdminAddGarage() {
                     )}
                   />
                   <FormField
-                    control={form.control as Control<GarageFormValues>}
+                    control={form.control as Control<Showroom>}
                     name="nameAr"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Name (AR)</FormLabel>
                         <FormControl>
-                          <Input {...field} />
+                          <Input {...field} value={field.value ?? ""} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -251,26 +334,26 @@ export default function AdminAddGarage() {
                 {/* Description */}
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
-                    control={form.control as Control<GarageFormValues>}
+                    control={form.control as Control<Showroom>}
                     name="description"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Description (EN)</FormLabel>
                         <FormControl>
-                          <Textarea {...field} rows={4} />
+                          <Textarea {...field} value={field.value ?? ""} rows={4} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                   <FormField
-                    control={form.control as Control<GarageFormValues>}
+                    control={form.control as Control<Showroom>}
                     name="descriptionAr"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Description (AR)</FormLabel>
                         <FormControl>
-                          <Textarea {...field} rows={4} />
+                          <Textarea {...field} value={field.value ?? ""} rows={4} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -281,26 +364,26 @@ export default function AdminAddGarage() {
                 {/* Address */}
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
-                    control={form.control as Control<GarageFormValues>}
+                    control={form.control as Control<Showroom>}
                     name="address"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Address (EN)</FormLabel>
                         <FormControl>
-                          <Input {...field} />
+                          <Input {...field} value={field.value ?? ""} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                   <FormField
-                    control={form.control as Control<GarageFormValues>}
+                    control={form.control as Control<Showroom>}
                     name="addressAr"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Address (AR)</FormLabel>
                         <FormControl>
-                          <Input {...field} />
+                          <Input {...field} value={field.value ?? ""} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -311,14 +394,14 @@ export default function AdminAddGarage() {
                 {/* Location & Phone */}
                 <div className="grid grid-cols-1 gap-4">
                   <FormField
-                    control={form.control as Control<GarageFormValues>}
+                    control={form.control as Control<Showroom>}
                     name="location"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Location</FormLabel>
                         <FormControl>
                           <div className="relative">
-                            <Input {...field} />
+                            <Input {...field} value={field.value ?? ""} disabled/>
                             <MapPinIcon className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
                           </div>
                         </FormControl>
@@ -326,16 +409,36 @@ export default function AdminAddGarage() {
                       </FormItem>
                     )}
                   />
+
+                  <div className="h-[300px] w-full rounded border">
+                    <GoogleMaps
+                      center={{ lat: 24.8607, lng: 67.0011 }}
+                      zoom={11}
+                      onMapClick={({ lat, lng }) => {
+                        form.setValue("location", `${lat},${lng}`);
+                      }}
+                      markers={
+                        form.watch("location")
+                          ? [{
+                              lat: parseFloat(form.watch("location")!.split(",")[0]),
+                              lng: parseFloat(form.watch("location")!.split(",")[1]),
+                            }]
+                          : []
+                      }
+                    />
+
+                  </div>
+
                   </div>
                   <div className="grid grid-cols-1 gap-4">
                   <FormField
-                    control={form.control as Control<GarageFormValues>}
+                    control={form.control as Control<Showroom>}
                     name="phone"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Phone</FormLabel>
                         <FormControl>
-                          <Input {...field} />
+                          <Input {...field} value={field.value ?? ""} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -346,26 +449,26 @@ export default function AdminAddGarage() {
                 {/* Timing & Main Branch */}
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
-                    control={form.control as Control<GarageFormValues>}
+                    control={form.control as Control<Showroom>}
                     name="timing"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Working Hours</FormLabel>
                         <FormControl>
-                          <Input {...field} />
+                          <Input {...field} value={field.value ?? ""} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                   <FormField
-                    control={form.control as Control<GarageFormValues>}
+                    control={form.control as Control<Showroom>}
                     name="isMainBranch"
                     render={({ field }) => (
                       <FormItem className="flex flex-row items-start space-x-3 space-y-0 p-4">
                         <FormControl>
                           <Checkbox
-                            checked={field.value}
+                            checked={field.value ?? false}
                             onCheckedChange={field.onChange}
                           />
                         </FormControl>
@@ -373,25 +476,62 @@ export default function AdminAddGarage() {
                           <FormLabel>Is Main Branch</FormLabel>
                         </div>
                       </FormItem>
+
                     )}
                   />
                 </div>
 
-                {/* Logo Upload */}
-                <div>
-                  <Label>Garage Logo & Images</Label>
-                  <div className="flex items-start">
-                    <ImageUpload
-                      currentImage={garageLogo}
-                      onUploadComplete={handleLogoUpload}
-                    />
-                    <MultiImageUpload
-                      currentImages={garageImages}
-                      onUploadComplete={handleImagesUpload}
+                <div className="grid grid-cols-1 gap-4">
+                    <FormField
+                      control={form.control as Control<Showroom>}
+                      name="isMobileService"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Mobile Service</FormLabel>
+                          <Select
+                            value={String(field.value)}
+                            onValueChange={(value) => field.onChange(value === "true")}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select..." />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="true">Yes</SelectItem>
+                              <SelectItem value="false">No</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
                   </div>
 
+                {/* Logo Upload */}
+                <div>
+                  <div>
+                    {/* Logo uploader */}
+                    <Label>Garage Logo</Label>
+                    
+                    <div className="flex items-center justify-start">
+                      <ImageUpload
+                        currentImage={garageLogo}
+                        onUploadComplete={handleLogoUpload}
+                      />
+                    </div>
+                    <Label>Garage Images</Label>
+                    <div className="flex items-center justify-start">
+                    {/* Multi-image uploader (max 3 to keep total at 4) */}
+                      <MultiImageUpload
+                            currentImages={garageImages}
+                            onUploadComplete={handleImagesUpload}
+                          />
+                   
+                    </div>
+                  </div>
                 </div>
+
 
               </CardContent>
 
@@ -401,8 +541,67 @@ export default function AdminAddGarage() {
               <CardContent className="space-y-6">
                 {services.map((service, index) => (
                   <div key={index} className="border rounded-lg p-4 space-y-4">
-                    <div className="flex justify-between items-center">
-                      <h3 className="font-medium">Service {index + 1}</h3>
+                    
+                    {/* Row 1: Service Description, Price, Is Featured */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      {/* Service Description */}
+                      <div>
+                        <Label>Service {index + 1}</Label>
+                        <Input
+                          value={service.description}
+                          onChange={(e) => updateService(index, "description", e.target.value)}
+                          placeholder="Service description"
+                        />
+                      </div>
+
+                      {/* Price */}
+                      <div>
+                        <Label>Price</Label>
+                        <Input
+                          type="number"
+                          value={service.price}
+                          onChange={(e) => updateService(index, "price", Number(e.target.value))}
+                          placeholder="Enter price"
+                        />
+                      </div>
+
+                      {/* Is Featured */}
+                      <div>
+                        <Label className="block mb-1">Feature Service</Label>
+                        <div className="flex items-start">
+                          <Checkbox
+                            id={`featured-${index}`}
+                            checked={service.featured}
+                            onCheckedChange={(checked) => updateService(index, "featured", checked)}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Row 2: Category Selection */}
+                    <div className="grid grid-cols-2">
+                      <div>
+                        <Label>Category</Label>
+                        <Select
+                          value={service.serviceId?.toString() ?? ""}
+                          onValueChange={(value) => updateService(index, "serviceId", value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a category" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {carServices.map((carService) => (
+                              <SelectItem key={carService.id} value={carService.id.toString()}>
+                                {carService.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+
+                      </div>
+
+                      {/* Delete button */}
+                    <div className="flex justify-end">
                       {services.length > 1 && (
                         <Button
                           type="button"
@@ -414,92 +613,84 @@ export default function AdminAddGarage() {
                         </Button>
                       )}
                     </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      {/* Service Selection */}
-                      <div>
-                        <Label>Service</Label>
-                        <Select
-                          value={service.serviceId}
-                          onValueChange={(value) => updateService(index, 'serviceId', value)}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a service" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {carServices.map((carService) => (
-                              <SelectItem key={carService.id} value={carService.id}>
-                                {carService.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      {/* Price */}
-                      <div>
-                        <Label>Price</Label>
-                        <Input
-                          type="number"
-                          value={service.price}
-                          onChange={(e) => updateService(index, 'price', Number(e.target.value))}
-                          placeholder="Enter price"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Description */}
-                    <div>
-                      <Label>Description</Label>
-                      <Textarea
-                        value={service.description}
-                        onChange={(e) => updateService(index, 'description', e.target.value)}
-                        placeholder="Service description"
-                        rows={3}
-                      />
-                    </div>
-
-                    {/* Featured */}
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`featured-${index}`}
-                        checked={service.featured}
-                        onCheckedChange={(checked) => updateService(index, 'featured', checked)}
-                      />
-                      <Label htmlFor={`featured-${index}`}>Featured Service</Label>
                     </div>
                   </div>
                 ))}
 
                 {/* Add Service Button */}
                 <div className="flex justify-center">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={addService}
-                  >
+                  <Button type="button" variant="outline" onClick={addService}>
                     <Plus className="mr-2 h-4 w-4" /> Add Service
                   </Button>
                 </div>
 
                 {/* Navigation */}
                 <div className="flex justify-between pt-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setStep(2)}
-                  >
-                    <ArrowLeft className="mr-2 h-4 w-4" /> Next
-                  </Button>
-                  <Button
-                    type="submit"
-                    className="bg-green-600 hover:bg-green-700"
-                    disabled={createGarageMutation.isPending}
-                  >
-                    {createGarageMutation.isPending ? "Creating..." : "Create Garage"}
+                  <Button type="button" variant="outline" onClick={() => setStep(2)}>
+                    <ArrowRight className="mr-2 h-4 w-4" /> Next
                   </Button>
                 </div>
               </CardContent>
+
+              <CardHeader>
+                <CardTitle>Contact Details</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="border rounded-lg p-4 space-y-4">
+
+                  {/* Name */}
+                  <div>
+                    <Label>Name</Label>
+                    <Input
+                      value={contact.firstName}
+                      onChange={(e) => setContact({ ...contact, firstName: e.target.value })}
+                      placeholder="Enter full name"
+                    />
+                  </div>
+
+                  {/* Mobile Number */}
+                  <div>
+                    <Label>Mobile Number</Label>
+                    <Input
+                      type="tel"
+                      value={contact.phone}
+                      onChange={(e) => setContact({ ...contact, phone: e.target.value })}
+                      placeholder="Enter mobile number"
+                    />
+                  </div>
+
+                  {/* WhatsApp */}
+                  <div>
+                    <Label>WhatsApp</Label>
+                    <Input
+                      type="tel"
+                      value={contact.whatsapp}
+                      onChange={(e) => setContact({ ...contact, whatsapp: e.target.value })}
+                      placeholder="Enter WhatsApp number"
+                    />
+                  </div>
+
+                  {/* Email Address */}
+                  <div>
+                    <Label>Email Address</Label>
+                    <Input
+                      type="email"
+                      value={contact.email}
+                      onChange={(e) => setContact({ ...contact, email: e.target.value })}
+                      placeholder="Enter email address"
+                    />
+                  </div>
+                </div>
+
+                {/* Navigation */}
+                <div className="flex justify-between pt-4">
+                  <Button type="button" variant="outline" onClick={() => setStep(2)}>
+                    <ArrowRight className="mr-2 h-4 w-4" /> Next
+                  </Button>
+                </div>
+              </CardContent>
+
+
             </Card>
           )}
 
@@ -552,7 +743,17 @@ export default function AdminAddGarage() {
                       <p>{form.watch("timing")}</p>
                     </div>
                   </div>
-
+                  <div className="grid grid-cols-2 gap-4">
+                     <div>
+                      <Label className="text-gray-500">Type of Listing</Label>
+                      <p>{form.watch("isFeatured") ? "Featured" : "Standard"}</p>
+                    </div>
+                    <div>
+                      <Label className="text-gray-500">Home Service</Label>
+                      <p>{form.watch("isMobileService") ? "Yes" : "No"}</p>
+                    </div>
+                   
+                  </div>
                   <div>
                     <Label className="text-gray-500">Location</Label>
                     <p>{form.watch("location")}</p>
@@ -562,6 +763,7 @@ export default function AdminAddGarage() {
                         zoom={14}
                       />
                     </div>
+                    
                   </div>
 
                   {garageImages.length > 0 && (
@@ -581,7 +783,7 @@ export default function AdminAddGarage() {
                   )}
                 </div>
 
-                {/* Services Review */}
+                {/* Services */}
                 {services.length > 0 && (
                   <div className="border rounded-lg p-6 space-y-4">
                     <h3 className="font-semibold text-lg">Services</h3>
@@ -616,6 +818,23 @@ export default function AdminAddGarage() {
                   </div>
                 )}
 
+                {/* Garage Info Review */}
+                <div className="border rounded-lg p-6 space-y-4">
+                  <h3 className="font-semibold text-lg">Contact Details</h3>
+                  
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-gray-500">Phone</Label>
+                      <p>{form.watch("phone")}</p>
+                    </div>
+                    <div>
+                      <Label className="text-gray-500">WhatsApp</Label>
+                      <p>{form.watch("whatsapp")}</p>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Navigation */}
                 <div className="flex justify-between pt-4">
                   <Button
@@ -627,18 +846,19 @@ export default function AdminAddGarage() {
                   </Button>
                   <Button
                     type="submit"
+                    onClick={handleSubmit}
                     className="bg-green-600 hover:bg-green-700"
-                    disabled={createGarageMutation.isPending}
                   >
-                    {createGarageMutation.isPending ? "Creating..." : "Create Garage"}
+                    Create Garage
                   </Button>
                 </div>
               </CardContent>
             </Card>
           )}
-        </form>
       </Form>
     </div>
+    <Footer />
+    </>
   );
 }
 

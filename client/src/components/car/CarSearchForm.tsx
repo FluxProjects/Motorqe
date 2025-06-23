@@ -243,7 +243,7 @@ const onSubmit = (values: SearchFormValues) => {
   const showDefaultField = (fieldName: keyof SearchFormValues) => {
     if (activeTab === "all") {
       // Show these fields by default for "all" tab
-      return ["make", "model", "minYear", "condition", "owner_type"].includes(fieldName);
+      return ["make", "model", "minYear", "condition"].includes(fieldName);
     }
     if (activeTab === "new") {
       // Show these fields by default for "new" tab
@@ -265,10 +265,7 @@ const onSubmit = (values: SearchFormValues) => {
     if (activeTab === "all") {
     return ![
         "condition",
-        "minYear",
-        "maxYear",
         "keyword",
-        "owner_type",
         "category",
       ].includes(fieldName);
     }
@@ -1232,7 +1229,8 @@ const modelOptions = models?.map((model: CarModel) => ({
               className="bg-orange-500 rounded-full w-full md:w-auto"
             >
               {t("common.search")}
-              {!is_garage && ` ${totalCount} Cars`}
+              {activeTab !== "garage" && ` ${totalCount} Cars`}
+              {activeTab === "garage" && " Services"}
             </Button>
 
             </div>

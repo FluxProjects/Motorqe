@@ -1,6 +1,7 @@
 {
   "common": {
     "servicesAndPrices":"Service and Prices",
+    "selectCategory":"Select Category",
     "selectService":"Select Service",
     "description":"Description",
     "welcome": "Welcome",
@@ -627,6 +628,14 @@
   },
   "admin": {
     "inactive":"Inactive",
+    "requiresReview" : "Requires Review",
+    "manageShowrooms": "Manage Showroom/Garages",
+    "searchShowrooms": "Search Showroom and Garages...",
+  "addGarageUser": "Add Garage User",
+  "addShowroomUser": "Add Showroom User",
+  "addPrivateSeller": "Add Private Seller",
+    "needsAttention": "Needs Attention",
+    "selectCategory":"Select Category",
     "addGarage" :"Add Garage",
     "actionSuccess": "Action Successful",
     "featureService": "Feature Service",

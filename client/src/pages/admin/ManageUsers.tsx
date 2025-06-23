@@ -342,14 +342,28 @@ const ManageUsers = () => {
                       {t("common.refresh")}
                     </Button>
 
-                    <Button
-                      variant="outline"
-                      className="hover:bg-blue-900 border-blue-700 hover:text-white"
-                      onClick={() => navigate("/admin/addgarage")}
-                    >
-                      <UserPlus className="h-4 w-4 mr-2" />
-                      {t("admin.addGarage")}
-                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="hover:bg-blue-900 border-blue-700 hover:text-white"
+                        >
+                          <UserPlus className="h-4 w-4 mr-2" />
+                          {t("admin.addUser")}
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-56">
+                        <DropdownMenuItem onClick={() => navigate("/admin/addgarage")}>
+                          {t("admin.addGarageUser")}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate("/admin/addshowroom")}>
+                          {t("admin.addShowroomUser")}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate("/admin/addseller")}>
+                          {t("admin.addPrivateSeller")}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
 

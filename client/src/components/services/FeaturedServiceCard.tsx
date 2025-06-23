@@ -43,7 +43,7 @@ export default function FeaturedServiceCard({
         )}
 
         <Link
-          href={`/showroom-services/${service.showroom_service_id}`}
+          href={`/garages/${service.showroom_id}`}
           className="flex flex-col items-center"
         >
           <div className="w-auto h-[80px] overflow-hidden rounded-lg">
@@ -97,7 +97,7 @@ export default function FeaturedServiceCard({
 
         {/* View Details Button */}
         <Link
-          href={`/showroom-services/${service.showroom_service_id}`}
+          href={`/garages/${service.showroom_id}`}
           className="flex flex-col items-center justify-center"
         >
           <Button className="bg-orange-500 hover:bg-orange-600 text-white w-1/2">
