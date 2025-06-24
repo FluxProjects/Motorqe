@@ -25,10 +25,11 @@ import {
   ArrowLeft,
   MapPin as MapPinIcon
 } from "lucide-react";
-import { insertShowroomSchema, Showroom, User } from "@shared/schema";
+import { CarMake, insertShowroomSchema, Showroom, ShowroomMake, User } from "@shared/schema";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTranslation } from "react-i18next";
 import Footer from "@/components/layout/Footer";
+import { MultiSelect } from "@/components/ui/multiselect";
 
 
 type ServiceForm = {
@@ -48,6 +49,7 @@ export default function AdminAddGarage() {
   const [services, setServices] = useState<ServiceForm[]>([
     { serviceId: "", price: 0, description: "", featured: false }
   ]);
+const [selectedMakeIds, setSelectedMakeIds] = useState<string[]>([]);
 
   const [contact, setContact] = useState<any>([
     {
@@ -66,6 +68,10 @@ export default function AdminAddGarage() {
     queryKey: ["car-services"],
     queryFn: () => apiRequest("GET", "/api/services").then(res => res.json()),
   });
+
+  const { data: makes = [] } = useQuery<CarMake[]>({
+      queryKey: ["/api/car-makes"],
+    });
 
   const form = useForm<Showroom>({
     resolver: zodResolver(insertShowroomSchema),
@@ -155,7 +161,27 @@ export default function AdminAddGarage() {
       const garage = await garageResponse.json();
       console.log("garage registered", garage);
 
-      // 3. Finally create services for the garage
+      // 3. Register showroom makes
+      if (selectedMakeIds.length > 0) {
+        await Promise.all(
+          selectedMakeIds.map(async (makeId) => {
+            const makePayload = {
+              showroom_id: garage.id,
+              make_id: makeId,
+            };
+
+            const makeResponse = await apiRequest("POST", "/api/showroom-makes", makePayload);
+            if (!makeResponse.ok) {
+              throw new Error(`Failed to register make with ID: ${makeId}`);
+            }
+
+            const data = await makeResponse.json();
+            console.log("Showroom make registered:", data);
+          })
+        );
+      }
+
+            // 4. Finally create services for the garage
       if (services.length > 0) {
         await Promise.all(
           services.map(async (service, index) => {
@@ -240,6 +266,14 @@ export default function AdminAddGarage() {
       center = { lat, lng };
     }
   }
+
+    const makeOptions = [
+    { value: "all", label: t("common.all") },
+    ...makes?.map((make: CarMake) => ({
+      value: String(make.id),
+      label: make.name,
+    })) ?? [],
+  ];
 
   return (
     <>
@@ -480,6 +514,24 @@ export default function AdminAddGarage() {
                     )}
                   />
                 </div>
+                <div className="grid grid-cols-1 gap-4">
+                  <FormField
+                    name="make"
+                    render={({ field }) => (
+                      <FormItem className="w-full">
+                        <FormLabel>{t("car.make")}</FormLabel>
+                        <MultiSelect
+                          options={makeOptions}
+                          selected={selectedMakeIds}
+                          onChange={(val: string[]) => setSelectedMakeIds(val)}
+                          placeholder={t("car.selectMake")}
+                        />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
 
                 <div className="grid grid-cols-1 gap-4">
                     <FormField

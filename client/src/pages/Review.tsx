@@ -16,6 +16,7 @@ export default function Review() {
   const session = useReviewSession();
   const [isLoading, setIsLoading] = useState(true);
   const [hasRedirected, setHasRedirected] = useState(false);
+  const [userId, setUserId] = useState<number | null>(null);
 
   // Extract parameters from URL
   const showroomId = searchParams.get("showroomId");
@@ -50,6 +51,8 @@ export default function Review() {
 
       const showroomData = await showroomResponse.json();
       const bookingData = await bookingResponse.json();
+      
+      setUserId(bookingData.user_id); // 👈 store userId
 
       if (!cancelled) {
         reviewForm.setServiceProvider({
@@ -89,20 +92,22 @@ export default function Review() {
 
 
   const handleSubmit = () => {
-    if (reviewForm.isValid) {
-      const reviewData = reviewForm.getReviewData();
-      session.moveToFeedback(reviewData);
-      setLocation("/feedback");
-    }
-  };
+  if (reviewForm.isValid && showroomId && bookingId && userId !== null) {
+    const reviewData = {
+      ...reviewForm.getReviewData(),
+      showroomId: parseInt(showroomId, 10),
+      bookingId: parseInt(bookingId, 10),
+      userId: userId,
+    };
+    session.moveToFeedback(reviewData);
+    setLocation("/feedback");
+  }
+};
 
-  const handleBack = () => {
-    window.history.back();
-  };
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen">
         <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center mb-8">
             <Skeleton className="h-8 w-64 mx-auto mb-2" />
@@ -150,8 +155,8 @@ export default function Review() {
         {/* Progress Indicator */}
         <div className="flex justify-center mb-8">
           <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-motorqe-orange rounded-full flex items-center justify-center text-white font-medium">1</div>
-            <span className="motorqe-orange font-medium">Service Review</span>
+            <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center text-white font-medium">1</div>
+            <span className="text-orange-500 font-medium">Service Review</span>
           </div>
         </div>
 

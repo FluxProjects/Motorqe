@@ -2,30 +2,85 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>{{subject}}</title>
-    <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .button { 
-            display: inline-block; 
-            padding: 10px 20px; 
-            background-color: #4CAF50; 
-            color: white; 
-            text-decoration: none; 
-            border-radius: 5px; 
-        }
-    </style>
+  <meta charset="UTF-8">
+  <title>{{subject}}</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      background-color: #f9f9f9;
+      padding: 0;
+      margin: 0;
+    }
+    .container {
+      max-width: 600px;
+      margin: 40px auto;
+      background-color: #ffffff;
+      padding: 30px;
+      border-radius: 10px;
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+    h1 {
+      margin: 0;
+      font-size: 26px;
+      color: #111827;
+    }
+    p.subtitle {
+      margin: 4px 0 40px;
+      font-size: 16px;
+      color: #4B5563;
+    }
+    h2 {
+      font-size: 20px;
+      margin-bottom: 24px;
+      color: #1F2937;
+      line-height: 1.3em;
+    }
+    .stars {
+      font-size: 38px;
+      color: #f97316; /* orange-500 */
+      margin: 24px 0;
+      letter-spacing: 6px;
+    }
+    .feedback-box {
+      border: 1px solid #D1D5DB;
+      padding: 24px;
+      border-radius: 8px;
+      margin-top: 40px;
+      background-color: #F9FAFB;
+    }
+    .feedback-box a {
+      color: #6B7280;
+      text-decoration: none;
+      font-size: 16px;
+    }
+    .footer {
+      font-size: 12px;
+      color: #9CA3AF;
+      margin-top: 40px;
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Hello {{firstName}},</h1>
-        <p>We hope you enjoyed your recent service at {{showroomName}}!</p>
-        <p>Please take a moment to share your experience:</p>
-        <p>
-            <a href="{{reviewLink}}" class="button">Leave Review</a>
-        </p>
-        <p>Thank you for your feedback!</p>
-        <p>Best regards,<br>Your Service Team</p>
+  <div class="container">
+    <h1>Car Service Booking Review</h1>
+    <p class="subtitle">Now rate this provider in seconds with just a few clicks</p>
+
+    <h2>How was the experience<br>with this Service Provider?</h2>
+
+    <!-- Static star rating (for email) -->
+    <div class="stars">★★★★★</div>
+
+    <!-- Feedback Section -->
+    <label for="feedback" style="display:block; font-weight:bold; margin-bottom: 8px;">Write your feedback</label>
+    <div class="feedback-box">
+      <a href="{{reviewLink}}">Click here to share your experience with other customers</a>
     </div>
+
+    <div class="footer">
+      © 2025 Motorqe.com. All rights reserved.
+    </div>
+  </div>
 </body>
 </html>

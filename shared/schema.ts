@@ -1748,4 +1748,6 @@ export interface ReviewData {
   location: string;
   bookingDate: string;
   bookingTime: string;
+  showroomId?: number;
+  bookingId?: number;
 }

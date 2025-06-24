@@ -7,7 +7,7 @@ export interface IShowroomServiceMakeStorage {
   getShowroomMakes(listingId: number): Promise<(ShowroomMake & { make?: CarMake })[]>;
   getGarageMakes(garageId: number): Promise<(ShowroomMake & { make_id: number; make_name: string; make_image: string })[]>;
   getAllShowroomsMakes(): Promise<any>;
-  addShowroomMake(serviceId: number, makeId: number): Promise<ShowroomMake>;
+  addShowroomMake(garageId: number, makeId: number): Promise<ShowroomMake>;
   removeShowroomMake(serviceId: number, makeId: number): Promise<void>;
   bulkAddShowroomMakes(serviceId: number, makeIds: number[]): Promise<void>;
 
@@ -56,10 +56,10 @@ export const ShowroomMakeStorage = {
   return showroomMakes;
 },
 
-  async addShowroomMake(serviceId: number, makeId: number): Promise<ShowroomMake> {
+  async addShowroomMake(garageId: number, makeId: number): Promise<ShowroomMake> {
     const result = await db.query(
-      'INSERT INTO showroom_makes (service_id, make_id) VALUES ($1, $2) RETURNING *',
-      [serviceId, makeId]
+      'INSERT INTO showroom_makes (showroom_id, make_id) VALUES ($1, $2) RETURNING *',
+      [garageId, makeId]
     );
     return result[0];
   },

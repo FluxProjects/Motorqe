@@ -3,6 +3,13 @@ import type { InsertReview, Review } from "@shared/schema";
 
 export interface IReviewsStorage {
 
+  getAllReviews(): Promise<Review[]>;
+  getReviewById(id: number): Promise<Review | null>;
+  createReview(data: InsertReview): Promise<Review>;
+  updateReview(id: number, updates: Partial<InsertReview>): Promise<Review | null>;
+  deleteReview(id: number): Promise<void>;
+  updateShowroomAverageRating(showroomId: number): Promise<void>;
+
 }
 export const ReviewsStorage = {
   // Get all reviews
@@ -19,6 +26,7 @@ export const ReviewsStorage = {
   },
 
   // Create a review and update the showroom rating
+  // storage/reviews.ts
   async createReview(data: InsertReview): Promise<Review> {
     const query = `
       INSERT INTO reviews (showroom_id, user_id, rating, comment, created_at, updated_at)
@@ -26,12 +34,18 @@ export const ReviewsStorage = {
       RETURNING *;
     `;
 
-    const values = [data.showroom_id, data.author, data.rating, data.comment];
+    // use camelCase properties from your schema
+    const values = [
+      data.showroomId,
+      data.userId,
+      data.rating,
+      data.comment ?? null,
+    ];
+
     const result = await db.query(query, values);
     const review = result[0];
 
-    await storage.updateShowroomAverageRating(data.showroom_id);
-
+    await ReviewsStorage.updateShowroomAverageRating(data.showroomId);
     return review;
   },
 
@@ -64,7 +78,7 @@ export const ReviewsStorage = {
     const updated = result[0];
 
     if (updated) {
-      await storage.updateShowroomAverageRating(updated.showroom_id);
+      await ReviewsStorage.updateShowroomAverageRating(updated.showroom_id);
     }
 
     return updated || null;
@@ -72,12 +86,12 @@ export const ReviewsStorage = {
 
   // Delete review and refresh rating
   async deleteReview(id: number): Promise<void> {
-    const review = await storage.getReviewById(id);
+    const review = await ReviewsStorage.getReviewById(id);
     if (!review) return;
 
     await db.query(`DELETE FROM reviews WHERE id = $1`, [id]);
 
-    await storage.updateShowroomAverageRating(review.showroom_id);
+    await ReviewsStorage.updateShowroomAverageRating(review.showroom_id);
   },
 
   // Update average rating for a showroom

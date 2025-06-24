@@ -5,7 +5,7 @@ import { notificationService } from "./services/notification";
 import { paymentService } from "./services/payment";
 import { generateOTP, generateToken, hashPassword, loginUser, registerUser, verifyPassword } from "./services/auth";
 import { verifyToken } from "./services/auth";
-import { InsertBannerAd, InsertBlogPost, InsertHeroSlider, InsertPromotionPackage, InsertServicePromotionPackage, InsertShowroom, InsertStaticContent, ShowroomService } from "@shared/schema";
+import { InsertBannerAd, InsertBlogPost, InsertHeroSlider, InsertPromotionPackage, InsertReview, InsertServicePromotionPackage, InsertShowroom, InsertStaticContent, ShowroomService } from "@shared/schema";
 import { Role, roleIdMapping } from "@shared/permissions";
 import multer from "multer";
 import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
@@ -2108,6 +2108,32 @@ app.get("/api/showroom/:id/service-interactions", async (req, res) => {
   }
 });
 
+app.post("/api/showroom-makes", async (req, res) => {
+  try {
+    const { showroom_id, make_id } = req.body;
+
+    if (!showroom_id || !make_id) {
+      return res.status(400).json({ message: "Missing showroom_id or make_id" });
+    }
+
+    const numericShowroomId = Number(showroom_id);
+    const numericMakeId = Number(make_id);
+
+    if (isNaN(numericShowroomId) || isNaN(numericMakeId)) {
+      return res.status(400).json({ message: "Invalid showroom_id or make_id" });
+    }
+
+    const result = await storage.addShowroomMake(numericShowroomId, numericMakeId);
+
+
+    res.status(201).json(result);
+  } catch (error) {
+    console.error("❌ Error creating showroom-make entry:", error);
+    res.status(500).json({ message: "Failed to create showroom-make entry" });
+  }
+});
+
+
 
   app.get("/api/service-bookings", async (req, res) => {
     console.log("Received request to /api/service-bookings with query:", req.query);
@@ -3697,8 +3723,7 @@ app.get("/api/reviews/:id", async (req, res) => {
 
 app.post("/api/reviews", async (req, res) => {
   try {
-    const reviewData: InsertReview = req.body;
-    reviewData.author = req.body.user?.id || null; // Optional: set author if available
+    const reviewData: InsertReview = req.body;// Optional: set author if available
     const newReview = await storage.createReview(reviewData);
     res.status(201).json(newReview);
   } catch (error) {
