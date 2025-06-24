@@ -41,6 +41,9 @@ import ShowroomServiceDetails from "./pages/ShowroomServiceDetail";
 import CompareCars from "./pages/CompareCars";
 import BlogPage from "./pages/BlogPage";
 import Login from "./pages/Login";
+import Review from "./pages/Review";
+import Feedback from "./pages/Feedback";
+import ConfirmFeedback from "./pages/ConfirmFeedback";
 
 // 👤 Buyer Pages
 import BuyerDashboard from "./pages/buyer/BuyerDashboard";
@@ -155,6 +158,9 @@ function functionStaticPage({ keyParam }: { keyParam: string }) {
           <Route path="/compare" component={CompareCars} />
           <Route path="/blogs" component={BlogPage} />
           <Route path="/login" component={LoginRedirect} />
+          <Route path="/review" component={Review} />
+          <Route path="/confirmfeedback" component={ConfirmFeedback} />
+          <Route path="/feedback" component={Feedback} />
 
           {/* ---------- Sell Car & Service--------------- */}
           <Route path="/sell-car">

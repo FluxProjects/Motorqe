@@ -32,6 +32,7 @@ import { CarInspectionStorage, ICarInspectionStorage } from "./storage/carInspec
 import { ISliderStorage, SliderStorage } from "./storage/sliders";
 import { BlogPostStorage, IBlogPostStorage } from "./storage/blogPosts";
 import { BannerAdsStorage, IBannerAdsStorage } from "./storage/bannerAds";
+import {ReviewsStorage, IReviewsStorage } from "./storage/reviews";
 
 export interface IStorage 
 extends
@@ -68,7 +69,8 @@ IStatStorage,
 ICarInspectionStorage,
 ISliderStorage,
 IBlogPostStorage,
-IBannerAdsStorage
+IBannerAdsStorage,
+IReviewsStorage
 { }
 
 
@@ -107,5 +109,6 @@ export const storage: IStorage = {
 ...CarInspectionStorage,
 ...SliderStorage,
 ...BlogPostStorage,
-...BannerAdsStorage
+...BannerAdsStorage,
+...ReviewsStorage
 };

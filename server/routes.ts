@@ -2202,6 +2202,46 @@ app.get("/api/showroom/:id/service-interactions", async (req, res) => {
     }
   });
 
+  app.get("/api/service-booking/:id", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ message: "Invalid booking ID" });
+    }
+
+    const booking = await storage.getServiceBooking(id);
+
+    if (!booking) {
+      return res.status(404).json({ message: "Booking not found" });
+    }
+
+    console.log("booking", booking);
+
+    const service = await storage.getShowroomService(booking.service_id);
+
+    if (!service) {
+      return res.status(404).json({ message: "service not found" });
+    }
+
+    console.log("service", service);
+    const showroom = await storage.getGarage(service.showroom_id);
+
+     if (!showroom) {
+      return res.status(404).json({ message: "Garage not found" });
+    }
+
+    const customer = await storage.getUser(booking.user_id);
+   
+    const user = await storage.getUser(showroom.user_id);
+
+    res.json({ ...booking, service, showroom, customer, user });
+  } catch (error) {
+    console.error("Failed to fetch booking by ID:", error);
+    res.status(500).json({ message: "Failed to fetch booking", error });
+  }
+});
+
+
 
   app.post("/api/service-bookings", async (req, res) => {
   try {
@@ -3628,6 +3668,68 @@ app.post("/api/upload", upload.single("file"), async (req, res) => {
     });
   }
 });
+
+
+// Reviews
+
+// Assuming you already have your Express app and storage instance initialized
+
+app.get("/api/reviews", async (_req, res) => {
+  try {
+    const reviews = await storage.getAllReviews();
+    res.json(reviews);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch reviews", error });
+  }
+});
+
+app.get("/api/reviews/:id", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const review = await storage.getReviewById(id);
+    review
+      ? res.json(review)
+      : res.status(404).json({ message: "Review not found" });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch review", error });
+  }
+});
+
+app.post("/api/reviews", async (req, res) => {
+  try {
+    const reviewData: InsertReview = req.body;
+    reviewData.author = req.body.user?.id || null; // Optional: set author if available
+    const newReview = await storage.createReview(reviewData);
+    res.status(201).json(newReview);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to create review", error });
+  }
+});
+
+app.patch("/api/reviews/:id", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const updates: Partial<InsertReview> = req.body;
+    updates.updatedAt = new Date();
+    const updatedReview = await storage.updateReview(id, updates);
+    updatedReview
+      ? res.json(updatedReview)
+      : res.status(404).json({ message: "Review not found" });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to update review", error });
+  }
+});
+
+app.delete("/api/reviews/:id", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    await storage.deleteReview(id);
+    res.status(204).send();
+  } catch (error) {
+    res.status(500).json({ message: "Failed to delete review", error });
+  }
+});
+
 
 
 

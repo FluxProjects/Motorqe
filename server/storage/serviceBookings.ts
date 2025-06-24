@@ -1,9 +1,10 @@
+import { notificationService } from "server/services/notification";
 import { db } from "../db";
 import { ServiceBooking, InsertServiceBooking } from "@shared/schema";
 
 export interface IServiceBookingStorage {
 
-    getShowroomBookingStats(showroomId: number): Promise<void>;
+    getShowroomBookingStats(showroomId: number): Promise<{ today: number; upcoming: number; pending: number }>;
     getAllServiceBookings(filter?: Partial<ServiceBooking>, sortBy?: keyof ServiceBooking, sortOrder?: 'asc' | 'desc'  // No default value here
         ): Promise<ServiceBooking[]>;
     getServiceBookingsByUser(userId: number): Promise<ServiceBooking[]>;
@@ -18,7 +19,7 @@ export interface IServiceBookingStorage {
 
 export const ServiceBookingStorage = {
 
-  async getShowroomBookingStats(showroomId: number): Promise<void> {
+  async getShowroomBookingStats(showroomId: number): Promise<{ today: number; upcoming: number; pending: number }> {
   const query = `
     SELECT
       COUNT(*) FILTER (
@@ -169,7 +170,7 @@ export const ServiceBookingStorage = {
       try {
         const result = await db.query(baseQuery, values);
         // If using node-postgres (pg), return result.rows
-        return result.rows ?? result;
+        return result;
       } catch (err) {
         console.error('Query failed:', err);
         throw err;
@@ -265,10 +266,73 @@ export const ServiceBookingStorage = {
     },
 
     async completeServiceBooking(id: number): Promise<void> {
-        await db.query(
-            'UPDATE service_bookings SET status = \'completed\' WHERE id = $1',
-            [id]
-        );
-    }
+        // Start a transaction
+        await db.query('BEGIN');
+
+        try {
+            // 1. Update the booking status
+            await db.query(
+                'UPDATE service_bookings SET status = \'completed\' WHERE id = $1',
+                [id]
+            );
+
+            // 2. Get booking details with user information
+            const bookingQuery = `
+                SELECT 
+                    sb.*, 
+                    u.id as user_id,
+                    u.email, 
+                    u.first_name,
+                    u.phone,
+                    s.name as showroom_name,
+                    s.user_id as showroom_owner_id
+                FROM service_bookings sb
+                JOIN users u ON sb.user_id = u.id
+                JOIN showrooms s ON sb.showroom_id = s.id
+                WHERE sb.id = $1
+            `;
+            const [booking] = await db.query(bookingQuery, [id]);
+
+            if (!booking) {
+                throw new Error('Booking not found');
+            }
+
+            // 3. Generate review link
+            const reviewLink = generateReviewLink({
+                showroomId: booking.showroom_id,
+                bookingId: booking.id,
+                userId: booking.user_id
+            });
+
+            // 4. Create notifications using the NotificationService
+            await notificationService.createServiceCompletionNotifications(
+                booking.id,
+                booking.showroom_owner_id,
+                booking.user_id,
+                booking.email,
+                booking.phone,
+                booking.showroom_name,
+                booking.first_name,
+                reviewLink
+            );
+
+            // Commit the transaction
+            await db.query('COMMIT');
+        } catch (error) {
+            // Rollback on error
+            await db.query('ROLLBACK');
+            throw error;
+        }
+    },
 
 };
+
+export function generateReviewLink(params: {
+    showroomId: number;
+    bookingId: number;
+    userId?: number;
+}) {
+    const baseUrl = process.env.FRONTEND_URL || 'http://localhost:4000';
+    return `${baseUrl}/review?showroomId=${params.showroomId}&bookingId=${params.bookingId}`;
+}
+

@@ -1,0 +1,31 @@
+<!-- templates/service-review.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{subject}}</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .button { 
+            display: inline-block; 
+            padding: 10px 20px; 
+            background-color: #4CAF50; 
+            color: white; 
+            text-decoration: none; 
+            border-radius: 5px; 
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Hello {{firstName}},</h1>
+        <p>We hope you enjoyed your recent service at {{showroomName}}!</p>
+        <p>Please take a moment to share your experience:</p>
+        <p>
+            <a href="{{reviewLink}}" class="button">Leave Review</a>
+        </p>
+        <p>Thank you for your feedback!</p>
+        <p>Best regards,<br>Your Service Team</p>
+    </div>
+</body>
+</html>

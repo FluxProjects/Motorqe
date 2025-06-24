@@ -1206,6 +1206,28 @@ export type InsertServicePromotion = z.infer<typeof insertServicePromotionSchema
 export type ServicePromotion = typeof servicePromotions.$inferSelect;
 
 // =============================================
+// REVIEWS TABLE
+// =============================================
+
+export const reviews = pgTable("reviews", {
+  id: serial("id").primaryKey(),
+  showroomId: integer("showroom_id").notNull().references(() => showrooms.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  rating: integer("rating").notNull(), // You can enforce 1-5 rating in Zod
+  comment: text("comment"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Zod schemas
+export const insertReviewSchema = createInsertSchema(reviews).extend({
+  rating: z.number().min(1).max(5),
+});
+
+export type InsertReview = z.infer<typeof insertReviewSchema>;
+export type Review = typeof reviews.$inferSelect;
+
+// =============================================
 // CAR_INSPECTIONS TABLE
 // Stores user-submitted requests for car inspections
 // =============================================
@@ -1710,4 +1732,20 @@ export type ServiceBookingFormProps = {
   userId?: number;
   onSuccess?: () => void;
   isOpen?: boolean;
+}
+
+export interface ServiceProvider {
+  name: string;
+  location: string;
+  bookingDate: string;
+  bookingTime: string;
+}
+
+export interface ReviewData {
+  rating: number;
+  feedback: string;
+  serviceProvider: string;
+  location: string;
+  bookingDate: string;
+  bookingTime: string;
 }

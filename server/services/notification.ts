@@ -1,7 +1,12 @@
 import { storage } from '../storage';
 import { type InsertMessage } from '@shared/schema';
+import nodemailer from 'nodemailer';
+import fs from 'fs';
+import path from 'path';
+import handlebars from 'handlebars';
 
 class NotificationService {
+  
   async createListingNotifications(
     listingId: number,
     userId: number,
@@ -80,6 +85,17 @@ class NotificationService {
         if (notification.type === 'email') {
           // TODO: Implement actual email sending
           console.log('Sending email notification:', notification);
+
+          const content = JSON.parse(notification.content);
+          if (notification.receiverId === null) {
+            throw new Error("Receiver ID is missing in the notification.");
+          }
+          await this.sendEmail({
+                        to: await this.getRecipientEmail(notification.receiverId),
+                        subject: content.subject,
+                        template: content.template,
+                        context: content.context
+                    });
           await storage.markNotificationSent(notification.id);
         } else if (notification.type === 'sms') {
           // TODO: Implement actual SMS sending
@@ -155,7 +171,142 @@ class NotificationService {
   console.log(`OTP for ${email}: ${otp}`); // For development only
   }
 
+  async createServiceCompletionNotifications(
+        listingId: number,
+        showroomOwnerId: number,
+        customerId: number,
+        customerEmail: string,
+        customerPhone: string | null,
+        showroomName: string,
+        customerName: string,
+        reviewLink: string
+    ): Promise<void> {
+        const now = new Date();
+
+        // 1. Customer email notification with review link
+        const customerEmailNotification: InsertMessage = {
+            senderId: showroomOwnerId,
+            receiverId: customerId,
+            recipientType: 'customer',
+            type: 'email',
+            status: 'pending',
+            content: JSON.stringify({
+                subject: `How was your experience at ${showroomName}?`,
+                template: 'service-review',
+                context: {
+                    firstName: customerName,
+                    showroomName: showroomName,
+                    reviewLink: reviewLink
+                }
+            }),
+            listingId,
+            sentAt: now,
+        };
+        await storage.createNotification(customerEmailNotification);
+
+        // 2. Customer SMS notification (if phone exists)
+        if (customerPhone) {
+            const customerSmsNotification: InsertMessage = {
+                senderId: showroomOwnerId,
+                receiverId: customerId,
+                recipientType: 'customer',
+                type: 'sms',
+                status: 'pending',
+                content: `Thank you for choosing ${showroomName}! Rate your experience: ${reviewLink}`,
+                listingId,
+                sentAt: now,
+            };
+            await storage.createNotification(customerSmsNotification);
+        }
+
+        // 3. Showroom owner notification
+        const showroomOwner = await storage.getUser(showroomOwnerId);
+        if (showroomOwner) {
+            if (showroomOwner.emailNotifications && showroomOwner.notificationEmail) {
+                const ownerEmailNotification: InsertMessage = {
+                    senderId: customerId,
+                    receiverId: showroomOwnerId,
+                    recipientType: 'user',
+                    type: 'email',
+                    status: 'pending',
+                    content: JSON.stringify({
+                        subject: `Service completed for booking #${listingId}`,
+                        template: 'service-completed-owner',
+                        context: {
+                            bookingId: listingId,
+                            customerName: customerName
+                        }
+                    }),
+                    listingId,
+                    sentAt: now,
+                };
+                await storage.createNotification(ownerEmailNotification);
+            }
+
+            if (showroomOwner.smsNotifications && showroomOwner.notificationPhone) {
+                const ownerSmsNotification: InsertMessage = {
+                    senderId: customerId,
+                    receiverId: showroomOwnerId,
+                    recipientType: 'user',
+                    type: 'sms',
+                    status: 'pending',
+                    content: `Service completed for booking #${listingId}`,
+                    listingId,
+                    sentAt: now,
+                };
+                await storage.createNotification(ownerSmsNotification);
+            }
+        }
+    }
+
+   private async sendEmail(params: {
+        to: string;
+        subject: string;
+        template: string;
+        context: Record<string, any>;
+    }): Promise<void> {
+        try {
+            // 1. Create reusable transporter object using Gmail
+            const transporter = nodemailer.createTransport({
+                service: 'gmail',
+                auth: {
+                    user: process.env.GMAIL_USERNAME, // Your Gmail address
+                    pass: process.env.GMAIL_PASSWORD, // Your Gmail password or app password
+                },
+            });
+
+            // 2. Load and compile the email template
+            const templatePath = path.join(__dirname, '..', 'templates', `${params.template}.html`);
+            const templateSource = fs.readFileSync(templatePath, 'utf8');
+            const template = handlebars.compile(templateSource);
+            const html = template(params.context);
+
+            // 3. Setup email data
+            const mailOptions = {
+                from: `"Motorqe" <${process.env.GMAIL_USERNAME}>`,
+                to: params.to,
+                subject: params.subject,
+                html: html,
+            };
+
+            // 4. Send email
+            const info = await transporter.sendMail(mailOptions);
+            console.log('Message sent: %s', info.messageId);
+        } catch (error) {
+            console.error('Error sending email:', error);
+            throw new Error('Failed to send email');
+        }
+    }
+
+    private async getRecipientEmail(userId: number): Promise<string> {
+        const user = await storage.getUser(userId);
+        if (!user) throw new Error(`User ${userId} not found`);
+        return user.email;
+    }
+
 
 }
+
+
 
 export const notificationService = new NotificationService();
