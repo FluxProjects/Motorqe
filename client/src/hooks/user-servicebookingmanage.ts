@@ -54,7 +54,7 @@ export const useServiceBookingManage = () => {
       }
 
       // For sellers and showrooms, only fetch their own listings
-      if ((roleName === "SELLER" || roleName === "GARAGE" ) && user?.id) {
+      if ((roleName === "SELLER" || roleName === "DEALER" || roleName === "GARAGE" ) && user?.id) {
   searchParams.append("user_id", user.id.toString());
 }
 

@@ -25,11 +25,14 @@ import {
   ArrowLeft,
   MapPin as MapPinIcon
 } from "lucide-react";
-import { CarMake, insertShowroomSchema, Showroom, ShowroomMake, User } from "@shared/schema";
+import { AvailabilityEntry, CarMake, insertShowroomSchema, Showroom, ShowroomMake, User } from "@shared/schema";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTranslation } from "react-i18next";
 import Footer from "@/components/layout/Footer";
 import { MultiSelect } from "@/components/ui/multiselect";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AvailabilityEditor } from "@/components/ui/availability";
+import { formatAvailability } from "@/lib/utils";
 
 
 type ServiceForm = {
@@ -38,6 +41,8 @@ type ServiceForm = {
   description: string;
   featured: boolean;
 };
+
+
 
 export default function AdminAddGarage() {
   const { t } = useTranslation();
@@ -275,6 +280,22 @@ const [selectedMakeIds, setSelectedMakeIds] = useState<string[]>([]);
     })) ?? [],
   ];
 
+  const hasActiveDays = (value: string | Record<string, AvailabilityEntry> | null | undefined): boolean => {
+  if (!value) return false;
+
+  let parsed: Record<string, AvailabilityEntry>;
+
+  try {
+    parsed = typeof value === "string" ? JSON.parse(value) : value;
+  } catch {
+    return false;
+  }
+
+  return Object.values(parsed || {}).some((entry) => entry?.isOpen);
+};
+
+
+
   return (
     <>
     <div className="p-20">
@@ -482,19 +503,44 @@ const [selectedMakeIds, setSelectedMakeIds] = useState<string[]>([]);
 
                 {/* Timing & Main Branch */}
                 <div className="grid grid-cols-2 gap-4">
+                  
                   <FormField
                     control={form.control as Control<Showroom>}
                     name="timing"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Working Hours</FormLabel>
                         <FormControl>
-                          <Input {...field} value={field.value ?? ""} />
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button className="border-blue-900 border-2 text-blue-900 bg-white hover:bg-blue-900 hover:text-white">
+                                {hasActiveDays(field.value) ? "Update Garage Timing" : "Add Garage Timing"}
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-3xl">
+                              <DialogHeader>
+                                <DialogTitle className="text-blue-900 font-bold">Garage Timing</DialogTitle>
+                              </DialogHeader>
+
+                              {/* ✅ Use it here */}
+                              <AvailabilityEditor
+                                availability={
+                                  typeof field.value === "string"
+                                    ? JSON.parse(field.value || "{}")
+                                    : field.value || {}
+                                }
+                                onChange={(newAvailability) =>
+                                  field.onChange(JSON.stringify(newAvailability))
+                                }
+                              />
+
+                            </DialogContent>
+                          </Dialog>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
+
                   <FormField
                     control={form.control as Control<Showroom>}
                     name="isMainBranch"
@@ -676,12 +722,6 @@ const [selectedMakeIds, setSelectedMakeIds] = useState<string[]>([]);
                   </Button>
                 </div>
 
-                {/* Navigation */}
-                <div className="flex justify-between pt-4">
-                  <Button type="button" variant="outline" onClick={() => setStep(2)}>
-                    <ArrowRight className="mr-2 h-4 w-4" /> Next
-                  </Button>
-                </div>
               </CardContent>
 
               <CardHeader>
@@ -735,7 +775,7 @@ const [selectedMakeIds, setSelectedMakeIds] = useState<string[]>([]);
                 </div>
 
                 {/* Navigation */}
-                <div className="flex justify-between pt-4">
+                <div className="flex justify-end pt-4">
                   <Button type="button" variant="outline" onClick={() => setStep(2)}>
                     <ArrowRight className="mr-2 h-4 w-4" /> Next
                   </Button>
@@ -758,7 +798,7 @@ const [selectedMakeIds, setSelectedMakeIds] = useState<string[]>([]);
                   <h3 className="font-semibold text-lg">Garage Details</h3>
                   
                   {garageLogo && (
-                    <div className="flex justify-center">
+                    <div className="flex justify-start">
                       <img src={garageLogo} alt="Garage Logo" className="h-32 w-32 object-contain" />
                     </div>
                   )}
@@ -771,6 +811,17 @@ const [selectedMakeIds, setSelectedMakeIds] = useState<string[]>([]);
                     <div>
                       <Label className="text-gray-500">Name (AR)</Label>
                       <p>{form.watch("nameAr")}</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-gray-500">Description (EN)</Label>
+                      <p>{form.watch("description")}</p>
+                    </div>
+                    <div>
+                      <Label className="text-gray-500">Description (AR)</Label>
+                      <p>{form.watch("descriptionAr")}</p>
                     </div>
                   </div>
 
@@ -792,11 +843,27 @@ const [selectedMakeIds, setSelectedMakeIds] = useState<string[]>([]);
                     </div>
                     <div>
                       <Label className="text-gray-500">Working Hours</Label>
-                      <p>{form.watch("timing")}</p>
+                     {(() => {
+                      try {
+                        const raw = form.watch("timing");
+                        const availability =
+                          typeof raw === "string" ? JSON.parse(raw) : raw;
+
+                        console.log("form timing availability", availability);
+
+                        return (
+                          formatAvailability(availability) ||
+                          t("services.unknownAvailability")
+                        );
+                      } catch (e) {
+                        return t("services.unknownAvailability");
+                      }
+                    })()}
                     </div>
                   </div>
+
                   <div className="grid grid-cols-2 gap-4">
-                     <div>
+                    <div>
                       <Label className="text-gray-500">Type of Listing</Label>
                       <p>{form.watch("isFeatured") ? "Featured" : "Standard"}</p>
                     </div>
@@ -804,8 +871,19 @@ const [selectedMakeIds, setSelectedMakeIds] = useState<string[]>([]);
                       <Label className="text-gray-500">Home Service</Label>
                       <p>{form.watch("isMobileService") ? "Yes" : "No"}</p>
                     </div>
-                   
                   </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-gray-500">Main Branch</Label>
+                      <p>{form.watch("isMainBranch") ? "Yes" : "No"}</p>
+                    </div>
+                    <div>
+                      <Label className="text-gray-500">Makes Supported</Label>
+                      <p>{selectedMakeIds.map(id => makeOptions.find(m => m.value === id)?.label).join(", ")}</p>
+                    </div>
+                  </div>
+
                   <div>
                     <Label className="text-gray-500">Location</Label>
                     <p>{form.watch("location")}</p>
@@ -815,7 +893,6 @@ const [selectedMakeIds, setSelectedMakeIds] = useState<string[]>([]);
                         zoom={14}
                       />
                     </div>
-                    
                   </div>
 
                   {garageImages.length > 0 && (
@@ -870,19 +947,29 @@ const [selectedMakeIds, setSelectedMakeIds] = useState<string[]>([]);
                   </div>
                 )}
 
-                {/* Garage Info Review */}
+                {/* Contact Details */}
                 <div className="border rounded-lg p-6 space-y-4">
                   <h3 className="font-semibold text-lg">Contact Details</h3>
                   
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-gray-500">Name</Label>
+                      <p>{contact.firstName}</p>
+                    </div>
+                    <div>
+                      <Label className="text-gray-500">Email</Label>
+                      <p>{contact.email}</p>
+                    </div>
+                  </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label className="text-gray-500">Phone</Label>
-                      <p>{form.watch("phone")}</p>
+                      <p>{contact.phone}</p>
                     </div>
                     <div>
                       <Label className="text-gray-500">WhatsApp</Label>
-                      <p>{form.watch("whatsapp")}</p>
+                      <p>{contact.whatsapp}</p>
                     </div>
                   </div>
                 </div>
@@ -892,14 +979,14 @@ const [selectedMakeIds, setSelectedMakeIds] = useState<string[]>([]);
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => setStep(2)}
+                    onClick={() => setStep(1)}
                   >
                     <ArrowLeft className="mr-2 h-4 w-4" /> Back
                   </Button>
                   <Button
                     type="submit"
                     onClick={handleSubmit}
-                    className="bg-green-600 hover:bg-green-700"
+                    className="bg-orange-500"
                   >
                     Create Garage
                   </Button>

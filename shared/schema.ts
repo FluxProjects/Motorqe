@@ -571,7 +571,7 @@ export const messages = pgTable("messages", {
   receiverId: integer('receiver_id').references(() => users.id, { onDelete: 'set null' }),   // Foreign key to receiver user
   recipientType: text("recipient_type"), // Type of recipient (customer, showroom)
   type: text("type").notNull(),                   // Message type (email, sms)
-  listingId: integer('listing_id').references(() => carListings.id, { onDelete: 'set null' }), // Related car listing
+  listingId: integer('listing_id'), // Related car listing
   title: text("title"),
   content: text("content").notNull(),             // Message content
   status: text("status").default("draft").notNull().$type<"draft" | "sent" | "failed" | "read" | "unread">(),            // Delivery status
@@ -1751,3 +1751,10 @@ export interface ReviewData {
   showroomId?: number;
   bookingId?: number;
 }
+
+export type AvailabilityEntry = {
+  day: string;          // e.g., "mon", "tue"
+  isOpen: boolean;      // whether the day is active
+  startTime: string;    // in "HH:mm" format like "09:00"
+  endTime: string;      // in "HH:mm" format like "17:00"
+};

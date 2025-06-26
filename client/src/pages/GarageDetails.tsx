@@ -93,7 +93,7 @@ const GarageDetails = () => {
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
   const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
   const [selectedServiceIds, setSelectedServiceIds] = useState<number[]>([]);
-  const [selectedServices, setSelectedServices] = useState<[]>([]);
+  const [selectedServices, setSelectedServices] = useState<any[]>([]);
 
   const toggleService = (id: number) => {
     setSelectedServiceIds((prev) =>
@@ -125,6 +125,9 @@ const GarageDetails = () => {
   } = useQuery<Showroom>({
     queryKey: [`/api/garages/${id}`],
   });
+
+   const availability = typeof showroom?.timing === "string" ? JSON.parse(showroom?.timing): showroom?.timing;
+  console.log("showroom availability", availability);
 
   // Fetch showroom car listings
   const { data: showroomServices = [], isLoading: isLoadingCarServices } =
@@ -177,17 +180,23 @@ const GarageDetails = () => {
     sellerData,
   });
 
-  const handleBooking = () => {
-    const selected = showroomServices.filter((service) =>
-      selectedServiceIds.includes(service.id)
-    );
-    setSelectedServices(selected);
-    console.log("Booking services:", selected); // log the correct filtered array
-    setBookingDialogOpen(true); // Open dialog with selected services
-  };
+ const handleBooking = () => {
+  if (user?.id === null || user?.id === undefined) {
+    setBookingDialogOpen(false);     // make sure booking dialog doesn't open
+    setAuthModal("login");           // trigger auth modal
+    return;
+  }
+
+  const selected = showroomServices.filter((service) =>
+    selectedServiceIds.includes(service.id)
+  );
+  setSelectedServices(selected);
+  console.log("Booking services:", selected); // log the correct filtered array
+  setBookingDialogOpen(true); // Open dialog with selected services
+};
 
   const handleContactSeller = (values: MessageValues) => {
-    if (!isAuthenticated) {
+    if (user?.id === null || user?.id === undefined) {
       setContactDialogOpen(false);
       setAuthModal("login");
       return;
@@ -246,14 +255,6 @@ const GarageDetails = () => {
       });
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString(language === "ar" ? "ar-EG" : "en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  };
 
   const handleLocationMap = (showroomAddress: string) => {
     const encodedAddress = encodeURIComponent(showroomAddress);
@@ -269,6 +270,10 @@ const GarageDetails = () => {
   };
 
   const handleCall = (phone: string) => {
+    if (!phone) {
+    console.warn("Phone number is missing");
+    return;
+  }
     window.open(`tel:${phone}`);
   };
 
@@ -434,7 +439,7 @@ const GarageDetails = () => {
                           <div className="text-sm">{service.name}</div>
                         </div>
                         <div className="text-sm text-orange-500">
-                          ${service.price}
+                          {service.currency || "QAR"} {service.price}
                           <input
                             type="checkbox"
                             checked={selectedServiceIds.includes(service.id)}
@@ -457,9 +462,11 @@ const GarageDetails = () => {
                       <Button
                         size="sm"
                         className="w-full rounded-full bg-blue-900 text-white flex items-center justify-center gap-2"
-                        onClick={() =>
-                          handleCall(showroom?.phone || sellerData?.phone)
-                        }
+                        onClick={() => {
+                          const phone = showroom?.phone || sellerData?.phone || "";
+                          handleCall(phone);
+                        }}
+
                       >
                         <Phone size={16} />
                         {showroom?.phone || sellerData?.phone}
@@ -471,13 +478,16 @@ const GarageDetails = () => {
                         onClick={() =>
                           handleWhatsApp(
                             showroom?.phone ?? sellerData?.phone,
-                            service?.name
+                            selectedServices.length > 0
+                              ? selectedServices.map((s) => s.name).join(", ")
+                              : "Garage Service"
                           )
                         }
                       >
                         <MessageCircle size={16} />
                         WhatsApp
                       </Button>
+
                     </div>
                   </div>
                 </div>
@@ -492,7 +502,7 @@ const GarageDetails = () => {
                     </div>
                   </div>
 
-                  {(showroom?.address || showroom?.addressAr) && (
+                  {(showroom?.address || showroom?.address_ar) && (
                     <div className="flex space-x-2 mb-4">
                       <Button
                         size="xs"
@@ -500,7 +510,7 @@ const GarageDetails = () => {
                         className="pt-2 pb-2 flex-1 rounded-full bg-orange-500 text-white"
                         onClick={() =>
                           handleLocationMap(
-                            showroom?.address || showroom?.addressAr
+                            showroom?.address || showroom?.address_ar
                           )
                         }
                       >
@@ -563,11 +573,7 @@ const GarageDetails = () => {
                       <div className="space-y-1 text-xs">
                         {(() => {
                           try {
-                            const availability =
-                              typeof showroom?.timing === "string"
-                                ? JSON.parse(showroom?.timing)
-                                : showroom?.timing;
-                            console.log("showroom availability", availability);
+                           
                             return (
                               formatAvailability(availability) ||
                               t("services.unknownAvailability")
@@ -767,14 +773,17 @@ const GarageDetails = () => {
             Please confirm your service selections and choose a date/time.
           </DialogDescription>
           <ServiceBookingForm
-            services={selectedServices}
+            services={showroomServices}
+            selectedServices={selectedServices}
             userId={user?.id?.toString()}
             showroomId={id}
             isOpen={bookingDialogOpen}
+            availability={availability} // ✅ This is correct
             onSuccess={() => {
-    setBookingDialogOpen(false); // ✅ Close dialog
-  }}
+              setBookingDialogOpen(false); // ✅ This is correct
+            }}
           />
+
         </DialogContent>
       </Dialog>
 

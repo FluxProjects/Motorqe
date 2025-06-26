@@ -6,6 +6,42 @@ import { CarEngineCapacity } from "@shared/schema";
 import { t } from "i18next";
 import { Badge } from "@/components/ui/badge";
 
+import { format, addHours } from "date-fns";
+
+export function formatServiceTimeRange(startTime: string): string {
+  const [hours, minutes] = startTime.split(":").map(Number);
+
+  const start = new Date();
+  start.setHours(hours, minutes, 0, 0);
+
+  const end = addHours(start, 1);
+
+  return `${format(start, "hh:mm a")} - ${format(end, "hh:mm a")}`;
+}
+
+export function generateTimeSlots(start: string, end: string, stepMinutes: number = 30) {
+  const slots: string[] = [];
+  let [startHour, startMin] = start.split(":").map(Number);
+  let [endHour, endMin] = end.split(":").map(Number);
+
+  let current = new Date();
+  current.setHours(startHour, startMin, 0, 0);
+
+  const endTime = new Date();
+  endTime.setHours(endHour, endMin, 0, 0);
+
+  while (current < endTime) {
+    const hh = String(current.getHours()).padStart(2, "0");
+    const mm = String(current.getMinutes()).padStart(2, "0");
+    slots.push(`${hh}:${mm}`);
+    current.setMinutes(current.getMinutes() + stepMinutes);
+  }
+
+  return slots;
+}
+
+
+
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }

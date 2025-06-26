@@ -65,6 +65,7 @@ const searchFormSchema = z.object({
   sort: z.string().optional(),
   page: z.number().optional(),
   limit: z.number().optional(),
+  service: z.string().optional(),
 });
 
 type SearchFormValues = z.infer<typeof searchFormSchema>;
@@ -99,9 +100,12 @@ const colorOptions = [
   { value: "white", label: "White" },
   { value: "black", label: "Black" },
   { value: "silver", label: "Silver" },
+  { value: "golden", label: "Golden" },
   { value: "gray", label: "Gray" },
   { value: "red", label: "Red" },
   { value: "blue", label: "Blue" },
+  { value: "green", label: "Green" },
+  { value: "pink", label: "Pink" },
 ];
 
 const interiorColorOptions = [
@@ -241,24 +245,26 @@ const onSubmit = (values: SearchFormValues) => {
 };
   // Determine which default fields to show based on active tab
   const showDefaultField = (fieldName: keyof SearchFormValues) => {
-    if (activeTab === "all") {
-      // Show these fields by default for "all" tab
-      return ["make", "model", "minYear", "condition"].includes(fieldName);
+  if (activeTab === "all") {
+    // Show these fields by default for "all" tab
+    // Hide year only if advanced search is open
+    const defaultFields = ["make", "model", "condition"];
+    if (!showAdvanced) {
+      defaultFields.push("minYear");
     }
-    if (activeTab === "new") {
-      // Show these fields by default for "new" tab
-      return ["make", "model", "minPrice", "maxPrice", "owner_type"].includes(fieldName);
-    }
-    if (activeTab === "scrap") {
-      // Show these fields by default for "scrap" tab
-      return ["make", "model", "minYear"].includes(fieldName);
-    }
-     if (activeTab === "garage") {
-      // Show these fields by default for "scrap" tab
-      return ["make", "model", "minYear", "service"].includes(fieldName);
-    }
-    return false;
-  };
+    return defaultFields.includes(fieldName);
+  }
+  if (activeTab === "new") {
+    return ["make", "model", "minPrice", "maxPrice", "owner_type"].includes(fieldName);
+  }
+  if (activeTab === "scrap") {
+    return ["make", "model", "minYear"].includes(fieldName);
+  }
+  if (activeTab === "garage") {
+    return ["make", "model", "minYear", "service"].includes(fieldName);
+  }
+  return false;
+};
 
   // Determine which fields to show based on active tab
   const showField = (fieldName: keyof SearchFormValues) => {
@@ -330,6 +336,10 @@ const onSubmit = (values: SearchFormValues) => {
         "is_imported",
         "has_warranty",
         "has_insurance",
+        "owner_type",
+        "location",
+        "minYear",
+        "maxYear",
       ].includes(fieldName);
     }
     return true;
@@ -353,20 +363,21 @@ const modelOptions = models?.map((model: CarModel) => ({
       <CardContent className="p-6">
         {/* Tabs for status */}
         <div className="flex flex-wrap justify-center mb-8 gap-3">
-          {["all", "new", "scrap", "garage"].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab as "all" | "new" | "scrap" | "garage")}
-              className={`px-5 py-2 text-sm font-medium transition-all ${
-                activeTab === tab
-                  ? "text-orange-500 border-b-4 border-b-orange-500 hover:font-bold"
-                  : "text-blue-900"
-              }`}
-            >
-              {t(`common.${tab}cars`)}
-            </button>
-          ))}
-        </div>
+        {(is_garage ? ["garage"] : ["all", "new", "scrap", "garage"]).map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab as "all" | "new" | "scrap" | "garage")}
+            className={`px-5 py-2 text-sm font-medium transition-all ${
+              activeTab === tab
+                ? "text-orange-500 border-b-4 border-b-orange-500 hover:font-bold"
+                : "text-blue-900"
+            }`}
+          >
+            {t(`common.${tab}cars`)}
+          </button>
+        ))}
+      </div>
+
 
         <Form {...form}>
           

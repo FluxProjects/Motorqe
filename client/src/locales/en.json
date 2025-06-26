@@ -627,6 +627,9 @@
     "preferencesPlaceholder": "Enter your preferences..."
   },
   "admin": {
+    "editSlider": "Edit Slider",
+    "createSlider" : "Create Slider",
+    "viewSlider": "View Slider",
     "inactive":"Inactive",
     "requiresReview" : "Requires Review",
     "manageShowrooms": "Manage Showroom/Garages",
@@ -978,11 +981,13 @@
   },
   "services": {
     "failedToLoad": "No Data Available",
+    "selectTime":"Select a time",
     "brands":"Brands",
     "promotions": "Promotions",
     "carServices":"Car Services",
     "date": "Date",
     "time": "Time",
+    "total": "Total",
     "notes": "Notes",
     "notesPlaceholder": "Add any notes or special instructions (optional)",
     "confirmBooking": "Confirm Booking",

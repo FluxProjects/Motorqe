@@ -17,7 +17,6 @@ import {
   RefreshCw,
   Search,
   Trash2,
-  X,
 } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -56,6 +55,7 @@ import { Textarea } from "../../components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
 import ImageUpload from "@/components/ui/image-upload";
 import { roleMapping } from "@shared/permissions";
+import { toast } from "@/hooks/use-toast";
 
 type SliderType = 'home' | 'garage';
 
@@ -85,7 +85,6 @@ const ManageSliders = () => {
     },
   });
 
-  // Create/update mutation
   const saveMutation = useMutation({
     mutationFn: async (slider: InsertHeroSlider | HeroSlider) => {
       const isUpdate = "id" in slider && slider.id > 0;
@@ -94,21 +93,68 @@ const ManageSliders = () => {
         : "/api/hero-sliders";
       const method = isUpdate ? "PUT" : "POST";
 
-      const res = await fetch(url, {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(slider),
-      });
-      if (!res.ok) throw new Error("Failed to save slider");
-      return res.json();
+      try {
+        // Prepare the data to match your API schema
+        const payload = {
+          title: slider.title,
+          title_ar: slider.title_ar,
+          subtitle: slider.subtitle,
+          subtitle_ar: slider.subtitle_ar,
+          image_url: slider.image_url,
+          button_text: slider.button_text,
+          button_text_ar: slider.button_text_ar,
+          button_url: slider.button_url,
+          slide_type: slider.slide_type,
+          is_active: slider.is_active,
+          slide_order: slider.slide_order,
+        };
+
+        const res = await fetch(url, {
+          method,
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(errorData.message || "Failed to save slider");
+        }
+
+        return await res.json();
+      } catch (error) {
+        throw error; // This will trigger the onError callback
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["hero-sliders"] });
       setIsDialogOpen(false);
       setCurrentSlider(null);
       setIsEditing(false);
+      
+      toast({
+        title: "Success",
+        description: "Slider saved successfully",
+        variant: "default",
+        duration: 3000,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save slider",
+        variant: "destructive",
+        duration: 5000,
+      });
+    },
+    onMutate: () => {
+      toast({
+        title: "Processing",
+        description: "Saving slider...",
+        variant: "default",
+        duration: 2000,
+      });
     },
   });
 
@@ -131,7 +177,7 @@ const ManageSliders = () => {
   // Filter sliders
   const filteredSliders = sliderData.filter((slider) => {
     const matchesStatus = statusFilter === "all" || 
-      (statusFilter === "active" ? slider.isActive : !slider.isActive);
+      (statusFilter === "active" ? slider.is_active : !slider.is_active);
     const matchesType = typeFilter === "all" || slider.slide_type === typeFilter;
     const matchesSearch =
       searchTerm.trim() === "" ||
@@ -144,18 +190,18 @@ const ManageSliders = () => {
     setCurrentSlider({
       id: 0,
       title: "",
-      titleAr: "",
+      title_ar: "",
       subtitle: "",
-      subtitleAr: "",
-      imageUrl: "",
-      buttonText: "",
-      buttonTextAr: "",
-      buttonUrl: "",
-      type,
-      isActive: true,
-      order: 0,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      subtitle_ar: "",
+      image_url: "",
+      button_text: "",
+      button_text_ar: "",
+      button_url: "",
+      slide_type: type,
+      is_active: true,
+      slide_order: 0,
+      created_at: new Date(),
+      updated_at: new Date(),
     });
     setIsEditing(true);
     setIsDialogOpen(true);
@@ -187,7 +233,7 @@ const ManageSliders = () => {
     if (currentSlider) {
       setCurrentSlider({
         ...currentSlider,
-        imageUrl: url,
+        image_url: url,
       });
     }
   };
@@ -198,10 +244,8 @@ const ManageSliders = () => {
         <div className="bg-white rounded-xl shadow overflow-hidden">
           <div className="md:flex">
             {/* Sidebar */}
-            <div className="hidden md:block">
-              {user?.roleId && (
-                <DashboardSidebar type={roleMapping[user?.roleId] || "BUYER"} />
-              )}
+            <div>
+                <DashboardSidebar type={roleMapping[user?.role_id]} />
             </div>
 
             {/* Main Content */}
@@ -353,10 +397,10 @@ const ManageSliders = () => {
                             className="hover:bg-gray-50 border-b"
                           >
                             <TableCell>
-                              {slider.imageUrl ? (
+                              {slider.image_url ? (
                                 <div className="w-16 h-16 rounded-md overflow-hidden">
                                   <img
-                                    src={slider.imageUrl}
+                                    src={slider.image_url}
                                     alt={slider.title}
                                     className="w-full h-full object-cover"
                                   />
@@ -379,7 +423,7 @@ const ManageSliders = () => {
                               </Badge>
                             </TableCell>
                             <TableCell>
-                              {slider.isActive ? (
+                              {slider.is_active ? (
                                 <Badge className="bg-green-100 text-green-800">
                                   Active
                                 </Badge>
@@ -505,11 +549,11 @@ const ManageSliders = () => {
                     <Label htmlFor="buttonText">Button Text</Label>
                     <Input
                       id="buttonText"
-                      value={currentSlider.buttonText || ""}
+                      value={currentSlider.button_text || ""}
                       onChange={(e) =>
                         setCurrentSlider({
                           ...currentSlider,
-                          buttonText: e.target.value,
+                          button_text: e.target.value,
                         })
                       }
                       disabled={!isEditing}
@@ -520,11 +564,11 @@ const ManageSliders = () => {
                     <Label htmlFor="buttonUrl">Button URL</Label>
                     <Input
                       id="buttonUrl"
-                      value={currentSlider.buttonUrl || ""}
+                      value={currentSlider.button_url || ""}
                       onChange={(e) =>
                         setCurrentSlider({
                           ...currentSlider,
-                          buttonUrl: e.target.value,
+                          button_url: e.target.value,
                         })
                       }
                       disabled={!isEditing}
@@ -537,11 +581,11 @@ const ManageSliders = () => {
                     <Label htmlFor="titleAr">العنوان</Label>
                     <Input
                       id="titleAr"
-                      value={currentSlider.titleAr || ""}
+                      value={currentSlider.title_ar || ""}
                       onChange={(e) =>
                         setCurrentSlider({
                           ...currentSlider,
-                          titleAr: e.target.value,
+                          title_ar: e.target.value,
                         })
                       }
                       disabled={!isEditing}
@@ -553,11 +597,11 @@ const ManageSliders = () => {
                     <Label htmlFor="subtitleAr">العنوان الفرعي</Label>
                     <Textarea
                       id="subtitleAr"
-                      value={currentSlider.subtitleAr || ""}
+                      value={currentSlider.subtitle_ar || ""}
                       onChange={(e) =>
                         setCurrentSlider({
                           ...currentSlider,
-                          subtitleAr: e.target.value,
+                          subtitle_ar: e.target.value,
                         })
                       }
                       disabled={!isEditing}
@@ -569,11 +613,11 @@ const ManageSliders = () => {
                     <Label htmlFor="buttonTextAr">نص الزر</Label>
                     <Input
                       id="buttonTextAr"
-                      value={currentSlider.buttonTextAr || ""}
+                      value={currentSlider.button_text_ar || ""}
                       onChange={(e) =>
                         setCurrentSlider({
                           ...currentSlider,
-                          buttonTextAr: e.target.value,
+                          button_text_ar: e.target.value,
                         })
                       }
                       disabled={!isEditing}
@@ -584,62 +628,68 @@ const ManageSliders = () => {
               </Tabs>
               
               <div className="mt-6 space-y-4">
+                {/* In the dialog content where image upload is handled */}
                 <div className="space-y-2">
                   <Label>Slider Image</Label>
                   {isEditing ? (
                     <ImageUpload
-                      currentImage={currentSlider.imageUrl}
+                      currentImage={currentSlider?.image_url || ''}
                       onUploadComplete={handleImageUpload}
                     />
-                  ) : currentSlider.imageUrl ? (
-                    <div className="mt-2 rounded-md overflow-hidden border">
-                      <img
-                        src={currentSlider.imageUrl}
-                        alt="Slider preview"
-                        className="w-full h-64 object-cover"
-                      />
-                    </div>
                   ) : (
-                    <div className="flex items-center justify-center h-64 bg-gray-100 rounded-md">
-                      <span className="text-gray-500">No image uploaded</span>
+                    <div className="mt-2 rounded-md overflow-hidden border">
+                      {currentSlider?.image_url ? (
+                        <img
+                          src={currentSlider.image_url}
+                          alt="Slider preview"
+                          className="w-full h-64 object-cover"
+                        />
+                      ) : (
+                        <div className="flex items-center justify-center h-64 bg-gray-100 rounded-md">
+                          <span className="text-gray-500">No image uploaded</span>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
                 
                 <div className="flex items-center space-x-2">
                   <Switch
-                    id="isActive"
-                    checked={currentSlider.isActive}
+                    id="is_active"
+                    checked={currentSlider.is_active}
                     onCheckedChange={(checked) =>
                       setCurrentSlider({
                         ...currentSlider,
-                        isActive: checked,
+                        is_active: checked,
                       })
                     }
                     disabled={!isEditing}
                   />
                   <Label htmlFor="isActive">
-                    {currentSlider.isActive ? "Active" : "Inactive"}
+                    {currentSlider.is_active ? "Active" : "Inactive"}
                   </Label>
                 </div>
                 
                 <div className="space-y-2">
                   <Label htmlFor="type">Slider Type</Label>
-                  <select
-                    id="type"
-                    value={currentSlider.slide_type}
-                    onChange={(e) =>
+                  <Select
+                    value={currentSlider?.slide_type}
+                    onValueChange={(value: SliderType) =>
                       setCurrentSlider({
                         ...currentSlider,
-                        type: e.target.value as SliderType,
+                        slide_type: value,
                       })
                     }
-                    className="border rounded px-3 py-2 w-full"
-                    disabled={!isEditing || currentSlider.id > 0}
+                    disabled={!isEditing || (currentSlider?.id && currentSlider.id > 0)}
                   >
-                    <option value="home">Home Page</option>
-                    <option value="garage">Garage Page</option>
-                  </select>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select slider type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="home">Home Page</SelectItem>
+                      <SelectItem value="garage">Garage Page</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">
@@ -647,17 +697,18 @@ const ManageSliders = () => {
                   <Input
                     id="order"
                     type="number"
-                    value={currentSlider.slide_order}
+                    value={currentSlider.slide_order}  // Changed from currentSlider.order
                     onChange={(e) =>
                       setCurrentSlider({
                         ...currentSlider,
-                        order: parseInt(e.target.value) || 0,
+                        slide_order: parseInt(e.target.value) || 0,  // Changed from 'order'
                       })
                     }
                     disabled={!isEditing}
                     min="0"
                   />
                 </div>
+
               </div>
             </div>
           )}

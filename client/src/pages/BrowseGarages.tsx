@@ -20,15 +20,18 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2 } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom"; // or `next/router` for Next.js
+import { fetchModelsByMake } from "@/lib/utils";
 
 const BrowseGarages = () => {
   const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedMakes, setSelectedMakes] = useState<string[]>([]);
+  const [selectedModels, setSelectedModels] = useState<string[]>([]);
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState("featured");
   const [isMobileService, setIsMobileService] = useState<boolean | null>(null);
   const [maxDistance, setMaxDistance] = useState<string>("0");
+  const [carYear, setCarYear] = useState<string>("");
   const [userLocation, setUserLocation] = useState<{
     lat: number;
     lng: number;
@@ -40,35 +43,39 @@ const BrowseGarages = () => {
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const navigate = useNavigate();
 
-useEffect(() => {
   const makesParam = searchParams.getAll("make");
+  const modelsParam = searchParams.getAll("model");
   const servicesParam = searchParams.getAll("service");
-  const distanceParam = searchParams.get("distance");
-  const mobileParam = searchParams.get("mobile");
-  const sortParam = searchParams.get("sort");
-  const searchParam = searchParams.get("search")?.trim();
 
-  if (makesParam.length) setSelectedMakes(makesParam);
-  if (servicesParam.length) setSelectedServices(servicesParam);
-  if (distanceParam) setMaxDistance(distanceParam);
-  if (mobileParam) setIsMobileService(mobileParam === "true");
-  if (sortParam) setSortBy(sortParam);
-  if (searchParam) setSearchTerm(searchParam);
+  useEffect(() => {
+    const distanceParam = searchParams.get("distance");
+    const mobileParam = searchParams.get("mobile");
+    const yearParam = searchParams.get("minYear");
+    const sortParam = searchParams.get("sort");
+    const searchParam = searchParams.get("search")?.trim();
 
-  setIsInitialLoad(false);
-}, [searchParams]);
+    // Only update state if URL params exist
+    if (makesParam.length) setSelectedMakes(makesParam);
+    if (modelsParam.length) setSelectedModels(modelsParam);
+    if (servicesParam.length) setSelectedServices(servicesParam);
+    if (distanceParam) setMaxDistance(distanceParam);
+    if (mobileParam) setIsMobileService(mobileParam === "true");
+    if (yearParam) setCarYear(yearParam);
+    if (sortParam) setSortBy(sortParam);
+    if (searchParam) setSearchTerm(searchParam);
 
-const distanceOptions = [
-  { value: "0", label: t("common.showAll") }, // Add this as the first option
-  { value: "5", label: "5 km" },
-  { value: "10", label: "10 km" },
-  { value: "25", label: "25 km" },
-  { value: "50", label: "50 km" },
-  { value: "100", label: "100 km" },
-  { value: "200", label: "200 km" },
-];
+    setIsInitialLoad(false);
+  }, [searchParams]);
 
-
+  const distanceOptions = [
+    { value: "0", label: t("common.showAll") }, // Add this as the first option
+    { value: "5", label: "5 km" },
+    { value: "10", label: "10 km" },
+    { value: "25", label: "25 km" },
+    { value: "50", label: "50 km" },
+    { value: "100", label: "100 km" },
+    { value: "200", label: "200 km" },
+  ];
 
   // Get user location
   useEffect(() => {
@@ -98,6 +105,12 @@ const distanceOptions = [
     queryKey: ["/api/car-makes"],
     queryFn: () =>
       apiRequest("GET", "/api/car-makes").then((res) => res.json()),
+  });
+
+  const { data: models = [] } = useQuery({
+    queryKey: ["car-models", makesParam[0]],
+    queryFn: () => fetchModelsByMake(makesParam[0]),
+    enabled: !!makesParam[0],
   });
 
   const { data: showroomMakes } = useQuery({
@@ -165,7 +178,7 @@ const distanceOptions = [
             );
 
             // Calculate distance if user location is available and showroom has address
-           let distance = null;
+            let distance = null;
             if (userLocation && showroom.location) {
               const [lat, lng] = showroom.location.split(",").map(Number);
               if (!isNaN(lat) && !isNaN(lng)) {
@@ -205,62 +218,66 @@ const distanceOptions = [
   });
 
   const filteredShowrooms = showroomsWithServices
-  ?.filter((showroom: any) => {
-    const matchesSearch =
-      searchTerm === "" ||
-      showroom.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      showroom.nameAr?.toLowerCase().includes(searchTerm.toLowerCase());
+    ?.filter((showroom: any) => {
+      const matchesSearch =
+        searchTerm === "" ||
+        showroom.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        showroom.nameAr?.toLowerCase().includes(searchTerm.toLowerCase());
 
-    // Filter by makes
-    const matchesMakes =
-      selectedMakes.length === 0 ||
-      (showroomMakes &&
-        showroomMakes.some(
-          (sm: any) =>
-            sm.showroom_id === showroom.id &&
-            selectedMakes.includes(sm.make_id.toString())
-        ));
+      // Filter by makes
+      const matchesMakes =
+        selectedMakes.length === 0 ||
+        (showroomMakes &&
+          showroomMakes.some(
+            (sm: any) =>
+              sm.showroom_id === showroom.id &&
+              selectedMakes.includes(sm.make_id.toString())
+          ));
 
-    // Filter by services
-    const matchesServices =
+      // Filter by services
+      const matchesServices =
         selectedServices.length === 0 ||
         (showroom.services &&
           showroom.services.some((service: any) =>
             selectedServices.includes(service.id.toString())
           ));
 
-    // Only filter by distance if maxDistance is explicitly set and userLocation exists
-    const matchesDistance =
-      !userLocation || 
-      maxDistance === "0" || // Add a "0" option for "Show all"
-      !showroom.distance ||
-      showroom.distance <= Number(maxDistance);
+      // Only filter by distance if maxDistance is explicitly set and userLocation exists
+      const matchesDistance =
+        !userLocation ||
+        maxDistance === "0" || // Add a "0" option for "Show all"
+        !showroom.distance ||
+        showroom.distance <= Number(maxDistance);
 
-    // Filter by mobile service
-    const matchesMobileService = 
-      isMobileService === null || 
-      showroom.is_mobile_service === isMobileService;
+      // Filter by mobile service
+      const matchesMobileService =
+        isMobileService === null ||
+        showroom.is_mobile_service === isMobileService;
 
-    return matchesSearch && matchesMakes && matchesServices && matchesDistance && matchesMobileService;
-  })
-  ?.sort((a: any, b: any) => {
-    switch (sortBy) {
-      case "distance":
-        // Only sort by distance if userLocation exists
-        if (!userLocation) return 0;
-        if (a.distance === null) return 1;
-        if (b.distance === null) return -1;
-        return a.distance - b.distance;
-      case "featured":
-        return (b.is_featured ? 1 : 0) - (a.is_featured ? 1 : 0);
-      case "availability":
-        return (b.availability ? 1 : 0) - (a.availability ? 1 : 0);
-      default:
-        return 0;
-    }
-  });
-
-
+      return (
+        matchesSearch &&
+        matchesMakes &&
+        matchesServices &&
+        matchesDistance &&
+        matchesMobileService
+      );
+    })
+    ?.sort((a: any, b: any) => {
+      switch (sortBy) {
+        case "distance":
+          // Only sort by distance if userLocation exists
+          if (!userLocation) return 0;
+          if (a.distance === null) return 1;
+          if (b.distance === null) return -1;
+          return a.distance - b.distance;
+        case "featured":
+          return (b.is_featured ? 1 : 0) - (a.is_featured ? 1 : 0);
+        case "availability":
+          return (b.availability ? 1 : 0) - (a.availability ? 1 : 0);
+        default:
+          return 0;
+      }
+    });
 
   // Handle service checkbox changes
   const handleServiceChange = (serviceId: string) => {
@@ -305,6 +322,7 @@ const distanceOptions = [
             isList={true}
             distance={garage.distance}
             showDistance={sortBy === "distance"}
+            selectedServiceId={selectedServices.map(Number)}
           />
         ))}
       </div>
@@ -312,20 +330,78 @@ const distanceOptions = [
   };
 
   useEffect(() => {
-  
     if (isInitialLoad) return;
 
-  const params = new URLSearchParams();
+    const params = new URLSearchParams();
 
-  selectedMakes.forEach((make) => params.append("make", make));
-  selectedServices.forEach((service) => params.append("service", service));
-  if (maxDistance !== "0") params.set("distance", maxDistance);
-  if (isMobileService !== null) params.set("mobile", isMobileService.toString());
-  if (sortBy) params.set("sort", sortBy);
-  if (searchTerm) params.set("search", searchTerm);
+    selectedMakes.forEach((make) => params.append("make", make));
+    selectedModels.forEach((model) => params.append("model", model));
+    if (maxDistance !== "0") params.set("distance", maxDistance);
+    if (isMobileService !== null)
+      params.set("mobile", isMobileService.toString());
+    selectedServices.forEach((service) => params.append("service", service));
+    if (searchTerm) params.set("search", searchTerm);
+    if (sortBy) params.set("sort", sortBy);
 
-  navigate({ search: params.toString() }, { replace: true });
-}, [selectedMakes, selectedServices, maxDistance, isMobileService, sortBy, searchTerm]);
+    navigate({ search: params.toString() }, { replace: true });
+  }, [
+    selectedMakes,
+    selectedModels,
+    selectedServices,
+    maxDistance,
+    isMobileService,
+    sortBy,
+    searchTerm,
+  ]);
+
+  const displayCarInfo = () => {
+    const carParts = [];
+    // Year
+    const year = searchParams.get("minYear") || carYear;
+    if (year) carParts.push(year);
+
+    // Make - use URL param first, then state
+    const makeIds = makesParam.length ? makesParam : selectedMakes;
+    if (makeIds.length && makes) {
+      const makeNames = makeIds
+        .map((id) => makes.find((m) => m.id.toString() === id)?.name)
+        .filter(Boolean);
+      if (makeNames.length) carParts.push(makeNames.join(", "));
+    }
+
+    // Model - use URL param first, then state
+    const modelIds = modelsParam.length ? modelsParam : selectedModels;
+    if (modelIds.length && models) {
+      const modelNames = modelIds
+        .map((id) => {
+          const model = models.find((m) => m.id.toString() === id);
+          return model?.name;
+        })
+        .filter(Boolean);
+      if (modelNames.length) carParts.push(modelNames.join(", "));
+    }
+
+    // Services - show loading state if services aren't loaded yet
+    if (!services) {
+      return "Loading services...";
+    }
+
+    // Services - use URL param first, then state
+    const serviceIds = searchParams.getAll("service").length
+      ? searchParams.getAll("service")
+      : selectedServices;
+    let servicesString = "All Services";
+    if (serviceIds.length) {
+      const serviceNames = serviceIds
+        .map((id) => services.find((s) => s.id.toString() === id)?.name)
+        .filter(Boolean);
+      if (serviceNames.length) servicesString = serviceNames.join(", ");
+    }
+
+    return carParts.length
+      ? `Selected Car: ${carParts.join(" ")} | Service: ${servicesString}`
+      : `Service: ${servicesString}`;
+  };
 
   return (
     <div className="bg-white min-h-screen py-8">
@@ -340,6 +416,11 @@ const distanceOptions = [
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Left Column - Filters */}
           <div className="bg-neutral-50 p-5 rounded-lg lg:col-span-1 space-y-6">
+            <div className="p-4 mb-4 rounded-lg text-sm text-neutral-800">
+              <h2 className="text-blue-900 font-bold text-lg">Your Car:</h2>
+              <p className="font-semibold">{displayCarInfo()}</p>
+            </div>
+
             {/* Search Results Count */}
             <div className="p-4 rounded-lg">
               <p className="font-medium">
@@ -475,7 +556,9 @@ const distanceOptions = [
                   checked={isMobileService === false}
                   onCheckedChange={() => setIsMobileService(false)}
                 />
-                <Label htmlFor="mobile-service-no">Non-Mobile Service Only</Label>
+                <Label htmlFor="mobile-service-no">
+                  Non-Mobile Service Only
+                </Label>
               </div>
             </div>
 
@@ -485,6 +568,7 @@ const distanceOptions = [
               className="w-full"
               onClick={() => {
                 setSelectedMakes([]);
+                setSelectedModels([]);
                 setSelectedServices([]);
                 setSearchTerm("");
                 setMaxDistance("50");

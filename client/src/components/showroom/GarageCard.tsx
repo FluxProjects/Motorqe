@@ -2,8 +2,9 @@ import { Link } from "wouter";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Star, Car, Phone, ArrowRight } from "lucide-react";
+import { MapPin, Star, Car, Phone, ArrowRight, LocateFixed, Ruler } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { useQuery } from "@tanstack/react-query";
 
 interface GarageCardProps {
   garage: {
@@ -14,7 +15,7 @@ interface GarageCardProps {
     addressAr?: string;
     location: string;
     phone: string;
-    image?: string;
+    logo?: string;
     isMainBranch: boolean;
     isFeatured: boolean;
     services: {
@@ -33,15 +34,43 @@ interface GarageCardProps {
   distance?: number;
   isList?: boolean;
   showDistance?: boolean;
+  selectedServiceId?: number | number[];
 }
 
-export function GarageCard({ garage, distance, isList = false, showDistance = false }: GarageCardProps) {
+export function GarageCard({ garage, distance, isList = false, showDistance = false, selectedServiceId }: GarageCardProps) {
   const { t, i18n } = useTranslation();
   const language = i18n.language;
 
-  const name = language === "ar" && garage.nameAr ? garage.nameAr : garage.name;
-  const address =
-    language === "ar" && garage.addressAr ? garage.addressAr : garage.address;
+  const name = language === "ar" && garage.name_ar ? garage.name_ar : garage.name;
+  const address = language === "ar" && garage.address_ar ? garage.address_ar : garage.address;
+  const { data: garageMakes = [], isLoading: isLoadingMakes } = useQuery<any[]>({
+    queryKey: [`/api/garages/${garage?.id}/makes`],
+    enabled: !!garage?.id,
+  });
+
+
+let selectedPrices: number[] = [];
+
+if (Array.isArray(selectedServiceId)) {
+  selectedPrices = garage.services
+    .filter(service => selectedServiceId.includes(service.id))
+    .map(service => service.price);
+} else if (typeof selectedServiceId === "number") {
+  const service = garage.services.find(s => s.id === selectedServiceId);
+  if (service) selectedPrices = [service.price];
+}
+
+let priceDisplay: string | null = null;
+if (selectedPrices.length === 1) {
+  priceDisplay = `QAR ${selectedPrices[0]}`;
+} else if (selectedPrices.length > 1) {
+  const min = Math.min(...selectedPrices);
+  const max = Math.max(...selectedPrices);
+  priceDisplay = `QAR ${min} - ${max}`;
+}
+
+
+
 
   if (isList) {
     return (
@@ -61,9 +90,9 @@ export function GarageCard({ garage, distance, isList = false, showDistance = fa
             
             <div className="relative flex-1 mb-3">
               <Link href={`/garages/${garage.id}`}>
-                <div className="h-full w-full overflow-hidden rounded-lg group cursor-pointer min-h-[120px]">
+                <div className="h-[100px] w-full overflow-hidden rounded-lg group cursor-pointer min-h-[100px]">
                   <img
-                    src={garage.image || "/src/assets/showroom-image.png"}
+                    src={garage.logo}
                     alt={name}
                     onError={(e) => {
                       const target = e.currentTarget;
@@ -74,6 +103,23 @@ export function GarageCard({ garage, distance, isList = false, showDistance = fa
                   />
                 </div>
               </Link>
+              <h3 className="text-md font-bold text-gray-900 mb-2">
+                  {t('common.carSpecialist')}
+              </h3>
+             <div className="flex items-center justify-between mb-2">
+                  <div className="flex flex-wrap gap-3">
+                    {garageMakes.map((make) => (
+                      <div key={make.id} className="flex items-center gap-2">
+                        <img
+                          src={make.make_image}
+                          alt={make.make_name}
+                          className="h-auto w-auto max-h-10 max-w-10 object-contain"
+                        />
+                        </div>
+                    ))}
+
+                  </div>
+                </div>
             </div>
           </div>
 
@@ -82,7 +128,7 @@ export function GarageCard({ garage, distance, isList = false, showDistance = fa
             {/* Address */}
             <div className="text-sm text-gray-600 mb-3 space-y-1">
               <div className="flex items-start">
-                <MapPin size={16} className="mr-1 mt-0.5 flex-shrink-0" />
+                <MapPin size={16} className="mr-1 mt-0.5 flex-shrink-0 text-blue-900" />
                 <div>
                   {address.split(",").map((line, index) => (
                     <p key={index}>{line.trim()}</p>
@@ -94,14 +140,14 @@ export function GarageCard({ garage, distance, isList = false, showDistance = fa
              {/* Distance */}
             {isList && (
               <div className="text-sm text-gray-600 mb-3 flex items-center">
-                <MapPin size={16} className="mr-1" />
+                <LocateFixed size={16} className="mr-1 mt-0.5 flex-shrink-0 text-blue-900" />
                 {distance} km away
               </div>
             )}
 
             {/* Rating */}
             <div className="flex items-center mb-2">
-              <div className="flex items-center bg-amber-100 px-2 py-1 rounded">
+              <div className="flex items-center px-2 py-1">
                 <div className="flex mr-1">
                   {[1, 2, 3, 4, 5].map((star) => (
                     <Star
@@ -145,6 +191,14 @@ export function GarageCard({ garage, distance, isList = false, showDistance = fa
               </Badge>
             )}
 
+            {priceDisplay && (
+              <div className="text-sm text-gray-800 font-medium mb-2">
+               {priceDisplay}
+              </div>
+            )}
+
+
+
             {/* View Details Button */}
             <Link href={`/garages/${garage.id}`} className="w-full md:w-auto">
               <Button className="bg-orange-500 hover:bg-orange-600 text-white w-full md:w-auto">
@@ -178,7 +232,7 @@ export function GarageCard({ garage, distance, isList = false, showDistance = fa
             <Link href={`/garages/${garage.id}`}>
               <div className="h-full w-full overflow-hidden rounded-lg group cursor-pointer min-h-[85px]">
                 <img
-                  src={garage.image || "/src/assets/showroom-image.png"}
+                  src={garage.logo || "/src/assets/showroom-image.png"}
                   alt={name}
                   onError={(e) => {
                     const target = e.currentTarget;

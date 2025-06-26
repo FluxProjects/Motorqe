@@ -26,16 +26,16 @@ export const SliderStorage = {
       RETURNING *`,
       [
         slider.title,
-        slider.titleAr,
+        slider.title_ar,
         slider.subtitle,
-        slider.subtitleAr,
-        slider.buttonText,
-        slider.buttonTextAr,
-        slider.buttonUrl,
-        slider.imageUrl,
-        slider.type,
-        slider.isActive ?? true,
-        slider.order ?? 0
+        slider.subtitle_ar,
+        slider.button_text,
+        slider.button_text_ar,
+        slider.button_url,
+        slider.image_url,
+        slider.slide_type,
+        slider.is_active ?? true,
+        slider.slide_order ?? 0
       ]
     );
     return result[0];
@@ -48,16 +48,16 @@ export const SliderStorage = {
 
     const fieldMappings = {
       title: 'title',
-      titleAr: 'title_ar',
+      title_ar: 'title_ar',
       subtitle: 'subtitle',
-      subtitleAr: 'subtitle_ar',
-      buttonText: 'button_text',
-      buttonTextAr: 'button_text_ar',
-      buttonUrl: 'button_url',
-      imageUrl: 'image_url',
-      type: 'slide_type',
-      isActive: 'is_active',
-      order: 'slide_order'
+      subtitle_ar: 'subtitle_ar',
+      button_text: 'button_text',
+      button_text_ar: 'button_text_ar',
+      button_url: 'button_url',
+      image_url: 'image_url',
+      slide_type: 'slide_type',
+      is_active: 'is_active',
+      slide_order: 'slide_order'
     };
 
     Object.entries(updates).forEach(([key, value]) => {

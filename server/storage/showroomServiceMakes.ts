@@ -58,7 +58,7 @@ export const ShowroomMakeStorage = {
 
   async addShowroomMake(garageId: number, makeId: number): Promise<ShowroomMake> {
     const result = await db.query(
-      'INSERT INTO showroom_makes (showroom_id, make_id) VALUES ($1, $2) RETURNING *',
+      'INSERT INTO showroom_service_makes (showroom_id, make_id) VALUES ($1, $2) RETURNING *',
       [garageId, makeId]
     );
     return result[0];

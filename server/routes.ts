@@ -2360,21 +2360,27 @@ app.put("/api/service-bookings/:id/actions", async (req, res) => {
     const id = Number(req.params.id);
     const { action, reason, scheduledAt } = req.body;
 
-    console.log(`Received ${action} request for booking ${id}`);
+    console.log(`[STEP 1] Received ${action} request for booking ID: ${id}`);
+    console.log(`[STEP 2] Request body:`, { action, reason, scheduledAt });
 
     const validActions = [
       "confirm", "reschedule", "complete", "cancel", "reject", "expire"
     ];
 
     if (!validActions.includes(action)) {
+      console.warn(`[STEP 3] Invalid action: ${action}`);
       return res.status(400).json({ message: "Invalid action" });
     }
 
-    // Get current booking
+    console.log(`[STEP 4] Fetching booking ${id}...`);
     const booking = await storage.getServiceBooking(id);
+
     if (!booking) {
+      console.warn(`[STEP 5] Booking ${id} not found.`);
       return res.status(404).json({ message: "Booking not found" });
     }
+
+    console.log(`[STEP 6] Current booking data:`, booking);
 
     let updates: any = {};
 
@@ -2384,6 +2390,7 @@ app.put("/api/service-bookings/:id/actions", async (req, res) => {
         break;
       case "reschedule":
         if (!scheduledAt) {
+          console.warn(`[STEP 7] Missing scheduledAt for reschedule.`);
           return res.status(400).json({ message: "scheduledAt is required for rescheduling" });
         }
         updates.scheduled_at = new Date(scheduledAt);
@@ -2408,21 +2415,24 @@ app.put("/api/service-bookings/:id/actions", async (req, res) => {
         break;
     }
 
+    console.log(`[STEP 8] Update payload to apply:`, updates);
+
     const updatedBooking = await storage.updateServiceBooking(id, updates);
+
+    console.log(`[STEP 9] Successfully updated booking:`, updatedBooking);
 
     res.json({
       success: true,
       booking: updatedBooking,
     });
-
-    console.log(`Successfully ${action}d booking:`, updatedBooking);
   } catch (error: any) {
-    console.error("Failed to perform booking action:", error);
+    console.error(`[ERROR] Failed to perform booking action:`, error);
     res.status(500).json({
       message: error.message || "Failed to perform booking action",
     });
   }
 });
+
 
 
 
@@ -3494,7 +3504,7 @@ app.put("/api/service-bookings/:id/actions", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const updates: Partial<InsertHeroSlider> = req.body;
-      updates.updatedAt = new Date();
+      updates.updated_at = new Date();
       const slider = await storage.updateHeroSlider(id, updates);
       slider
         ? res.json(slider)

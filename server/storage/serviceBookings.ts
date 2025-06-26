@@ -218,45 +218,66 @@ export const ServiceBookingStorage = {
     },
 
     async updateServiceBooking(id: number, updates: Partial<InsertServiceBooking>): Promise<ServiceBooking | undefined> {
-        const fields = [];
-        const values = [];
-        let paramIndex = 1;
+    console.log(`[updateServiceBooking] Updating booking ID: ${id} with data:`, updates);
 
-        if (updates.userId !== undefined) {
-            fields.push(`user_id = $${paramIndex}`);
-            values.push(updates.userId);
-            paramIndex++;
-        }
-        if (updates.serviceId !== undefined) {
-            fields.push(`service_id = $${paramIndex}`);
-            values.push(updates.serviceId);
-            paramIndex++;
-        }
-        if (updates.scheduledAt !== undefined) {
-            fields.push(`scheduled_at = $${paramIndex}`);
-            values.push(updates.scheduledAt);
-            paramIndex++;
-        }
-        if (updates.status !== undefined) {
-            fields.push(`status = $${paramIndex}`);
-            values.push(updates.status);
-            paramIndex++;
-        }
-        if (updates.notes !== undefined) {
-            fields.push(`notes = $${paramIndex}`);
-            values.push(updates.notes);
-            paramIndex++;
-        }
+    const fields = [];
+    const values = [];
+    let paramIndex = 1;
 
-        if (fields.length === 0) {
-            return this.getServiceBooking(id);
-        }
+    // Transform 'rescheduled' to 'pending'
+    if (updates.status === 'rescheduled') {
+        updates.status = 'pending';
+    }
 
-        values.push(id);
-        const query = `UPDATE service_bookings SET ${fields.join(', ')} WHERE id = $${paramIndex} RETURNING *`;
-        const result = await db.query(query, values);
-        return result[0];
-    },
+    if (updates.userId !== undefined) {
+        fields.push(`user_id = $${paramIndex}`);
+        values.push(updates.userId);
+        paramIndex++;
+    }
+    if (updates.serviceId !== undefined) {
+        fields.push(`service_id = $${paramIndex}`);
+        values.push(updates.serviceId);
+        paramIndex++;
+    }
+    if (updates.scheduled_at !== undefined) {
+        fields.push(`scheduled_at = $${paramIndex}`);
+        values.push(updates.scheduled_at);
+        paramIndex++;
+    }
+    if (updates.status !== undefined) {
+        fields.push(`status = $${paramIndex}`);
+        values.push(updates.status);
+        paramIndex++;
+    }
+    if (updates.notes !== undefined) {
+        fields.push(`notes = $${paramIndex}`);
+        values.push(updates.notes);
+        paramIndex++;
+    }
+
+    if (fields.length === 0) {
+        console.log('[updateServiceBooking] No update fields provided. Fetching current record...');
+        return this.getServiceBooking(id);
+    }
+
+    values.push(id);
+    const query = `UPDATE service_bookings SET ${fields.join(', ')} WHERE id = $${paramIndex} RETURNING *`;
+    console.log('[updateServiceBooking] Executing query:', query);
+    const result = await db.query(query, values);
+
+    const updatedBooking = result[0];
+    console.log('[updateServiceBooking] Booking updated:', updatedBooking);
+
+    // If status was updated to 'completed', trigger completeServiceBooking
+    if (updates.status === 'completed') {
+        console.log(`[updateServiceBooking] Booking status is 'completed'. Triggering completeServiceBooking(${id})...`);
+        await this.completeServiceBooking(id);
+        console.log(`[updateServiceBooking] completeServiceBooking(${id}) finished.`);
+    }
+
+    return updatedBooking;
+},
+
 
     async cancelServiceBooking(id: number): Promise<void> {
         await db.query(
@@ -266,64 +287,90 @@ export const ServiceBookingStorage = {
     },
 
     async completeServiceBooking(id: number): Promise<void> {
-        // Start a transaction
-        await db.query('BEGIN');
+    console.log(`[completeServiceBooking] Starting transaction for booking ID: ${id}`);
+    
+    // Start a transaction
+    await db.query('BEGIN');
+    console.log('[completeServiceBooking] Transaction started');
 
-        try {
-            // 1. Update the booking status
-            await db.query(
-                'UPDATE service_bookings SET status = \'completed\' WHERE id = $1',
-                [id]
-            );
+    try {
+        // 1. Update the booking status
+        console.log('[completeServiceBooking] Updating booking status to completed...');
+        await db.query(
+            'UPDATE service_bookings SET status = \'completed\' WHERE id = $1',
+            [id]
+        );
+        console.log('[completeServiceBooking] Booking status updated');
 
-            // 2. Get booking details with user information
-            const bookingQuery = `
-                SELECT 
-                    sb.*, 
-                    u.id as user_id,
-                    u.email, 
-                    u.first_name,
-                    u.phone,
-                    s.name as showroom_name,
-                    s.user_id as showroom_owner_id
-                FROM service_bookings sb
-                JOIN users u ON sb.user_id = u.id
-                JOIN showrooms s ON sb.showroom_id = s.id
-                WHERE sb.id = $1
-            `;
-            const [booking] = await db.query(bookingQuery, [id]);
+        // 2. Get booking details with user and showroom info
+        console.log('[completeServiceBooking] Fetching booking details...');
+        const bookingQuery = `
+          SELECT 
+              sb.*, 
+              u.id as user_id,
+              u.email, 
+              u.first_name,
+              u.phone,
+              s.name as showroom_name,
+              s.user_id as showroom_owner_id
+          FROM service_bookings sb
+          JOIN users u ON sb.user_id = u.id
+          LEFT JOIN showrooms s ON sb.showroom_id = s.id
+          WHERE sb.id = $1
+      `;
+        const result = await db.query(bookingQuery, [id]);
+        const booking = result[0];
+        console.log("booking", booking);
 
-            if (!booking) {
-                throw new Error('Booking not found');
-            }
 
-            // 3. Generate review link
-            const reviewLink = generateReviewLink({
-                showroomId: booking.showroom_id,
-                bookingId: booking.id,
-                userId: booking.user_id
-            });
 
-            // 4. Create notifications using the NotificationService
-            await notificationService.createServiceCompletionNotifications(
-                booking.id,
-                booking.showroom_owner_id,
-                booking.user_id,
-                booking.email,
-                booking.phone,
-                booking.showroom_name,
-                booking.first_name,
-                reviewLink
-            );
-
-            // Commit the transaction
-            await db.query('COMMIT');
-        } catch (error) {
-            // Rollback on error
-            await db.query('ROLLBACK');
-            throw error;
+        if (!booking) {
+            console.error('[completeServiceBooking] Booking not found');
+            throw new Error('Booking not found');
         }
-    },
+
+        console.log('[completeServiceBooking] Booking details fetched:', {
+            userId: booking?.user_id,
+            showroomOwnerId: booking?.showroom_owner_id,
+            showroomName: booking?.showroom_name,
+            userEmail: booking?.email,
+        });
+
+        // 3. Generate review link
+        console.log('[completeServiceBooking] Generating review link...');
+        const reviewLink = generateReviewLink({
+            showroomId: booking?.showroom_id,
+            bookingId: booking?.id,
+            userId: booking?.user_id
+        });
+        console.log('[completeServiceBooking] Review link generated:', reviewLink);
+
+        // 4. Create notifications using NotificationService
+        console.log('[completeServiceBooking] Creating notifications...');
+        await notificationService.createServiceCompletionNotifications(
+            booking.id,
+            booking.showroom_owner_id,
+            booking.user_id,
+            booking.email,
+            booking.phone,
+            booking.showroom_name,
+            booking.first_name,
+            reviewLink
+        );
+        console.log('[completeServiceBooking] Notifications created successfully');
+
+        // Commit the transaction
+        await db.query('COMMIT');
+        console.log('[completeServiceBooking] Transaction committed successfully');
+    } catch (error) {
+        console.error('[completeServiceBooking] Error occurred:', error);
+        // Rollback on error
+        await db.query('ROLLBACK');
+        console.log('[completeServiceBooking] Transaction rolled back due to error');
+        throw error;
+    }
+    }
+
 
 };
 
