@@ -6,11 +6,10 @@ import { BaseProfileEditor } from "@/components/dashboard/BaseProfileEditor";
 import { Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { SellerProfileEditor } from "@/components/seller/SellerProfileEditor";
-import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
-import GarageNavigation from "@/components/showroom/GarageNavigation";
+import ShowroomNavigation from "@/components/showroom/ShowroomNavigation";
 import { GarageProfileEditor } from "@/components/showroom/GarageProfileEditor";
 
-const GarageProfile = () => {
+const ShowroomProfile = () => {
   const auth = useAuth();
   const { t } = useTranslation();
 
@@ -62,7 +61,7 @@ const GarageProfile = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Sub Navigation */}
-      <GarageNavigation />
+      <ShowroomNavigation />
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -85,4 +84,4 @@ const GarageProfile = () => {
   );
 };
 
-export default GarageProfile;
+export default ShowroomProfile;

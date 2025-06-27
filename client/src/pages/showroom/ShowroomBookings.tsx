@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { QueryFunctionContext, useMutation, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -16,17 +16,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import {
-  Check,
-  X,
-  MoreHorizontal,
-  Phone,
-  MessageCircle,
-  Ban,
-} from "lucide-react";
-import { apiRequest } from "@/lib/queryClient";
-import type { ServiceBooking, serviceBookings } from "@shared/schema";
-import GarageNavigation from "@/components/showroom/GarageNavigation";
+import { MoreHorizontal, Phone, MessageCircle, Ban } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTranslation } from "react-i18next";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -36,7 +26,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CalendarIcon } from "lucide-react";
 import { cn, formatServiceTimeRange, generateTimeSlots } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
-
+import { ServiceBooking } from "@shared/schema";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import ShowroomNavigation from "@/components/showroom/ShowroomNavigation";
 
 interface GarageAvailability {
   [key: string]: {
@@ -47,86 +39,99 @@ interface GarageAvailability {
   };
 }
 
-export default function GarageServiceBookings() {
+export default function CustomerServiceBookings() {
   const auth = useAuth();
   const { user } = auth;
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState<"pending" | "confirmed">("pending");
-  const [sortBy, setSortBy] = useState("old bookings");
+  const [activeTab, setActiveTab] = useState<"upcoming" | "past">("upcoming");
+  const [sortBy, setSortBy] = useState("new bookings");
   const [rescheduleBookingId, setRescheduleBookingId] = useState<number | null>(null);
-  const [newSchedule, setNewSchedule] = useState<string>("");
   const [cancelDialogOpen, setCancelDialogOpen] = useState<{open: boolean, id: number | null}>({open: false, id: null});
-  const [rejectDialogOpen, setRejectDialogOpen] = useState<{open: boolean, id: number | null}>({open: false, id: null});
   const [availability, setAvailability] = useState<GarageAvailability | null>(null);
   const [rescheduleDate, setRescheduleDate] = useState<Date | undefined>(new Date());
   const [rescheduleTime, setRescheduleTime] = useState("10:00");
-  const queryClient = useQueryClient();
-  
 
-  const { data: bookingsData = [], isLoading } = useQuery({
-    queryKey: ["/api/service-bookings", { user_id: user?.id }],
-    enabled: !!user?.id,
-  });
+  function fetchServiceBookings({
+  queryKey,
+}: QueryFunctionContext<[string, { customer_id: number | undefined }]>) {
+  const [, params] = queryKey;
+  const searchParams = new URLSearchParams();
 
-  console.log("bookingsData", bookingsData);
+  if (params?.customer_id) {
+    searchParams.append("customer_id", String(params.customer_id));
+  }
+
+  return apiRequest("GET", `/api/service-bookings?${searchParams.toString()}`)
+    .then(res => res.json()); // <- ensure parsing here
+}
+
+
+ const { data: bookingsData = [], isLoading } = useQuery({
+  queryKey: ["/api/service-bookings", { customer_id: user!.id }],
+  queryFn: fetchServiceBookings,
+  enabled: !!user?.id,
+});
+
+
 
   // Memoized transformation of bookings data
   const bookings = useMemo(() => {
-    return bookingsData
-      .filter((booking: ServiceBooking) =>
-        activeTab === "pending"
-          ? booking.status === "pending"
-          : booking.status === "confirmed"
-      )
-      .sort((a: ServiceBooking, b: ServiceBooking) =>
-        sortBy === "new bookings"
-          ? new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-          : new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-      );
-  }, [bookingsData, activeTab, sortBy]);
+    console.log("bookingsData", bookingsData);
+  const filtered = bookingsData?.filter((booking: ServiceBooking) => {
+    if (activeTab === "upcoming") {
+      return booking.status === "pending" || booking.status === "confirmed";
+    } else {
+      return booking.status === "complete";
+    }
+  });
+
+  return filtered.sort((a, b) =>
+    sortBy === "new bookings"
+      ? new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      : new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+  );
+}, [bookingsData, activeTab, sortBy]);
+
 
   console.log("bookings", bookings);
 
- useEffect(() => {
-  const fetchGarageAvailability = async () => {
-    console.log("🔍 Inside fetchGarageAvailability");
-
-    const booking = bookings.find((b) => b.id === rescheduleBookingId);
-    console.log("📦 Matched booking:", booking);
-
-    if (!booking?.showroom_id) {
-      console.log("⚠️ No showroom_id found for rescheduleBookingId");
-      return;
-    }
-
-    try {
-      const res = await fetch(`/api/garages/${booking?.showroom_id}`);
-      console.log("🌐 Fetch status:", res.status);
-      if (res) {
-        const data = await res.json();
-        const availability =
-          typeof data?.timing === "string"
-            ? JSON.parse(data?.timing)
-            : data?.timing;
-
-        console.log("✅ timing:", availability);
-        setAvailability(availability);
-      } else {
-        console.error("❌ Failed fetch with status", res.status);
+   useEffect(() => {
+    const fetchGarageAvailability = async () => {
+      console.log("🔍 Inside fetchGarageAvailability");
+  
+      const booking = bookings.find((b) => b.id === rescheduleBookingId);
+      console.log("📦 Matched booking:", booking);
+  
+      if (!booking?.showroom_id) {
+        console.log("⚠️ No showroom_id found for rescheduleBookingId");
+        return;
       }
-    } catch (error) {
-      console.error("❌ Error fetching availability:", error);
+  
+      try {
+        const res = await fetch(`/api/garages/${booking?.showroom_id}`);
+        console.log("🌐 Fetch status:", res.status);
+        if (res) {
+          const data = await res.json();
+          const availability =
+            typeof data?.timing === "string"
+              ? JSON.parse(data?.timing)
+              : data?.timing;
+  
+          console.log("✅ timing:", availability);
+          setAvailability(availability);
+        } else {
+          console.error("❌ Failed fetch with status", res.status);
+        }
+      } catch (error) {
+        console.error("❌ Error fetching availability:", error);
+      }
+    };
+  
+    if (rescheduleBookingId) {
+      console.log("📆 useEffect triggered with rescheduleBookingId:", rescheduleBookingId);
+      fetchGarageAvailability();
     }
-  };
-
-  if (rescheduleBookingId) {
-    console.log("📆 useEffect triggered with rescheduleBookingId:", rescheduleBookingId);
-    fetchGarageAvailability();
-  }
-}, [rescheduleBookingId, bookings]);
-
-
-
+  }, [rescheduleBookingId, bookings]);
 
   const showToast = (title: string, variant: "default" | "destructive" = "default") => {
     toast({
@@ -139,18 +144,16 @@ export default function GarageServiceBookings() {
     mutationFn: async ({
       id,
       action,
-      reason,
       scheduledAt,
     }: {
       id: number;
-      action: "confirm" | "reschedule" | "complete" | "cancel" | "reject" | "expire";
-      reason?: string;
+      action: "reschedule" | "cancel";
       scheduledAt?: string;
     }) => {
       const response = await fetch(`/api/service-bookings/${id}/actions`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, reason, scheduledAt }),
+        body: JSON.stringify({ action, scheduledAt }),
       });
 
       if (!response.ok) throw new Error("Failed to update booking");
@@ -160,20 +163,11 @@ export default function GarageServiceBookings() {
       queryClient.invalidateQueries({ queryKey: ["/api/service-bookings"] });
       let message = "";
       switch (variables.action) {
-        case "confirm":
-          message = "Booking confirmed successfully";
-          break;
         case "reschedule":
           message = "Booking rescheduled successfully";
           break;
-        case "complete":
-          message = "Booking marked as complete";
-          break;
         case "cancel":
           message = "Booking cancelled";
-          break;
-        case "reject":
-          message = "Booking rejected";
           break;
       }
       showToast(message);
@@ -183,32 +177,6 @@ export default function GarageServiceBookings() {
     },
   });
 
-  const deleteBookingMutation = useMutation({
-    mutationFn: async (id: number) => {
-      const response = await fetch(`/api/service-bookings/${id}`, {
-        method: "DELETE",
-      });
-      if (!response.ok) throw new Error("Failed to delete booking");
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/service-bookings"] });
-      showToast("Booking deleted successfully");
-    },
-    onError: () => {
-      showToast("Failed to delete booking", "destructive");
-    },
-  });
-
-  const handleConfirm = (id: number) => {
-    updateStatusMutation.mutate({ id, action: "confirm" });
-  };
-
-  const handleReject = (id: number) => {
-    updateStatusMutation.mutate({ id, action: "reject" });
-    setRejectDialogOpen({open: false, id: null});
-  };
-
   const handleCancel = (id: number) => {
     updateStatusMutation.mutate({ id, action: "cancel" });
     setCancelDialogOpen({open: false, id: null});
@@ -217,11 +185,6 @@ export default function GarageServiceBookings() {
   const handleReschedule = (id: number, scheduledAt: string) => {
     updateStatusMutation.mutate({ id, action: "reschedule", scheduledAt });
     setRescheduleBookingId(null);
-    setNewSchedule("");
-  };
-
-  const handleComplete = (id: number) => {
-    updateStatusMutation.mutate({ id, action: "complete" });
   };
 
   const handleCall = (mobileNo: string) => {
@@ -249,20 +212,18 @@ export default function GarageServiceBookings() {
     }
   };
 
-  
+  const getDayKey = (date: Date): string => {
+    const days = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+    return days[date.getDay()];
+  };
 
-const getDayKey = (date: Date): string => {
-  const days = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
-  return days[date.getDay()];
-};
+  const currentDayKey = rescheduleDate ? getDayKey(rescheduleDate) : "mon";
+  const currentAvailability = availability?.[currentDayKey];
 
-const currentDayKey = rescheduleDate ? getDayKey(rescheduleDate) : "mon";
-const currentAvailability = availability?.[currentDayKey];
-
-const timeSlots = useMemo(() => {
-  if (!currentAvailability?.isOpen) return [];
-  return generateTimeSlots(currentAvailability.startTime, currentAvailability.endTime);
-}, [currentAvailability]);
+  const timeSlots = useMemo(() => {
+    if (!currentAvailability?.isOpen) return [];
+    return generateTimeSlots(currentAvailability.startTime, currentAvailability.endTime);
+  }, [currentAvailability]);
 
   if (isLoading) {
     return (
@@ -276,19 +237,17 @@ const timeSlots = useMemo(() => {
 
   return (
     <div className="min-h-screen">
-      <GarageNavigation />
-
+          <ShowroomNavigation />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex flex-col sm:flex-row items-center justify-between mb-6 gap-4">
-          <h1 className="text-2xl font-semibold text-gray-900">Bookings:</h1>
+          <h1 className="text-2xl font-semibold text-gray-900">My Bookings</h1>
           <Select value={sortBy} onValueChange={setSortBy}>
             <SelectTrigger className="w-full sm:w-48">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="old bookings">sort by old bookings</SelectItem>
-              <SelectItem value="new bookings">sort by new bookings</SelectItem>
-              <SelectItem value="date">sort by date</SelectItem>
+              <SelectItem value="new bookings">Newest first</SelectItem>
+              <SelectItem value="old bookings">Oldest first</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -296,9 +255,9 @@ const timeSlots = useMemo(() => {
         <Card className="bg-neutral-50 rounded-2xl shadow-sm border-2 border-orange-500 overflow-hidden">
           <div className="flex border-b border-orange-200">
             <button
-              onClick={() => setActiveTab("pending")}
+              onClick={() => setActiveTab("upcoming")}
               className={`flex-1 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === "pending"
+                activeTab === "upcoming"
                   ? "border-orange-500 text-orange-500"
                   : "border-transparent text-orange-500"
               }`}
@@ -307,13 +266,13 @@ const timeSlots = useMemo(() => {
                 <div className="w-6 h-6 bg-motoroe-orange rounded-full flex items-center justify-center text-white text-xs">
                   📋
                 </div>
-                <span>Booking Requests</span>
+                <span>Upcoming Bookings</span>
               </div>
             </button>
             <button
-              onClick={() => setActiveTab("confirmed")}
+              onClick={() => setActiveTab("past")}
               className={`flex-1 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === "confirmed"
+                activeTab === "past"
                   ? "border-blue-900 text-blue-900"
                   : "border-transparent text-blue-900"
               }`}
@@ -322,7 +281,7 @@ const timeSlots = useMemo(() => {
                 <div className="w-6 h-6 bg-motoroe-blue rounded-full flex items-center justify-center text-white text-xs">
                   📧
                 </div>
-                <span>Confirmed Bookings</span>
+                <span>Past Bookings</span>
               </div>
             </button>
           </div>
@@ -331,9 +290,9 @@ const timeSlots = useMemo(() => {
             {bookings.length === 0 ? (
               <div className="text-center py-12 text-gray-500">
                 No{" "}
-                {activeTab === "pending"
-                  ? "booking requests"
-                  : "confirmed bookings"}{" "}
+                {activeTab === "upcoming"
+                  ? "upcoming bookings"
+                  : "past bookings"}{" "}
                 found.
               </div>
             ) : (
@@ -349,22 +308,19 @@ const timeSlots = useMemo(() => {
                     <div className="flex items-start justify-start space-x-4">
                       <Avatar className="h-12 w-12">
                         <AvatarFallback className="bg-gray-300 text-gray-700">
-                          {getInitials(
-                            `${booking?.user?.first_name || ""} ${
-                              booking?.user?.last_name || ""
-                            }`
-                          )}
+                          {getInitials(booking?.showroom?.name || "G")}
                         </AvatarFallback>
                       </Avatar>
                       <div>
                         <h3 className="font-medium text-gray-900">
-                          {booking?.user?.first_name}
+                          {booking?.service?.service.name}
+                          
                         </h3>
                         <p className="text-sm text-gray-600">
-                          {booking?.vehicleMake} {booking?.vehicleModel}
+                          {booking?.showroom_name}
                         </p>
                         <p className="text-xs text-gray-500">
-                          {booking?.user?.phone}
+                          Status: {booking.status}
                         </p>
                       </div>
                     </div>
@@ -387,83 +343,39 @@ const timeSlots = useMemo(() => {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-48">
                           <DropdownMenuItem
-                            onClick={() => handleCall(booking?.user?.phone)}
+                            onClick={() => handleCall(booking?.showroom?.phone)}
                           >
                             <Phone className="h-4 w-4 mr-2 text-blue-500" />
-                            Call
+                            Call Garage
                           </DropdownMenuItem>
                           <DropdownMenuItem
-                            onClick={() => handleWhatsapp(booking?.user?.phone)}
+                            onClick={() => handleWhatsapp(booking?.showroom?.phone)}
                           >
                             <MessageCircle className="h-4 w-4 mr-2 text-green-500" />
-                            Whatsapp
+                            Message Garage
                           </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => setCancelDialogOpen({open: true, id: booking?.id})}
-                          >
-                            <Ban className="h-4 w-4 mr-2 text-red-500" />
-                            Cancel
-                          </DropdownMenuItem>
-
-                          <DropdownMenuItem
-                            onClick={() => {
-                              if (booking.status === "confirmed") {
-                                toast({
-                                  title: "Contact Admin to reschedule this booking",
-                                  variant: "destructive",
-                                });
-                                return;
-                              }
-                              setRescheduleBookingId(booking.id);
-                            }}
-                          >
-                            <CalendarIcon className="h-4 w-4 mr-2 text-blue-500" />
-                            Reschedule
-                          </DropdownMenuItem>
-
-
-                         
+                          
+                          {activeTab === "upcoming" && booking.status === "confirmed" && (
+                            <>
+                              <DropdownMenuItem 
+                                onClick={() => setCancelDialogOpen({open: true, id: booking?.id})}
+                              >
+                                <Ban className="h-4 w-4 mr-2 text-red-500" />
+                                Cancel Booking
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setRescheduleBookingId(booking.id);
+                                  setAvailability(booking.showroom.timing);
+                                }}
+                              >
+                                <CalendarIcon className="h-4 w-4 mr-2 text-blue-500" />
+                                Reschedule
+                              </DropdownMenuItem>
+                            </>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
-                      <Button
-                            onClick={() => setRejectDialogOpen({open: true, id: booking.id})}
-                            size="sm"
-                            variant="destructive"
-                            className="bg-red-500 hover:bg-red-600 text-white rounded-full p-2"
-                            disabled={updateStatusMutation.isPending}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-
-                      {activeTab === "pending" && (
-                        <>
-                          <Button
-                            onClick={() => handleConfirm(booking.id)}
-                            size="sm"
-                            className="bg-green-500 hover:bg-green-600 text-white rounded-full p-2"
-                            disabled={updateStatusMutation.isPending}
-                          >
-                            <Check className="h-4 w-4" />
-                          </Button>
-
-                          
-                        </>
-                      )}
-
-                       {activeTab === "confirmed" && (
-                              <>
-                          <Button
-                            onClick={() => handleComplete(booking.id)}
-                            size="sm"
-                            className="bg-green-500 hover:bg-green-600 text-white rounded-full p-2"
-                            disabled={updateStatusMutation.isPending}
-                          >
-                            <Check className="h-4 w-4" />
-                          </Button>
-
-                          
-                        </>
-                          )}
                     </div>
                   </div>
                 ))}
@@ -595,33 +507,6 @@ const timeSlots = useMemo(() => {
               <Button 
                 variant="ghost" 
                 onClick={() => setCancelDialogOpen({open: false, id: null})}
-              >
-                Go Back
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* Reject Confirmation Dialog */}
-        <Dialog 
-          open={rejectDialogOpen.open} 
-          onOpenChange={(open) => setRejectDialogOpen({open, id: null})}
-        >
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Confirm Rejection</DialogTitle>
-            </DialogHeader>
-            <p>Are you sure you want to reject this booking request?</p>
-            <DialogFooter>
-              <Button 
-                variant="destructive"
-                onClick={() => handleReject(rejectDialogOpen.id!)}
-              >
-                Reject Booking
-              </Button>
-              <Button 
-                variant="ghost" 
-                onClick={() => setRejectDialogOpen({open: false, id: null})}
               >
                 Go Back
               </Button>

@@ -1758,3 +1758,10 @@ export type AvailabilityEntry = {
   startTime: string;    // in "HH:mm" format like "09:00"
   endTime: string;      // in "HH:mm" format like "17:00"
 };
+
+export type CarStatistic = {
+  publishedCars: number;
+  pendingListings: number;
+  featuredCars: number;
+  expiredCarAds: number;
+};

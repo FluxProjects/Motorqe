@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { Loader2, X, Image as ImageIcon } from "lucide-react";
-import { Button } from "../ui/button";
+import { Button } from "@/components/ui/button";
 
 interface ImageUploadProps {
   currentImage?: string;

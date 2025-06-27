@@ -76,6 +76,10 @@ import ManageCarInspections from "./pages/admin/ManageCarInspections";
 import ManagePromotionPackages from "./pages/admin/ManagePromtionPackages";
 import ManageShowrooms from "./pages/admin/ManageShowrooms";
 import AdminAddGarage from "./pages/admin/AdminAddGarage";
+import ShowroomBookings from "./pages/showroom/ShowroomBookings";
+import ShowroomMessaging from "./pages/showroom/ShowroomMessages";
+import ShowroomProfile from "./pages/showroom/ShowroomProfile";
+import ShowroomListings from "./pages/showroom/ShowroomListing";
 
 
 
@@ -204,54 +208,58 @@ function functionStaticPage({ keyParam }: { keyParam: string }) {
           {/* ---------- Seller Dashboard Routes ---------- */}
           <Route path="/seller-dashboard">
             <RoleSpecificRoute role="SELLER">
-              <SellerDashboard />
+              <ShowroomDashboard />
             </RoleSpecificRoute>
           </Route>
           <Route path="/seller-dashboard/listings">
             <RoleSpecificRoute role="SELLER">
               <ProtectedRoute permissions={[Permission.MANAGE_OWN_LISTINGS]}>
-                <ManageListings />
+                <ShowroomListings />
               </ProtectedRoute>
             </RoleSpecificRoute>
           </Route>
-          <Route path="/seller-dashboard/settings">
+          <Route path="/seller-dashboard/bookings">
             <RoleSpecificRoute role="SELLER">
-              <SellerManageSettings />
+              <ShowroomBookings />
             </RoleSpecificRoute>
           </Route>
           <Route path="/seller-dashboard/profile">
             <RoleSpecificRoute role="SELLER">
-              <ManageProfile />
+              <ShowroomProfile />
             </RoleSpecificRoute>
           </Route>
           <Route path="/seller-dashboard/messages">
             <RoleSpecificRoute role="SELLER">
               <ProtectedRoute permissions={[Permission.RESPOND_TO_INQUIRIES]}>
-                <ManageMessages />
+                <ShowroomMessaging />
               </ProtectedRoute>
             </RoleSpecificRoute>
           </Route>
 
           {/* ---------- Showroom Dashboard Routes ---------- */}
           <Route path="/showroom-dashboard">
-            <ProtectedRoute permissions={[Permission.CREATE_SHOWROOM_PROFILE]} fallback="/">
+            <ProtectedRoute permissions={[Permission.MANAGE_OWN_LISTINGS]}>
               <ShowroomDashboard />
             </ProtectedRoute>
           </Route>
           <Route path="/showroom-dashboard/listings">
             <ProtectedRoute permissions={[Permission.MANAGE_OWN_LISTINGS]}>
-              <ManageListings />
+              <ShowroomListings />
             </ProtectedRoute>
           </Route>
-         
+          <Route path="/showroom-dashboard/bookings">
+            <ProtectedRoute permissions={[Permission.MANAGE_OWN_SERVICES]}>
+              <ShowroomBookings />
+            </ProtectedRoute>
+          </Route>
           <Route path="/showroom-dashboard/profile">
             <ProtectedRoute permissions={[Permission.MANAGE_SHOWROOM_PROFILE]}>
-              <ManageProfile />
+              <ShowroomProfile />
             </ProtectedRoute>
           </Route>
-          <Route path="/showroom-dashboard/messages">
+          <Route path="/showroom-dashboard/messaging">
             <ProtectedRoute permissions={[Permission.RESPOND_TO_INQUIRIES]}>
-              <ManageMessages />
+              <ShowroomMessaging />
             </ProtectedRoute>
           </Route>
 

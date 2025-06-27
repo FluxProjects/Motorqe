@@ -2,7 +2,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { roleMapping } from "@shared/permissions";
 import { useTranslation } from "react-i18next";
 import { Link, useLocation } from "wouter";
-import { Button } from "../ui/button";
+import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 
 export default function ShowroomNavigation() {

@@ -2,11 +2,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Link } from "wouter";
-import { Skeleton } from "../ui/skeleton";
+import { Skeleton } from "@/components/ui/skeleton";
 import { GarageCard } from "../showroom/GarageCard";
 import { apiRequest } from "@/lib/queryClient";
 import { useState } from "react";
-import { Tabs, TabsList, TabsTrigger } from "../ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Star } from "lucide-react";
 
 const FeaturedGaragesSection = () => {

@@ -30,14 +30,28 @@ import { MessageSquareText, Phone, MessageSquareOff, ShieldAlert, UserX } from "
 
 interface Message {
   id: number;
-  content: string;
-  createdAt: string;
   sender_id: number;
   receiver_id: number;
-  sender_username: string;
-  receiver_username: string;
-  status: string;
+  content: string;
+  listing_id: number | null;
+  created_at: string;
+  recipient_type: string;
   type: string;
+  status: string;
+  sent_at: string | null;
+  error: string | null;
+  title: string | null;
+  parent_message_id: number | null;
+  sender_first_name: string;
+  sender_last_name: string;
+  sender_username: string;
+  sender_email: string;
+  sender_phone: string;
+  receiver_first_name: string;
+  receiver_last_name: string;
+  receiver_username: string;
+  receiver_email: string;
+  receiver_phone: string;
 }
 
 export default function GarageMessaging() {
@@ -63,7 +77,7 @@ export default function GarageMessaging() {
     queryKey: ["/api/messages", user?.id, user?.roleId],
     enabled: !!user?.id,
     queryFn: async () => {
-      const isAdmin = user?.roleId === 1 || user?.roleId === 2;
+      const isAdmin = parseInt(user?.roleId) > 6;
 
       if (isAdmin) {
         const res = await fetch(`/api/messages/all`);

@@ -12,7 +12,7 @@ export default function ShowroomDashboard() {
       const { user } = useAuth();
       const [location] = useLocation();
     
-      const role = roleMapping?.[Number(user?.roleId)] ?? 'USER';
+      const role = roleMapping?.[Number(user?.roleId)] ?? 'SELLER';
   return (
     <div className="min-h-screen bg-gray-50">
       

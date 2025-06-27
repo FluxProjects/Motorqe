@@ -98,7 +98,7 @@ const Header = ({ openAuthModal }: HeaderProps) => {
       case 1: // BUYER
         return "/buyer-dashboard";
       case 2: // SELLER
-        return "/seller-dashboard";
+        return "/showroom-dashboard";
       case 3: // DEALER
         return "/showroom-dashboard";
       case 4: // GARAGE
@@ -137,19 +137,18 @@ const Header = ({ openAuthModal }: HeaderProps) => {
   const getMessagesLink = () => {
     if (!user) return "/";
     switch (user.roleId) {
+      case 1: // BUYER
+        return "/buyer-dashboard/messages";
+      case 2: // SELLER
+        return "/showroom-dashboard/messaging";
+      case 3: // DEALER
+        return "/showroom-dashboard/messaging";
+      case 4: // GARAGE
+        return "/garage-dashboard/messaging";
       case 7: // ADMIN
       case 5: // MODERATOR
       case 6: // SENIOR_MODERATOR
       case 8: // SUPER_ADMIN
-        return "/admin/messages";
-      case 2: // SELLER
-        return "/seller-dashboard/messages";
-      case 1: // BUYER
-        return "/buyer-dashboard/messages";
-      case 3: // DEALER
-        return "/showroom-dashboard/messages";
-      case 4: // GARAGE
-        return "/garage-dashboard/messages";
       default:
         return "/messages";
     }

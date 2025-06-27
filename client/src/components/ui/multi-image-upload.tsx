@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { Loader2, X, Image as ImageIcon, Plus } from "lucide-react";
-import { Button } from "../ui/button";
+import { Button } from "@/components/ui/button";
 
 interface MultiImageUploadProps {
   currentImages?: string[];

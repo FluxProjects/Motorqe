@@ -9,7 +9,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useTranslation } from "react-i18next";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CarService, ShowroomService } from "@shared/schema";
-import { roleMapping } from "@shared/permissions";
 
 interface ServiceFormValues {
   id: number | null;

@@ -63,7 +63,7 @@ export default function ShowroomMessaging() {
     queryKey: ["/api/messages", user?.id, user?.roleId],
     enabled: !!user?.id,
     queryFn: async () => {
-      const isAdmin = user?.roleId === 1 || user?.roleId === 2;
+      const isAdmin = user?.roleId > 6;
 
       if (isAdmin) {
         const res = await fetch(`/api/messages/all`);
@@ -322,8 +322,13 @@ export default function ShowroomMessaging() {
     };
   }, [showActions]);
 
+
+  console.log('API Response:', messages);
+console.log('Filtered Messages:', filteredMessages);
+console.log('Conversations:', conversations);
+
   if (isLoading) return <div>Loading...</div>;
-  if (error) return <div>Error loading messages</div>;
+  
 
   return (
     <div className="min-h-screen bg-gray-50">

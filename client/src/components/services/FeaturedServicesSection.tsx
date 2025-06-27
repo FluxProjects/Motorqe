@@ -3,7 +3,7 @@ import { Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import FeaturedServiceCard from "./FeaturedServiceCard";
 import { useState } from "react";
-import { Button } from "../ui/button";
+import { Button } from "@/components/ui/button";
 
 export interface ShowroomService {
   showroom_service_id: number;

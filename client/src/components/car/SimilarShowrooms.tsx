@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { MapPin, Building2 } from "lucide-react";
 import { Link } from "wouter";
-import { Button } from "../ui/button";
+import { Button } from "@/components/ui/button";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Navigation, Pagination } from "swiper/modules";
 import "swiper/css";

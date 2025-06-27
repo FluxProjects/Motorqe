@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import {
   Form,
@@ -11,10 +11,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "react-i18next";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User } from "@shared/schema";
 import { Checkbox } from "@/components/ui/checkbox";
-import ImageUpload from "../ui/image-upload";
+import ImageUpload from "@/components/ui/image-upload";
 
 interface BaseProfileEditorProps {
   user: User;
@@ -45,6 +44,8 @@ export function BaseProfileEditor({
   });
 
   const { setValue } = form;
+  const avatar = form.watch("avatar");
+
 
   console.log("user inside basic profile", user);
 
@@ -64,10 +65,11 @@ export function BaseProfileEditor({
         NotificationPhone: user.notification_phone || false,
         emailNotifications: user.email_notifications || false,
         smsNotifications: user.sms_notifications || false,
-        avatar: user.avatar || "",
+        avatar: user.avatar || '',
       });
     }
   }, [user, form]);
+  
 
   const toSnakeCase = (str: string) =>
   str.replace(/([A-Z])/g, (match, p1, offset) => (offset > 0 ? '_' : '') + p1.toLowerCase());
@@ -92,9 +94,8 @@ export function BaseProfileEditor({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           
           <div className="grid grid-cols-4">
-            
             <ImageUpload
-              currentImage={form.watch("avatar")}
+              currentImage={avatar}
               onUploadComplete={handleAvatarUpload}
             />
     

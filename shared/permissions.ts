@@ -105,6 +105,7 @@ export const Roles: Record<Role, readonly PermissionType[]> = {
     Permission.RESPOND_TO_INQUIRIES,
     Permission.MANAGE_SELLER_PROFILE,
     Permission.SAVE_FAVORITES,
+    Permission.MANAGE_OWN_SERVICES
   ],
 
   // Showroom Roles
@@ -113,13 +114,15 @@ export const Roles: Record<Role, readonly PermissionType[]> = {
     Permission.MANAGE_SHOWROOM_LISTINGS,
     Permission.ACCESS_SHOWROOM_ANALYTICS,
     Permission.MANAGE_SHOWROOM_PROFILE,
-    Permission.RESPOND_TO_INQUIRIES,
+    
     Permission.BROWSE_LISTINGS,
     Permission.CREATE_LISTINGS,
     Permission.MANAGE_OWN_LISTINGS,
     Permission.VIEW_LISTING_ANALYTICS,
+    Permission.RESPOND_TO_INQUIRIES,
     Permission.MANAGE_SELLER_PROFILE,
     Permission.SAVE_FAVORITES,
+    Permission.MANAGE_OWN_SERVICES
     
   ],
 

@@ -4,7 +4,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { BaseProfileEditor } from "../users/BaseProfileEditor";
 import { PasswordChangeForm } from "../users/PasswordChangeForm";
 import { Controller, useForm, FormProvider } from "react-hook-form";
-import { Showroom, User } from "@shared/schema";
+import { AvailabilityEntry, Showroom, User } from "@shared/schema";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
@@ -13,8 +13,13 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
 import { useEffect, useState } from "react";
-import MultiImageUpload from "../ui/multi-image-upload";
-import ImageUpload from "../ui/image-upload";
+import MultiImageUpload from "@/components/ui/multi-image-upload";
+import ImageUpload from "@/components/ui/image-upload";
+import { FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AvailabilityEditor } from "@/components/ui/availability";
+import { toast } from "@/hooks/use-toast";
+import { safeParseJSON } from "@/lib/utils";
 
 type FormValues = {
   name: string;
@@ -62,6 +67,20 @@ export function GarageProfileEditor({ user }: { user: User }) {
       images: [],
     },
   });
+
+  const hasActiveDays = (value: string | Record<string, AvailabilityEntry> | null | undefined): boolean => {
+      if (!value) return false;
+    
+      let parsed: Record<string, AvailabilityEntry>;
+    
+      try {
+        parsed = typeof value === "string" ? JSON.parse(value) : value;
+      } catch {
+        return false;
+      }
+    
+      return Object.values(parsed || {}).some((entry) => entry?.isOpen);
+    };
 
   // Set form values when showroom data is loaded or changes
   useEffect(() => {
@@ -136,9 +155,21 @@ export function GarageProfileEditor({ user }: { user: User }) {
   },
   onSuccess: () => {
     refetch();
+     toast({
+      title: "Success",
+      description: showrooms.length > 0 
+        ? "Garage updated successfully" 
+        : "Garage created successfully",
+      variant: "default",
+    });
   },
   onError: (error) => {
     console.error("Error upserting showroom/garage:", error);
+    toast({
+      title: "Error",
+      description: error.message || "An error occurred",
+      variant: "destructive",
+    });
   },
 });
 
@@ -159,7 +190,19 @@ export function GarageProfileEditor({ user }: { user: User }) {
     },
     onSuccess: () => {
       refetch();
+      toast({
+      title: "Success",
+      description: "Profile updated successfully",
+      variant: "default",
+    });
     },
+    onError: (error) => {
+    toast({
+      title: "Error",
+      description: error.message || "Failed to update profile",
+      variant: "destructive",
+    });
+  },
   });
 
   const { handleSubmit, register, control, setValue, watch } = methods;
@@ -203,7 +246,9 @@ export function GarageProfileEditor({ user }: { user: User }) {
       <TabsContent value="showroom">
         <Card className="bg-muted/50">
           <CardContent className="p-4 space-y-4">
-            <form onSubmit={handleSubmit((data) => upsertMutation.mutate(data))} className="grid gap-4">
+            <FormProvider {...methods}>
+
+               <form onSubmit={handleSubmit((data) => upsertMutation.mutate(data))} className="grid gap-4">
               {/* Logo Upload */}
               
               <div className="grid grid-cols-2 gap-4">
@@ -229,7 +274,45 @@ export function GarageProfileEditor({ user }: { user: User }) {
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <div><label>{t("showroom.timing")}</label><Input {...register("timing")} /></div>
+                <div>
+                  <label>{t("showroom.timing")}</label>
+                  <FormField
+                    control={control}
+                    name="timing"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button className="border-blue-900 border-2 text-blue-900 bg-white hover:bg-blue-900 hover:text-white">
+                                {hasActiveDays(field.value) ? "Update Garage Timing" : "Add Garage Timing"}
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-3xl">
+                              <DialogHeader>
+                                <DialogTitle className="text-blue-900 font-bold">Showroom Timing</DialogTitle>
+                              </DialogHeader>
+
+                              {/* ✅ Use it here */}
+                              <AvailabilityEditor
+                               availability={
+                                  typeof field.value === "string"
+                                    ? safeParseJSON(field.value)
+                                    : field.value || {}
+                                }
+                                onChange={(newAvailability) =>
+                                  field.onChange(JSON.stringify(newAvailability))
+                                }
+                              />
+
+                            </DialogContent>
+                          </Dialog>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
                 <div>
                   <label className="inline-flex items-center space-x-2">
                     <Controller
@@ -264,6 +347,9 @@ export function GarageProfileEditor({ user }: { user: User }) {
                 {upsertMutation.isLoading ? t("common.saving") : t("common.save")}
               </Button>
             </form>
+
+            </FormProvider>
+           
           </CardContent>
         </Card>
       </TabsContent>

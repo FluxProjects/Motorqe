@@ -19,6 +19,15 @@ export function formatServiceTimeRange(startTime: string): string {
   return `${format(start, "hh:mm a")} - ${format(end, "hh:mm a")}`;
 }
 
+export function safeParseJSON(value: string) {
+  try {
+    return JSON.parse(value);
+  } catch {
+    console.warn("Invalid JSON, returning empty object. Value:", value);
+    return {};
+  }
+}
+
 export function generateTimeSlots(start: string, end: string, stepMinutes: number = 30) {
   const slots: string[] = [];
   let [startHour, startMin] = start.split(":").map(Number);

@@ -44,7 +44,7 @@ export function BasicInfoStep({ data, updateData, nextStep, prevStep }: StepProp
           <Label htmlFor="title_ar">Listing Title (Arabic)*</Label>
           <Input
             id="title_ar"
-            {...register("basicInfo.title_ar", { required: "Arabic title is required" })}
+            {...register("basicInfo.titleAr", { required: "Arabic title is required" })}
             placeholder="مثال: تويوتا كامري 2020"
           />
           {errors.basicInfo?.titleAr && (
@@ -71,7 +71,7 @@ export function BasicInfoStep({ data, updateData, nextStep, prevStep }: StepProp
           <Label htmlFor="description_ar">Description (Arabic)*</Label>
           <Textarea
             id="description_ar"
-            {...register("basicInfo.description_ar", {
+            {...register("basicInfo.descriptionAr", {
               required: "Arabic description is required",
             })}
             rows={4}

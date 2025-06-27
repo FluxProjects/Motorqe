@@ -17,7 +17,11 @@ export function PricingStep({ data, updateData, nextStep }: StepProps) {
 
   const { data: packages = [], isLoading } = useQuery<PromotionPackage[]>({
     queryKey: ["promotion-packages"],
-    queryFn: () => fetch("/api/promotion-packages").then((res) => res.json()),
+    queryFn: async () => {
+      const res = await fetch("/api/promotion-packages");
+      if (!res.ok) throw new Error("Failed to fetch packages");
+      return res.json();
+    },
   });
 
   // Auto-proceed when package is selected

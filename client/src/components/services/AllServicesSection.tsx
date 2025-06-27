@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CarService } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useState } from "react";
-import { Button } from "../ui/button";
+import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 
 interface ServiceWrapper {

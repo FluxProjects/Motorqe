@@ -627,6 +627,7 @@
     "preferencesPlaceholder": "Enter your preferences..."
   },
   "admin": {
+    "manageCarListings" : "Manage Car Listings",
     "editSlider": "Edit Slider",
     "createSlider" : "Create Slider",
     "viewSlider": "View Slider",
