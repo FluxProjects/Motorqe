@@ -24,6 +24,7 @@ import { safeParseJSON } from "@/lib/utils";
 type FormValues = {
   name: string;
   nameAr: string;
+  tLicense: string;
   description: string;
   descriptionAr: string;
   address: string;
@@ -55,6 +56,7 @@ export function ShowroomProfileEditor({ user }: { user: User }) {
     defaultValues: {
       name: "",
       nameAr: "",
+      tLicense: "",
       description: "",
       descriptionAr: "",
       address: "",
@@ -91,15 +93,16 @@ export function ShowroomProfileEditor({ user }: { user: User }) {
       const showroom = showrooms[0]; // Only work with the first showroom/garage
       methods.reset({
         name: showroom.name ?? "",
-        nameAr: showroom.nameAr ?? "",
+        nameAr: showroom.name_ar ?? "",
+        tLicense: showroom.t_license ?? "",
         description: showroom.description ?? "",
-        descriptionAr: showroom.descriptionAr ?? "",
+        descriptionAr: showroom.description_ar ?? "",
         address: showroom.address ?? "",
-        addressAr: showroom.addressAr ?? "",
+        addressAr: showroom.address_ar ?? "",
         location: showroom.location ?? "",
         phone: showroom.phone ?? "",
         timing: showroom.timing ?? "",
-        isMainBranch: showroom.isMainBranch ?? false,
+        isMainBranch: showroom.is_main_branch ?? false,
         logo: showroom.logo ?? "",
         images: showroom.images ?? [],
       });
@@ -107,6 +110,7 @@ export function ShowroomProfileEditor({ user }: { user: User }) {
       methods.reset({
         name: "",
         nameAr: "",
+        tLicense: "",
         description: "",
         descriptionAr: "",
         address: "",
@@ -268,6 +272,10 @@ export function ShowroomProfileEditor({ user }: { user: User }) {
               <div className="grid grid-cols-2 gap-4">
                 <div><label>{t("showroom.address")} (EN)</label><Input {...register("address")} /></div>
                 <div><label>{t("showroom.address")} (AR)</label><Input {...register("addressAr")} /></div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4">
+                <div><label>{t("showroom.tLicense")}</label><Input {...register("tLicense")} /></div>
               </div>
 
               <div className="grid grid-cols-1 gap-4">

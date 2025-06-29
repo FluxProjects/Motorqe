@@ -82,8 +82,8 @@ export function ReviewStep({
       {/* Basic Info */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-blue-900 border-b pb-1">
-  {t("listing.basicInfo")}
-</h3>
+          {t("listing.basicInfo")}
+        </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
@@ -132,8 +132,8 @@ export function ReviewStep({
       {/* Specifications */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-blue-900 border-b pb-1">
-  {t("listing.specifications")}
-</h3>
+          {t("listing.specifications")}
+        </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
@@ -174,38 +174,63 @@ export function ReviewStep({
             </p>
           </div>
           <div>
-          <Label>{t("listing.engineCapacity")}</Label>
-          <p>
-            {selectedEngineCapacity?.size_liters
-              ? `${selectedEngineCapacity.size_liters} L`
-              : t("listing.notSpecified")}
-          </p>
-        </div>
-        <div>
-          <Label>{t("listing.cylinderCount")}</Label>
-          <p>{formData.specifications?.cylinderCount}</p>
-        </div>
+            <Label>{t("listing.engineCapacity")}</Label>
+            <p>
+              {selectedEngineCapacity?.size_liters
+                ? `${selectedEngineCapacity.size_liters} L`
+                : t("listing.notSpecified")}
+            </p>
+          </div>
+          <div>
+            <Label>{t("listing.cylinderCount")}</Label>
+            <p>{formData.specifications?.cylinderCount}</p>
+          </div>
           <div>
             <Label>{t("listing.color")}</Label>
             <p>{formData.specifications?.color || t("listing.notSpecified")}</p>
           </div>
           <div>
-          <Label>{t("listing.interiorColor")}</Label>
-          <p>{formData.specifications?.interiorColor}</p>
+            <Label>{t("listing.interiorColor")}</Label>
+            <p>{formData.specifications?.interiorColor}</p>
+          </div>
+          <div>
+            <Label>{t("listing.tinted")}</Label>
+            <p>{formData.specifications?.tinted}</p>
+          </div>
+          <div>
+            <Label>{t("listing.condition")}</Label>
+            <p>{formData.specifications?.condition || t("listing.notSpecified")}</p>
+          </div>
+
+          <div>
+            <Label>{t("listing.isInspected")}</Label>
+            <p>
+              {formData.specifications?.isInspected === "true"
+                ? t("listing.yes")
+                : formData.specifications?.isInspected === "false"
+                ? t("listing.no")
+                : t("listing.notSpecified")}
+            </p>
+          </div>
+
+          <div>
+            <Label>{t("listing.isImported")}</Label>
+            <p>
+              {formData.specifications?.isImported === "true"
+                ? t("listing.yes")
+                : formData.specifications?.isImported === "false"
+                ? t("listing.no")
+                : t("listing.notSpecified")}
+            </p>
+          </div>
         </div>
-        <div>
-          <Label>{t("listing.tinted")}</Label>
-          <p>{formData.specifications?.tinted}</p>
-        </div>
-        </div>
-        
       </div>
 
       {/* Features */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-blue-900 border-b pb-1">
-  {t("listing.features")}
-</h3>
+          {t("listing.features")}
+        </h3>
 
         {selectedFeatures && selectedFeatures.length > 0 ? (
           <div className="flex flex-wrap gap-2">
@@ -227,8 +252,8 @@ export function ReviewStep({
       {promotionPackage && (
         <div className="space-y-4">
           <h3 className="text-lg font-semibold text-blue-900 border-b pb-1">
-  {t("listing.promotionPackage")}
-</h3>
+            {t("listing.promotionPackage")}
+          </h3>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>

@@ -1,5 +1,6 @@
 {
   "common": {
+    "bookmark": "Bookmark",
     "servicesAndPrices":"Service and Prices",
     "selectCategory":"Select Category",
     "selectService":"Select Service",
@@ -207,6 +208,9 @@
     "selectModel": "Select Model"
   },
   "auth": {
+    "businessName": "Business Name",
+    "tlicence":"Trade License Number",
+    "phone":"Phone Number",
     "email": "Email Address",
     "password": "Password",
     "confirmPassword": "Confirm Password",
@@ -274,6 +278,10 @@
     "specialOffers": "Special Offers"
   },
   "car": {
+    "sendMessage":"Send Message",
+  "contactSellerDesc": "Send a message directly to the seller for quick assistance.",
+  "regarding": "Honda Civic in very good condition",
+  "writeYourMessage": "Write your message",
     "allYears" : "All Years",
     "service" : "Service",
     "selectService": "Select Service",
@@ -447,6 +455,7 @@
     "listMyCar": "List My Car"
   },
   "showroom": {
+    "tLicense": "Trade License",
     "timing":"Timing",
     "images":"Images",
     "description": "Description",
@@ -527,6 +536,9 @@
     "profile": "Profile"
   },
   "listing": {
+    "condition":"Condition",
+    "isInspected": "Inspected",
+    "isImported":"Imported",
     "saveAsDraft": "Save As Draft",
     "publishListing": "Publish Listing",
     "location": "Location",

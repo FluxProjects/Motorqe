@@ -585,7 +585,7 @@ const CarDetails = () => {
 
                 <div className="flex items-center justify-between mb-6">
                   <div className="text-3xl font-bold text-blue-900">
-                    QR {car.price.toLocaleString()}
+                    {car.currency || "QR"} {car.price.toLocaleString()}
                   </div>
                 </div>
 
@@ -876,7 +876,7 @@ const CarDetails = () => {
                   {t("car.regarding")}: {title}
                 </p>
                 <p className="text-primary font-medium mt-1">
-                  ${car.price.toLocaleString()}
+                  {car.currency || 'QR'} {car.price.toLocaleString()}
                 </p>
               </div>
 

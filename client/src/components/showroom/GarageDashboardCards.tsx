@@ -35,10 +35,10 @@ export default function GarageDashboardCards() {
   });
 
   const todayBookings = bookingsData.filter(
-    (b: any) => b.status !== "pending" && b.scheduledAt?.startsWith(today)
+    (b: any) => b.status !== "pending" && b.scheduled_at?.startsWith(today)
   );
-  const upcomingBookings = bookingsData.filter(
-    (b: any) => b.status !== "pending" && b.scheduledAt > today
+  const confirmedBookings = bookingsData.filter(
+    (b: any) => b.status === "confirmed"
   );
   const pendingBookings = bookingsData.filter((b: any) => b.status === "pending");
 
@@ -60,8 +60,8 @@ export default function GarageDashboardCards() {
       icon: ClipboardList,
     },
     {
-      title: "Upcoming Bookings",
-      value: upcomingBookings.length,
+      title: "Confirmed Bookings",
+      value: confirmedBookings.length,
       icon: CalendarCheck,
     },
     {

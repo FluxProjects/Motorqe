@@ -14,6 +14,7 @@ import { format } from "date-fns";
 import React from "react";
 import { z } from "zod";
 import { toast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
 
 // Define the schema for service booking
 export const serviceBookingFormSchema = z.object({
@@ -66,6 +67,8 @@ export function ServiceBookingForm({
   const [selectedServiceIds, setSelectedServiceIds] = useState<number[]>(
     service ? [service.id] : []
   );
+  const [, setLocation] = useLocation();
+
 
   const form = useForm({
     resolver: zodResolver(serviceBookingFormSchema),
@@ -137,61 +140,54 @@ export function ServiceBookingForm({
   });
 
   const onSubmit = (formData: { notes?: string }) => {
-    console.log("formdata", formData);
-    if (!date) {
-      console.error("Date not selected");
-      return;
-    }
+  console.log("formData before building payload:", formData);
+  if (!date) {
+    console.error("Date not selected");
+    return;
+  }
+  if (!time) {
+    console.error("Time not selected");
+    return;
+  }
+  if (selectedServiceIds.length === 0) {
+    console.error("No services selected");
+    return;
+  }
 
-    if (selectedServiceIds.length === 0) {
-      console.error("No services selected");
-      return;
-    }
+  const [hours, minutes] = time.split(":").map(Number);
+  const scheduledAt = new Date(date);
+  scheduledAt.setHours(hours, minutes, 0, 0);
 
-    const [hours, minutes] = time.split(":").map(Number);
-
-    const startTime = currentAvailability?.startTime || "09:00";
-    const endTime = currentAvailability?.endTime || "17:00";
-
-    const selectedMinutes = hours * 60 + minutes;
-    const startMinutes =
-      Number(startTime.split(":")[0]) * 60 + Number(startTime.split(":")[1]);
-    const endMinutes =
-      Number(endTime.split(":")[0]) * 60 + Number(endTime.split(":")[1]);
-
-    if (selectedMinutes < startMinutes || selectedMinutes >= endMinutes) {
-      console.error("Selected time is outside the allowed range");
-      return;
-    }
-
-    // if (isNaN(hours) || isNaN(minutes) || hours < 9 || hours > 17 || (hours === 17 && minutes > 0)) {
-    //   console.error("Time must be between 09:00 and 17:00");
-    //   return;
-    // }
-
-    const scheduledAt = new Date(date);
-    scheduledAt.setHours(hours, minutes, 0, 0);
-
-    const payload = {
-      userId,
-      showroomId,
-      showroomServiceIds: selectedServiceIds,
-      servicePrices,
-      scheduledAt: scheduledAt.toISOString(),
-      notes: formData.notes || "",
-      totalPrice,
-    };
-
-    console.log("Submitting payload:", payload);
-    bookService.mutate(payload);
-    toast({
-      title: "Booking confirmed",
-      description: "Your appointment has been scheduled.",
-      variant: "default", // optionally use custom variant
-    }); // ✅ Show toast
-
-    onSuccess?.();
+  const payload = {
+    userId,
+    showroomId,
+    showroomServiceIds: selectedServiceIds,
+    servicePrices,
+    scheduledAt: scheduledAt.toISOString(),
+    notes: formData.notes || "",
+    totalPrice,
   };
+
+  console.log("Submitting payload:", payload);
+
+  bookService.mutate(payload, {
+    onSuccess: (createdBooking) => {
+      // Push id into the payload
+      const payloadWithId = { ...payload, id: createdBooking.id };
+
+      toast({
+        title: "Booking confirmed",
+        description: "Your appointment has been scheduled.",
+      });
+
+      setLocation(`/confirmedbooking?data=${encodeURIComponent(JSON.stringify(payloadWithId))}`);
+
+      onSuccess?.();
+    },
+  });
+};
+
+
 
   useEffect(() => {
     if (isOpen) {
@@ -251,12 +247,12 @@ const timeSlots = React.useMemo(() => {
           <ul className="list-disc list-inside text-sm text-muted-foreground">
             {currentlySelectedServices.map((s) => (
               <li key={s.id}>
-                {s.name} - {s.price} {s.currency}
+                {s.name} - {s.currency} {s.price} 
               </li>
             ))}
           </ul>
           <div className="font-semibold">
-            {t("services.total")}: {totalPrice} {currency}
+            {t("services.total")}: {currency} {totalPrice}
           </div>
         </div>
       )}
@@ -347,24 +343,21 @@ const timeSlots = React.useMemo(() => {
         />
       </div>
 
-      {bookService.isError && (
-        <p className="text-sm text-red-500 mt-2">
-          {bookService.error?.message || t("services.bookingFailed")}
-        </p>
-      )}
+      <div className="flex items-center justify-center mt-2">
+                  <input type="checkbox" className="mr-2 w-4 h-4" />
+                  <span className="text-base font-medium">I Agree To Terms & Conditions</span>
+                </div>
+ 
 
       <Button
         className="bg-orange-500"
         onClick={() => {
-          const scheduled_at =
-            date && time
-              ? new Date(`${format(date, "yyyy-MM-dd")}T${time}`)
-              : null;
-
+          const scheduled_at = (date?.toString() && time);
+          console.log("scheduled_at", scheduled_at);
           form.setValue("userId", userId?.toString());
           form.setValue("showroomId", showroomId?.toString());
           form.setValue("showroomServiceIds", selectedServiceIds);
-          form.setValue("scheduledAt", scheduled_at?.toString());
+          form.setValue("scheduledAt", scheduled_at);
 
           form.handleSubmit(onSubmit)(); // <-- now run with updated values
         }}
@@ -372,6 +365,11 @@ const timeSlots = React.useMemo(() => {
         {t("services.confirmBooking")}
       </Button>
 
+     {bookService.isError && (
+        <p className="text-sm text-red-500 mt-2">
+          {bookService.error?.message || t("services.bookingFailed")}
+        </p>
+      )}
       
     </form>
   );

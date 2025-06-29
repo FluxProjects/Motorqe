@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useSettings } from "@/hooks/use-settings";
-import { Link } from "wouter";
+import { calculateMonthlyPayment } from "@/lib/utils";
 
 interface LoanCalculatorProps {
   vehiclePrice: number;
@@ -14,7 +14,7 @@ export function CarLoanCalculator({ vehiclePrice }: LoanCalculatorProps) {
   );
   const [interestRate, setInterestRate] = useState(5.5);
   const [loanPeriod, setLoanPeriod] = useState(60);
-  const { data: settingsData = [], isLoadingSetting, refetch } = useSettings();
+  const { data: settingsData = [], isLoading, refetch } = useSettings();
 
   // Real calculations
   const principal = carPrice - downPayment;
@@ -23,11 +23,11 @@ export function CarLoanCalculator({ vehiclePrice }: LoanCalculatorProps) {
 
   const downPaymentPercentage = ((downPayment / carPrice) * 100).toFixed(0);
 
-  const monthlyPayment =
-    principal > 0 && monthlyRate > 0
-      ? (principal * monthlyRate * Math.pow(1 + monthlyRate, numPayments)) /
-        (Math.pow(1 + monthlyRate, numPayments) - 1)
-      : principal / numPayments;
+  const monthlyPayment = calculateMonthlyPayment(carPrice, {
+  downPaymentPercentage: downPayment / carPrice,
+  interestRate,
+  loanPeriodMonths: loanPeriod,
+});
 
   const totalInterest = monthlyPayment * numPayments - principal;
   const totalAmount = principal + totalInterest;
@@ -173,22 +173,36 @@ export function CarLoanCalculator({ vehiclePrice }: LoanCalculatorProps) {
 
         {/* Center Column - Nationwide Building Society */}
         <div className="flex flex-col items-center justify-center bg-gray-100 rounded-lg p-6">
-          <a href={settingsData?.bank_url} target="_blank" rel="noopener noreferrer">
-            <img src={settingsData?.bank_logo} alt={settingsData?.bank_logo} />
-          </a>
-
-          <div className="text-center mb-4">
-            <div className="text-gray-600 text-sm mb-2">Monthly Payments</div>
-            <div className="text-3xl font-bold text-blue-900">
-              QR {Math.round(monthlyPayment).toLocaleString()}
+        {isLoading ? (
+          <>
+            <div className="w-24 h-12 bg-gray-300 rounded animate-pulse mb-4" />
+            <div className="text-center mb-4">
+              <div className="text-gray-400 text-sm mb-2">Monthly Payments</div>
+              <div className="text-3xl font-bold text-gray-400 animate-pulse">Loading...</div>
             </div>
-          </div>
-          <a href={settingsData?.bank_url} target="_blank" rel="noopener noreferrer">
-            <Button className="bg-orange-500 text-white hover:bg-orange-600 rounded-full px-8">
-              Apply Now
-            </Button>
-          </a>
-        </div>
+            <div className="w-32 h-10 bg-gray-300 rounded-full animate-pulse" />
+          </>
+        ) : (
+          <>
+            <a href={settingsData?.bank_url} target="_blank" rel="noopener noreferrer">
+              <img src={settingsData?.bank_logo} alt={settingsData?.bank_logo} />
+            </a>
+
+            <div className="text-center mb-4">
+              <div className="text-gray-600 text-sm mb-2">Monthly Payments</div>
+              <div className="text-3xl font-bold text-blue-900">
+                QR {Math.round(monthlyPayment).toLocaleString()}
+              </div>
+            </div>
+            <a href={settingsData?.bank_url} target="_blank" rel="noopener noreferrer">
+              <Button className="bg-orange-500 text-white hover:bg-orange-600 rounded-full px-8">
+                Apply Now
+              </Button>
+            </a>
+          </>
+        )}
+      </div>
+
 
         {/* Right Column - Break-up Chart */}
         <div>

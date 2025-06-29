@@ -1,4 +1,3 @@
-import { truncate } from "node:fs/promises";
 import { db } from "../db";
 import { Showroom, InsertShowroom } from "@shared/schema";
 
@@ -46,27 +45,46 @@ export const ShowroomStorage = {
         return result[0];
     },
 
-    async createShowroom(showroom: InsertShowroom): Promise<Showroom> {
-        const result = await db.query(
-            'INSERT INTO showrooms (user_id, name, name_ar, is_main_branch, parent_id, address, address_ar, location, timing, phone, logo, is_featured, is_garage, images) ' +
-            'VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING *',
-            [
-                showroom.userId,
-                showroom.name,
-                showroom.nameAr,
-                showroom.isMainBranch,
-                showroom.parentId,
-                showroom.address,
-                showroom.addressAr,
-                showroom.location,
-                showroom.timing,
-                showroom.phone,
-                showroom.logo,
-                showroom.isFeatured,
-                showroom.isGarage,
-                showroom.images,
-            ]
-        );
+    async createShowroom(showroom: Partial<InsertShowroom>): Promise<Showroom> {
+    // Prepare keys and values dynamically to allow partial inserts
+        const columns: string[] = [];
+        const values: any[] = [];
+        const placeholders: string[] = [];
+        const addedColumns = new Set<string>();
+
+        Object.entries(showroom).forEach(([key, value], index) => {
+            if (value !== undefined) {
+            const column =
+                key === "nameAr" ? "name_ar" :
+                key === "userId" ? "user_id" :
+                key === "isMainBranch" ? "is_main_branch" :
+                key === "parentId" ? "parent_id" :
+                key === "addressAr" ? "address_ar" :
+                key === "isFeatured" ? "is_featured" :
+                key === "isGarage" ? "is_garage" :
+                key === "tLicense" ? "t_license" :
+                key; // fallback
+
+                if (!addedColumns.has(column)) { // ✅ Skip if already added
+                columns.push(column);
+                values.push(value);
+                placeholders.push(`$${values.length}`);
+                addedColumns.add(column);
+            }
+            }
+        });
+
+        if (columns.length === 0) {
+            throw new Error("No fields provided to create showroom.");
+        }
+
+        const query = `
+            INSERT INTO showrooms (${columns.join(", ")})
+            VALUES (${placeholders.join(", ")})
+            RETURNING *
+        `;
+
+        const result = await db.query(query, values);
         return result[0];
     },
 
@@ -113,6 +131,11 @@ export const ShowroomStorage = {
         if (updates.location !== undefined) {
             fields.push(`location = $${paramIndex}`);
             values.push(updates.location);
+            paramIndex++;
+        }
+         if (updates.tLicense !== undefined) {
+            fields.push(`t_license = $${paramIndex}`);
+            values.push(updates.tLicense);
             paramIndex++;
         }
         if (updates.timing !== undefined) {

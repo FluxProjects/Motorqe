@@ -341,12 +341,12 @@ const timeSlots = useMemo(() => {
                 {bookings.map((booking: ServiceBooking) => (
                   <div
                     key={booking.id}
-                    className="flex flex-col md:flex-row justify-between pt-4 pb-4 bg-neutral-50 gap-4 border-b-2 border-orange-500/25"
+                    className="flex flex-col md:flex-row justify-center pt-4 pb-4 bg-neutral-50 gap-20 border-b-2 border-orange-500/25"
                   >
-                    <div className="flex items-center space-x-4">
+                    <div className="w-[150px]flex items-center space-x-4">
                       {booking.id}
                     </div>
-                    <div className="flex items-start justify-start space-x-4">
+                    <div className="w-[300px] flex items-start justify-items-start text-left space-x-4">
                       <Avatar className="h-12 w-12">
                         <AvatarFallback className="bg-gray-300 text-gray-700">
                           {getInitials(

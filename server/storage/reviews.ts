@@ -5,6 +5,7 @@ export interface IReviewsStorage {
 
   getAllReviews(): Promise<Review[]>;
   getReviewById(id: number): Promise<Review | null>;
+  getReviewsByShowroomId(showroomId: number): Promise<any[] | null>;
   createReview(data: InsertReview): Promise<Review>;
   updateReview(id: number, updates: Partial<InsertReview>): Promise<Review | null>;
   deleteReview(id: number): Promise<void>;
@@ -24,6 +25,23 @@ export const ReviewsStorage = {
     const result = await db.query(query, [id]);
     return result[0] || null;
   },
+
+  async getReviewsByShowroomId(showroomId: number): Promise<any[] | null> {
+  const query = `
+    SELECT 
+      r.*, 
+      u.first_name AS user_first_name, 
+      u.last_name AS user_last_name, 
+      u.avatar AS user_avatar
+    FROM reviews r
+    JOIN users u ON r.user_id = u.id
+    WHERE r.showroom_id = $1
+    ORDER BY r.created_at DESC;
+  `;
+
+  const result = await db.query(query, [showroomId]);
+  return result.length > 0 ? result : null;
+},
 
   // Create a review and update the showroom rating
   // storage/reviews.ts

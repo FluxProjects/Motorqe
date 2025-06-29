@@ -73,7 +73,7 @@ export const AvailabilityEditor: React.FC<AvailabilityEditorProps> = ({
           variant="outline"
           className="border-orange-500 text-orange-500"
           onClick={() =>
-            setBulkAvailability(["mon", "tue", "wed", "thu", "fri"], true)
+            setBulkAvailability(["mon", "tue", "wed", "thu", "sat", "sun"], true)
           }
         >
           Open Weekdays
@@ -82,7 +82,7 @@ export const AvailabilityEditor: React.FC<AvailabilityEditorProps> = ({
         <Button
           variant="outline"
           className="border-orange-500 text-orange-500"
-          onClick={() => setBulkAvailability(["sat", "sun"], true)}
+          onClick={() => setBulkAvailability(["fri"], true)}
         >
           Open Weekends
         </Button>

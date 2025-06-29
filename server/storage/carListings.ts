@@ -48,12 +48,13 @@ export const CarListingStorage = {
             condition?: string;
             location?: string;
 
-            is_featured?: boolean;
-            is_imported?: boolean;
+            is_featured?: string;
+            is_imported?: string;
 
             owner_type?: string;
             has_warranty?: string;
             has_insurance?: string;
+            is_inspected?: string;
 
             updated_from?: string;
             updated_to?: string;
@@ -62,6 +63,7 @@ export const CarListingStorage = {
             showroom_id?: string;
 
             status?: string;
+            is_active?: string;
 
             user_id?: number;
         } = {},
@@ -250,6 +252,12 @@ export const CarListingStorage = {
                             console.log(`Added imported filter: is_imported = ${value}`);
                             paramIndex++;
                             break;
+                        case 'is_inspected':
+                            whereClauses.push(`cl.is_inspected = $${paramIndex}`);
+                            values.push(value);
+                            console.log(`Added inspected filter: is_inspected = ${value}`);
+                            paramIndex++;
+                            break;
                         case 'owner_type':
                             whereClauses.push(`cl.owner_type = $${paramIndex}`);
                             values.push(value);
@@ -272,6 +280,12 @@ export const CarListingStorage = {
                             whereClauses.push(`cl.status = $${paramIndex}`);
                             values.push(value);
                             console.log(`Added Status filter: status = ${value}`);
+                            paramIndex++;
+                            break;
+                        case 'is_active':
+                            whereClauses.push(`cl.is_active = $${paramIndex}`);
+                            values.push(value);
+                            console.log(`Added is_active filter: is_active = ${value}`);
                             paramIndex++;
                             break;
                         case 'updated_from': {
@@ -437,13 +451,33 @@ export const CarListingStorage = {
     },
 
     async createCarListing(listing: InsertCarListing): Promise<CarListing> {
-        const fields = Object.keys(listing);
-        const values = Object.values(listing);
-        const placeholders = fields.map((_, i) => `$${i + 1}`).join(', ');
-        const query = `INSERT INTO car_listings (${fields.join(', ')}) VALUES (${placeholders}) RETURNING *`;
-        const result = await db.query(query, values);
-        return result[0];
-    },
+    const fields = Object.keys(listing);
+    const values = Object.values(listing);
+    const placeholders = fields.map((_, i) => `$${i + 1}`).join(', ');
+
+    // Begin transaction to keep inserts + update atomic
+    await db.query('BEGIN');
+
+    try {
+        const insertQuery = `INSERT INTO car_listings (${fields.join(', ')}) VALUES (${placeholders}) RETURNING *`;
+        const result = await db.query(insertQuery, values);
+        const createdListing = result[0];
+
+        if (createdListing.category_id) {
+            await db.query(
+                `UPDATE car_category SET count = COALESCE(count, 0) + 1 WHERE id = $1`,
+                [createdListing.category_id]
+            );
+        }
+
+        await db.query('COMMIT');
+
+        return createdListing;
+    } catch (error) {
+        await db.query('ROLLBACK');
+        throw error;
+    }
+},
 
     async updateCarListing(id: number, updates: Partial<InsertCarListing>): Promise<CarListing | undefined> {
         const fields = Object.keys(updates);
@@ -462,18 +496,38 @@ export const CarListingStorage = {
     },
 
     async deleteCarListing(id: number): Promise<void> {
-        try {
-            // Delete dependent rows first
-            await db.query('DELETE FROM car_listing_features WHERE listing_id = $1', [id]);
-            await db.query('DELETE FROM listing_promotions WHERE listing_id = $1', [id]);
+    await db.query('BEGIN');
 
-            // Then delete main listing
-            await db.query('DELETE FROM car_listings WHERE id = $1', [id]);
-        } catch (err) {
-            console.error('Failed to delete listing:', err);
-            throw new Error('Failed to delete listing and its dependencies');
+    try {
+        // Get category_id before deletion
+        const listing = await db.query(
+            'SELECT category_id FROM car_listings WHERE id = $1',
+            [id]
+        );
+        const categoryId = listing[0]?.category_id;
+
+        // Delete dependent rows first
+        await db.query('DELETE FROM car_listing_features WHERE listing_id = $1', [id]);
+        await db.query('DELETE FROM listing_promotions WHERE listing_id = $1', [id]);
+
+        // Then delete the main listing
+        await db.query('DELETE FROM car_listings WHERE id = $1', [id]);
+
+        // Decrement category count if applicable
+        if (categoryId) {
+            await db.query(
+                `UPDATE car_category SET count = GREATEST(COALESCE(count, 0) - 1, 0) WHERE id = $1`,
+                [categoryId]
+            );
         }
-    },
+
+        await db.query('COMMIT');
+    } catch (err) {
+        await db.query('ROLLBACK');
+        console.error('Failed to delete listing:', err);
+        throw new Error('Failed to delete listing and its dependencies');
+    }
+},
 
     async getListingsBySeller(sellerId: number): Promise<CarListing[]> {
         return await db.query('SELECT * FROM car_listings WHERE seller_id = $1 ORDER BY created_at DESC', [sellerId]);

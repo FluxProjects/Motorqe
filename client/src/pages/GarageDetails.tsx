@@ -26,6 +26,10 @@ import {
   MessageCircle,
   Navigation,
   Clock,
+  Bookmark,
+  BookmarkCheck,
+  Info,
+  Star,
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -57,6 +61,7 @@ import { formatAvailability, isOpenNow } from "@/lib/utils";
 import { CarImages } from "@/components/car/CarImages";
 import { CarListingDetail } from "@/components/car/CarListingDetail";
 import { SimilarShowrooms } from "@/components/car/SimilarShowrooms";
+import StarRating from "@/components/ui/star-rating";
 
 // Message form schema
 const messageSchema = z.object({
@@ -94,6 +99,9 @@ const GarageDetails = () => {
   const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
   const [selectedServiceIds, setSelectedServiceIds] = useState<number[]>([]);
   const [selectedServices, setSelectedServices] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<"about" | "reviews">("about");
+
+  
 
   const toggleService = (id: number) => {
     setSelectedServiceIds((prev) =>
@@ -141,6 +149,12 @@ const GarageDetails = () => {
     queryKey: [`/api/garages/${id}/makes`],
     enabled: !!id,
   });
+
+  const { data: showroomReviews = [], isLoading: isLoadingReviews } = useQuery<any[]>({
+  queryKey: [`/api/reviews/showroom/${id}`],
+  enabled: !!id,
+});
+
 
  
 
@@ -284,6 +298,37 @@ const GarageDetails = () => {
     window.open(`https://wa.me/${phone}?text=${encodedMessage}`);
   };
 
+  const [isBookmarked, setIsBookmarked] = useState<boolean>(false);
+
+useEffect(() => {
+  if (!showroom?.id) return; // wait until showroom is loaded
+
+  const bookmarks = JSON.parse(localStorage.getItem("bookmarkedGarages") || "[]");
+  setIsBookmarked(bookmarks.includes(showroom.id));
+}, [showroom?.id]);
+
+  const handleBookmark = () => {
+  const bookmarks = JSON.parse(localStorage.getItem("bookmarkedGarages") || "[]");
+  let updatedBookmarks;
+
+  if (isBookmarked) {
+    updatedBookmarks = bookmarks.filter((id: number) => id !== showroom.id);
+    toast({
+      title: t("common.removedBookmark"),
+      description: t("common.removedBookmarkDesc"),
+    });
+  } else {
+    updatedBookmarks = [...bookmarks, showroom.id];
+    toast({
+      title: t("common.addedBookmark"),
+      description: t("common.addedBookmarkDesc"),
+    });
+  }
+
+  localStorage.setItem("bookmarkedGarages", JSON.stringify(updatedBookmarks));
+  setIsBookmarked(!isBookmarked);
+};
+
   if (isLoadingShowroom) {
     return (
       <div className="min-h-screen bg-neutral-100 flex items-center justify-center">
@@ -336,43 +381,7 @@ const GarageDetails = () => {
               </Button>
             </Link>
 
-            {/* Action Buttons */}
-            <div className="flex items-center space-x-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="rounded-full text-blue-900 border-blue-500 hover:bg-blue-900 hover:text-white hover:border-blue-900"
-                onClick={() => {
-                  if (navigator.share) {
-                    navigator
-                      .share({
-                        title: showroom.name,
-                        url: window.location.href,
-                      })
-                      .catch((err) => console.error("Error sharing:", err));
-                  } else {
-                    navigator.clipboard.writeText(window.location.href);
-                    toast({
-                      title: t("common.linkCopied"),
-                      description: t("common.linkCopiedDesc"),
-                    });
-                  }
-                }}
-              >
-                <Share size={16} className="mr-1" />
-                {t("common.share")}
-              </Button>
-
-              <Button
-                variant="default"
-                size="sm"
-                className="rounded-full bg-red-500 hover:bg-black"
-                onClick={() => setReportDialogOpen(true)}
-              >
-                <Flag size={16} className="mr-1" />
-                {t("common.report")}
-              </Button>
-            </div>
+           
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -380,15 +389,141 @@ const GarageDetails = () => {
             {/* Images (3/4 width on md and above) */}
             <div className="md:col-span-3">
               <CarImages images={showroom.images ?? []} title={showroom.name} is_garage={true}  />
-              <CarListingDetail
-                is_garage={true}
-                vehicleDescription={
-                  showroom?.description ?? "No Description Available"
-                }
-                vehicleDescriptionAr={
-                  showroom?.descriptionAr ?? "لا يوجد وصف متاح"
-                }
-              />
+               {/* Action Buttons */}
+              <div className="flex items-center justify-center space-x-2 mb-4">
+                <Button
+                  size="sm"
+                  className="rounded-full bg-orange-500 text-white"
+                  onClick={() => {
+                    if (navigator.share) {
+                      navigator
+                        .share({
+                          title: showroom.name,
+                          url: window.location.href,
+                        })
+                        .catch((err) => console.error("Error sharing:", err));
+                    } else {
+                      navigator.clipboard.writeText(window.location.href);
+                      toast({
+                        title: t("common.linkCopied"),
+                        description: t("common.linkCopiedDesc"),
+                      });
+                    }
+                  }}
+                >
+                  <Share size={16} className="mr-1" />
+                  {t("common.share")}
+                </Button>
+
+                <Button
+                  size="sm"
+                  className="rounded-full bg-blue-600 text-white"
+                  onClick={handleBookmark}
+                >
+                  {isBookmarked ? (
+                    <BookmarkCheck size={16} className="mr-1" />
+                  ) : (
+                    <Bookmark size={16} className="mr-1" />
+                  )}
+                  {isBookmarked ? t("common.bookmarked") : t("common.bookmark")}
+                </Button>
+
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="rounded-full bg-red-500 hover:bg-black"
+                  onClick={() => setReportDialogOpen(true)}
+                >
+                  <Flag size={16} className="mr-1" />
+                  {t("common.report")}
+                </Button>
+              </div>
+              
+              <div className="w-full mx-auto">
+                {/* Tabs */}
+                <div className="flex space-x-2 mb-4">
+                  <button
+                    onClick={() => setActiveTab("about")}
+                    className={`flex items-center px-4 py-2 rounded-full transition-all bg-neutral-100
+                      ${activeTab === "about" ? "text-orange-500" : "text-black"}
+                    `}
+                  >
+                    <Info size={16} className="mr-2" />
+                    About
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("reviews")}
+                    className={`flex items-center px-4 py-2 rounded-full transition-all bg-neutral-100
+                      ${activeTab === "reviews" ? "text-orange-500" : "text-black"}
+                    `}
+                  >
+                    <Star size={16} className="mr-2" />
+                    Reviews
+                  </button>
+                </div>
+
+                {/* Tab Content */}
+                <div className="bg-white rounded-lg shadow p-4">
+                  {activeTab === "about" && (
+                    <CarListingDetail
+                      is_garage={true}
+                      vehicleDescription={showroom?.description ?? "No Description Available"}
+                      vehicleDescriptionAr={showroom?.descriptionAr ?? "لا يوجد وصف متاح"}
+                    />
+                  )}
+
+                  {activeTab === "reviews" && (
+                   <div className="space-y-4">
+                    {(!showroomReviews || showroomReviews.length === 0) ? (
+                      <p className="text-center text-gray-500 py-6">
+                        No reviews available for this garage yet.
+                      </p>
+                    ) : (
+                      showroomReviews.map((review) => (
+                        <div
+                          key={review.id}
+                          className="bg-white rounded-lg shadow-sm p-4 border border-gray-200"
+                        >
+                          {/* Example review content */}
+                          <div className="flex items-center space-x-2 mb-2">
+                            {review.user_avatar ? (
+                              <img
+                                src={review.user_avatar}
+                                alt="User Avatar"
+                                className="w-10 h-10 rounded-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center text-gray-600 font-bold">
+                                {review.user_first_name?.charAt(0)}
+                              </div>
+                            )}
+                            <div>
+                              <div className="font-semibold text-gray-900">
+                                {review.user_first_name} {review.user_last_name}
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                {new Date(review.created_at).toLocaleDateString()}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Stars */}
+                          <StarRating rating={review.rating} />
+
+                          {/* Comment */}
+                          {review.comment && (
+                            <p className="text-gray-800 mt-2 whitespace-pre-line">
+                              {review.comment}
+                            </p>
+                          )}
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  )}
+                </div>
+              </div>
 
               {/* Safety Features */}
               <div className="mb-4 bg-gray-50 rounded-lg p-4"></div>
@@ -397,7 +532,14 @@ const GarageDetails = () => {
               <div className="mb-4">
                 <div className="bg-gray-200 rounded-lg h-80 relative overflow-hidden">
                   <iframe
-                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d57912.294236227725!2d51.441241299999996!3d25.276987!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3e45c534ffdce87f%3A0x44d2e5e5d107b7a7!2sDoha%2C%20Qatar!5e0!3m2!1sen!2sus!4v1694789123456!5m2!1sen!2sus"
+                    src={
+                      showroom?.location && showroom.location.includes(",")
+                        ? (() => {
+                            const [lat, lng] = showroom.location.split(",").map(s => s.trim());
+                            return `https://www.google.com/maps?q=${lat},${lng}&hl=en&z=14&output=embed`;
+                          })()
+                        : "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d57912.294236227725!2d51.441241299999996!3d25.276987!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3e45c534ffdce87f%3A0x44d2e5e5d107b7a7!2sDoha%2C%20Qatar!5e0!3m2!1sen!2sus!4v1694789123456!5m2!1sen!2sus"
+                    }
                     width="100%"
                     height="100%"
                     style={{ border: 0 }}
@@ -407,18 +549,22 @@ const GarageDetails = () => {
                     className="rounded-lg"
                   ></iframe>
                 </div>
-              </div>
+                            </div>
+
             </div>
 
             {/* Car Summary (1/4 width on md and above) */}
             <div className="md:col-span-1">
 
               <div className="bg-white rounded-lg p-4 shadow-sm border top-24">
-                <h2 className="text-xl font-bold text-gray-900 mb-2">
+                <h2 className="text-xl font-bold text-gray-900 mb-2 uppercase">
                   {showroom.name}
                 </h2>
+                <div className="w-full h-0.5 bg-blue-900 mb-6" />
 
+                <h3 className="text-lg font-bold text-gray-900">Services:</h3>
                 <div className="w-full flex items-center justify-between mb-6">
+                  
                   <div className="w-full text-3xl text-blue-900">
                     {[
                       ...new Map(

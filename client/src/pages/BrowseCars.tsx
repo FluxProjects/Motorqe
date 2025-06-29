@@ -59,7 +59,8 @@ const BrowseCars = () => {
     search: searchParams?.get("search") || "",
     minPrice: "all",
     maxPrice: "all",
-    year: "all",
+    minYear: "all",
+    maxYear: "all",
 
     make: "all",
     model: "all",
@@ -82,6 +83,7 @@ const BrowseCars = () => {
     location: [],
 
     status: "active",
+    isActive: true,
     isFeatured: "all",
     isImported: "all",
 
@@ -99,6 +101,8 @@ const BrowseCars = () => {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     setSearchParams(params);
+
+    setFilters((prev) => ({ ...prev, status: "active" }));
 
     // Set initial filters from URL params
     // In your useEffect for handling initial params:
@@ -155,10 +159,6 @@ const BrowseCars = () => {
       }));
     }
 
-    if (params.has("fuel_type")) {
-      const fuelTypes = params.getAll("fuel_type");
-      setFilters((prev) => ({ ...prev, fuelType: fuelTypes }));
-    }
     if (params.has("fuelType")) {
       const fuelTypes = params.getAll("fuelType");
       setFilters((prev) => ({ ...prev, fuelType: fuelTypes }));
@@ -167,19 +167,14 @@ const BrowseCars = () => {
       const transmissions = params.getAll("transmission");
       setFilters((prev) => ({ ...prev, transmission: transmissions }));
     }
-    if (params.has("engine_capacity")) {
-      const engineCapacityVal = params.getAll("engine_capacity");
+    if (params.has("engineCapacity")) {
+      const engineCapacityVal = params.getAll("engineCapacity");
       setFilters((prev) => ({ ...prev, engineCapacity: engineCapacityVal }));
     }
     if (params.has("engineCapacity")) {
       const engineCapacitys = params.getAll("engineCapacity");
       setFilters((prev) => ({ ...prev, engineCapacity: engineCapacitys }));
     }
-    if (params.has("cylinder_count")) {
-      const cylinderCount = params.getAll("cylinder_count");
-      setFilters((prev) => ({ ...prev, cylinderCount: cylinderCount }));
-    }
-
     if (params.has("cylinderCount")) {
       const cylinderCount = params.getAll("cylinderCount");
       setFilters((prev) => ({ ...prev, cylinderCount: cylinderCount }));
@@ -188,10 +183,6 @@ const BrowseCars = () => {
     if (params.has("color")) {
       const colors = params.getAll("color");
       setFilters((prev) => ({ ...prev, color: colors }));
-    }
-    if (params.has("interior_color")) {
-      const interiorColor = params.getAll("interior_color");
-      setFilters((prev) => ({ ...prev, interiorColor: interiorColor }));
     }
     if (params.has("interiorColor")) {
       const interiorColor = params.getAll("interiorColor");
@@ -216,19 +207,11 @@ const BrowseCars = () => {
       setFilters((prev) => ({ ...prev, location: locations }));
     }
 
-    if (params.has("owner_type")) {
-      const ownerTypes = params.getAll("owner_type");
+    if (params.has("ownerType")) {
+      const ownerTypes = params.getAll("ownerType");
       setFilters((prev) => ({ ...prev, ownerType: ownerTypes }));
     }
-    if (params.has("is_featured")) {
-      const val = params.get("is_featured");
-      if (val === "true" || val === "false" || val === "all") {
-        setFilters((prev) => ({
-          ...prev,
-          isFeatured: val,
-        }));
-      }
-    }
+
     if (params.has("isFeatured")) {
       const val = params.get("isFeatured");
       if (val === "true" || val === "false" || val === "all") {
@@ -238,8 +221,9 @@ const BrowseCars = () => {
         }));
       }
     }
-    if (params.has("is_imported")) {
-      const val = params.get("is_imported");
+
+    if (params.has("isImported")) {
+      const val = params.get("isImported");
       if (val === "true" || val === "false" || val === "all") {
         setFilters((prev) => ({
           ...prev,
@@ -247,8 +231,27 @@ const BrowseCars = () => {
         }));
       }
     }
-    if (params.has("isImported")) {
-      const val = params.get("isImported");
+    if (params.has("isInspected")) {
+      const val = params.get("isInspected");
+      if (val === "true" || val === "false" || val === "all") {
+        setFilters((prev) => ({
+          ...prev,
+          isImported: val,
+        }));
+      }
+    }
+    if (params.has("hasWarranty")) {
+      const val = params.get("hasWarranty");
+      if (val === "true" || val === "false" || val === "all") {
+        setFilters((prev) => ({
+          ...prev,
+          isImported: val,
+        }));
+      }
+    }
+
+     if (params.has("hasInsurance")) {
+      const val = params.get("hasInsurance");
       if (val === "true" || val === "false" || val === "all") {
         setFilters((prev) => ({
           ...prev,
@@ -404,15 +407,25 @@ const BrowseCars = () => {
       }
 
       // Year Filter
-      if (
-        (filters?.year && car.year < filters?.year[0]) ||
-        (filters?.year && car.year > filters?.year[1])
-      ) {
+      const minYear =
+        filters?.minYear === "all" ? 0 : parseFloat(filters?.minYear || "1990");
+      const maxYear =
+        filters?.maxYear === "all"
+          ? Infinity
+          : parseFloat(filters?.maxYear || "2025");
+      const carYear = car.year;
+      if (isNaN(carYear)) {
+        console.warn("Invalid car year:", car.year, "for car ID:", car.id);
+        return false;
+      }
+
+      if (carYear < minYear || carYear > maxYear) {
         console.log(
-          `Filtered out by year: ${car.year} not in ${filters?.year[0]}-${filters?.year[1]}`
+          `Filtered out by price: ${carYear} not in ${minYear}-${maxYear}`
         );
         return false;
       }
+     
 
       // Make Filter
       if (filters?.make && filters?.make !== "all") {
@@ -496,7 +509,8 @@ const BrowseCars = () => {
       if (
         filters.engineCapacity &&
         filters.engineCapacity.length > 0 &&
-        !filters.engineCapacity.includes(car.engineCapacityId)
+        car?.engine_capacity_id &&
+        !filters.engineCapacity.includes(car.engine_Capacity_id)
       ) {
         return false;
       }
@@ -570,19 +584,36 @@ const BrowseCars = () => {
       }
 
       // Featured Filter
-      if (
-        filters.isFeatured !== "all" &&
-        car.is_featured !== (filters.isFeatured === "true")
-      ) {
-        return false;
+      if (filters?.isFeatured !== undefined && filters?.isFeatured !== "all") {
+        const filterValue = filters?.isFeatured === "true";
+        if (car.is_featured !== filterValue) {
+          console.log(
+            `Filtered out by isFeatured: car.is_featured=${car.is_featured}, filter=${filters?.isFeatured}`
+          );
+          return false;
+        }
       }
 
       // Imported Filter
-      if (
-        filters.isImported !== "all" &&
-        car.is_imported !== (filters.isImported === "true")
-      ) {
-        return false;
+      if (filters?.isImported !== undefined && filters?.isImported !== "all") {
+        const filterValue = filters?.isImported === "true";
+        if (car.is_imported !== filterValue) {
+          console.log(
+            `Filtered out by isImported: car.is_imported=${car.is_imported}, filter=${filters?.isImported}`
+          );
+          return false;
+        }
+      }
+
+      // Inspected Filter
+      if (filters?.isInspected !== undefined && filters?.isInspected !== "all") {
+        const filterValue = filters?.isInspected === "true";
+        if (car.is_inspected !== filterValue) {
+          console.log(
+            `Filtered out by isInspected: car.is_inspected=${car.is_inspected}, filter=${filters?.isInspected}`
+          );
+          return false;
+        }
       }
 
       // Owner Type Filter
@@ -600,34 +631,41 @@ const BrowseCars = () => {
       }
 
       // Has Warranty Filter
-      if (
-        typeof filters?.hasWarranty !== undefined &&
-        filters?.hasWarranty !== "all" &&
-        car?.has_warranty
-      ) {
+      if (filters?.hasWarranty !== undefined && filters?.hasWarranty !== "all") {
         const filterValue = filters?.hasWarranty === "true";
         if (car.has_warranty !== filterValue) {
           console.log(
-            `Filtered out by hasWarranty: car.hasWarranty=${car.has_warranty}, filter=${filters?.hasWarranty}`
+            `Filtered out by hasWarranty: car.has_warranty=${car.has_warranty}, filter=${filters?.hasWarranty}`
           );
           return false;
         }
       }
 
       // Has Insurance Filter
-      if (
-        typeof filters?.hasInsurance !== undefined &&
-        filters?.hasInsurance !== "all" &&
-        car?.has_insurance
-      ) {
+      if (filters?.hasInsurance !== undefined && filters?.hasInsurance !== "all") {
         const filterValue = filters?.hasInsurance === "true";
         if (car.has_insurance !== filterValue) {
           console.log(
-            `Filtered out by hasInsurance: car.hasInsurance=${car.has_insurance}, filter=${filters?.hasInsurance}`
+            `Filtered out by hasInsurance: car.has_insurance=${car.has_insurance}, filter=${filters?.hasInsurance}`
           );
           return false;
         }
       }
+
+      // Status Filter
+       if (
+        filters?.status &&
+        filters?.status.length > 0 &&
+        car.status
+      ) {
+        if (car.status !== filters?.status) {
+          console.log(
+            `Filtered out by condition: car.status=${car.status}, filter=${filters?.status}`
+          );
+          return false;
+        }
+      }
+
 
       return true;
     });
@@ -652,10 +690,11 @@ const BrowseCars = () => {
         params.append("minPrice", updatedFilters.minPrice);
       if (updatedFilters.maxPrice)
         params.append("maxPrice", updatedFilters.maxPrice);
-      if (updatedFilters.year) {
-        params.append("minYear", updatedFilters.year);
-        params.append("maxYear", updatedFilters.year);
-      }
+      if (updatedFilters.minYear)
+        params.append("minYear", updatedFilters.minYear);
+      if (updatedFilters.maxYear)
+        params.append("maxYear", updatedFilters.maxYear);
+      
 
       if (updatedFilters.make) params.append("make", updatedFilters.make);
       if (updatedFilters.model) params.append("model", updatedFilters.model);
@@ -690,13 +729,14 @@ const BrowseCars = () => {
         updatedFilters.interiorColor.length > 0
       ) {
         updatedFilters.interiorColor.forEach((type) => {
-          params.append("interior_Color", type);
+          params.append("interiorColor", type);
         });
       }
       if (updatedFilters.tinted) params.append("tinted", updatedFilters.tinted);
 
       if (updatedFilters.condition)
         params.append("condition", updatedFilters.condition);
+
       if (updatedFilters.location) {
         updatedFilters.location.forEach((type: string) => {
           params.append("location", type);
@@ -705,13 +745,20 @@ const BrowseCars = () => {
 
       if (updatedFilters.ownerType && updatedFilters.ownerType.length > 0) {
         updatedFilters.ownerType.forEach((type) => {
-          params.append("owner_type", type);
+          params.append("ownerType", type);
         });
       }
       if (updatedFilters.isFeatured)
-        params.append("is_featured", updatedFilters.isFeatured);
+        params.append("isFeatured", updatedFilters.isFeatured);
+
       if (updatedFilters.isImported)
         params.append("isImported", updatedFilters.isImported);
+      if (updatedFilters.isInspected)
+        params.append("isInspected", updatedFilters.isInspected);
+      if (updatedFilters.hasWarranty)
+        params.append("hasWarranty", updatedFilters.hasWarranty);
+      if (updatedFilters.hasInsurance)
+        params.append("hasInsurance", updatedFilters.hasInsurance);
 
       // Sort
       if (updatedFilters.sort) params.append("sort", updatedFilters.sort);
@@ -731,7 +778,8 @@ const BrowseCars = () => {
     setFilters({
       minPrice: "all",
       maxPrice: "all",
-      year: "all",
+      minYear: "all",
+      maxYear: "all",
 
       make: "all",
       model: "all",
@@ -756,6 +804,7 @@ const BrowseCars = () => {
       status: "active",
       isFeatured: "all",
       isImported: "all",
+      isInspected: "all",
 
       ownerType: [],
       hasWarranty: "all",
@@ -912,9 +961,9 @@ const BrowseCars = () => {
                   </Label>
                   <div className="mt-2">
                     <Select
-                      value={filters.year?.toString() ?? ""}
+                      value={filters.minYear?.toString() ?? ""}
                       onValueChange={(value) =>
-                        updateFilters({ year: parseInt(value) })
+                        updateFilters({ minYear: value, maxYear: value })
                       }
                     >
                       <SelectTrigger className="w-full">
@@ -967,6 +1016,8 @@ const BrowseCars = () => {
                       { value: "first", label: t("car.first") },
                       { value: "second", label: t("car.second") },
                       { value: "third", label: t("car.third") },
+                      { value: "fourth", label: t("car.fourth") },
+                      { value: "fifth", label: t("car.fifth") },
                     ]}
                     selected={filters.ownerType}
                     onChange={(value) => updateFilters({ ownerType: value })}
@@ -1390,9 +1441,9 @@ const BrowseCars = () => {
                   {t("car.imported")}
                 </Label>
                 <Select
-                  value={filters.is_imported ?? "all"}
+                  value={filters.isImported ?? "all"}
                   onValueChange={(value) =>
-                    updateFilters({ is_imported: value })
+                    updateFilters({ isImported: value })
                   }
                 >
                   <SelectTrigger>

@@ -16,6 +16,9 @@ export const registerFormSchema = z
       .string()
       .email()
       .transform((val) => val.toLowerCase()),
+    businessName: z.string().optional(),
+    tLicense: z.string().optional(),
+    phone: z.string().regex(/^\+?[0-9\s\-]{7,15}$/, "Invalid phone number").min(3),
     password: z
       .string()
       .min(6)

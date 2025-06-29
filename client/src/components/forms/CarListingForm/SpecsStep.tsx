@@ -18,6 +18,7 @@ import {
 } from "@shared/schema";
 import { StepProps } from "@shared/schema";
 import { ArrowLeft, ArrowRight } from "lucide-react";
+import ImageUpload from "@/components/ui/image-upload";
 
 export function SpecsStep({ data, updateData, nextStep, prevStep }: StepProps) {
   const [formData, setFormData] = useState({
@@ -40,6 +41,8 @@ export function SpecsStep({ data, updateData, nextStep, prevStep }: StepProps) {
     condition: data?.specifications?.condition || "used",
 
     isImported: data?.specifications?.isImported || "",
+    isInspected: data?.specifications?.isInspected || "",
+    inspectionReport: data?.specifications?.inspectionReport || "",
 
     ownerType: data?.specifications?.ownerType || "",
   });
@@ -99,6 +102,14 @@ export function SpecsStep({ data, updateData, nextStep, prevStep }: StepProps) {
     "Gold",
     "Brown",
   ];
+
+  const handleInspectionReportUpload = (url: string) => {
+  setFormData((prev) => ({
+    ...prev,
+    inspectionReport: url,
+  }));
+};
+
 
   return (
     <form
@@ -388,6 +399,44 @@ export function SpecsStep({ data, updateData, nextStep, prevStep }: StepProps) {
           </label>
         </div>
       </div>
+
+      {/* Is Inspected */}
+      <div>
+        <Label>Is Inspected</Label>
+        <div className="flex items-center gap-4 mt-2">
+          <label className="flex items-center gap-1">
+            <input
+              type="radio"
+              name="isInspected"
+              value="true"
+              checked={formData.isInspected === "true"}
+              onChange={(e) => handleChange("isInspected", e.target.value)}
+            />
+            Yes
+          </label>
+          <label className="flex items-center gap-1">
+            <input
+              type="radio"
+              name="isInspected"
+              value="false"
+              checked={formData.isInspected === "false"}
+              onChange={(e) => handleChange("isInspected", e.target.value)}
+            />
+            No
+          </label>
+        </div>
+      </div>
+
+      {/* Inspection Report Upload */}
+      {formData.isInspected === "true" && (
+        <div className="mt-4">
+          <Label>Inspection Report</Label>
+          <ImageUpload
+            currentImage={formData.inspectionReport}
+            onUploadComplete={handleInspectionReportUpload}
+          />
+        </div>
+      )}
 
       {/* Owner Type */}
       <div>

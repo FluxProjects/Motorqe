@@ -9,6 +9,8 @@ import { InsertBannerAd, InsertBlogPost, InsertHeroSlider, InsertPromotionPackag
 import { Role, roleIdMapping } from "@shared/permissions";
 import multer from "multer";
 import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
+import { extractFiltersFromQuery } from "./services/carFilter";
+
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize database with dummy data
@@ -606,9 +608,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/garages/:id/makes", async (req, res) => {
     const garageId = Number(req.params.id);
-    if (isNaN(garageId)) {
-      return res.status(400).json({ message: "Invalid garage ID" });
-    }
     console.log(`Fetching makes for garage ID: ${garageId}`);
 
     try {
@@ -646,7 +645,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Ensure user is authenticated
       const showroomData: InsertShowroom = {
         ...req.body,
-        userId: req.body.userId // Get user ID from authenticated session
+        user_id: req.body.userId // Get user ID from authenticated session
       };
 
       const newShowroom = await storage.createShowroom(showroomData);
@@ -876,268 +875,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+const filterKeys = [
+  "user_id",
+  "price_from",
+  "price_to",
+  "year_from",
+  "year_to",
+  "make_id",
+  "model_id",
+  "category_id",
+  "miles_from",
+  "miles_to",
+  "fuel_type",
+  "transmission",
+  "car_engine_capacities",
+  "cylinder_count",
+  "condition",
+  "location",
+  "color",
+  "interior_color",
+  "tinted",
+  "status",
+  "is_featured",
+  "is_imported",
+  "is_inspected",
+  "owner_type",
+  "has_warranty",
+  "has_insurance",
+  "is_business",
+  "updated_from",
+  "updated_to",
+  "is_active",
+];
 
   // Car Listings
-  app.get("/api/car-listings", async (req, res) => {
-    console.log("Received request to /api/car-listings with query:", req.query);
-    try {
-      const filters: any = {};
-      console.log("Initial filters object:", filters);
+ app.get("/api/car-listings", async (req, res) => {
+  console.log("Received request to /api/car-listings with query:", req.query);
+  try {
+    const filters = extractFiltersFromQuery(req.query);
 
-      // User Id
-      if (req.query.user_id) {
-        console.log("Processing userid filter with value:", req.query.user_id);
-        filters.user_id = req.query.user_id;
-        console.log("Added user filter:", filters.user_id);
-      } else {
-        console.log("No userid filter");
-      }
+    console.log("Extracted filters:", filters);
 
-      // Price Range
-      if (req.query.price_from && req.query.price_to) {
-        console.log("Processing price range filter with values:", req.query.price_from, "to", req.query.price_to);
-        filters.price_from = req.query.price_from;
-        filters.price_to = req.query.price_to;
-        console.log("Added price range filter:", filters.price_from, "to", filters.price_to);
-      } else {
-        console.log("No price range filter or incomplete range");
-      }
+    const listings = await storage.getAllCarListings(filters);
+    console.log("Retrieved listings count:", listings.length);
 
-      // Year Range
-      if (req.query.year_from && req.query.year_to) {
-        console.log("Processing year range filter with values:", req.query.year_from, "to", req.query.year_to);
-        const year_from = req.query.year_from;
-        const year_to = req.query.year_to;
+    res.json(listings);
+  } catch (error) {
+    console.error("Failed to fetch listings:", error);
+    res.status(500).json({ message: "Failed to fetch listings", error });
+  }
+});
 
-        const parsedYearFrom = Number(year_from);
-        const parsedYearTo = Number(year_to);
-
-        if (
-          (year_from && isNaN(parsedYearFrom)) ||
-          (year_to && isNaN(parsedYearTo))
-        ) {
-          console.log("Invalid year filter - not a number");
-          return res.status(400).json({ message: 'Invalid year filter' });
-        }
-
-        filters.year_from = parsedYearFrom;
-        filters.year_to = parsedYearTo;
-        console.log("Added year range filter:", filters.year_from, "to", filters.year_to);
-      } else {
-        console.log("No year range filter or incomplete range");
-      }
-
-      // Make
-      if (req.query.make && req.query.make !== "all") {
-        console.log("Processing make filter with value:", req.query.make);
-        const makeId = parseInt(req.query.make as string, 10);
-        if (!isNaN(makeId)) {
-          filters.make_id = makeId;
-          console.log("Added make_id filter:", makeId);
-        } else {
-          console.log("Invalid make_id - not a number");
-        }
-      } else {
-        console.log("No make filter or 'all' selected");
-      }
-
-      // Model
-      if (req.query.model && req.query.model !== "all") {
-        console.log("Processing model filter with value:", req.query.model);
-        const modelId = parseInt(req.query.model as string, 10);
-        if (!isNaN(modelId)) {
-          filters.model_id = modelId;
-          console.log("Added model_id filter:", modelId);
-        } else {
-          console.log("Invalid model_id - not a number");
-        }
-      } else {
-        console.log("No model filter or 'all' selected");
-      }
-
-      // Category
-      if (req.query.category && req.query.category !== "all") {
-        console.log("Processing category filter with value:", req.query.category);
-        const catId = parseInt(req.query.category as string, 10);
-        if (!isNaN(catId)) {
-          filters.category_id = catId;
-          console.log("Added category_id filter:", catId);
-        } else {
-          console.log("Invalid category_id - not a number");
-        }
-      } else {
-        console.log("No category filter or 'all' selected");
-      }
-
-      // Miles Range
-      if (req.query.miles_from && req.query.miles_to) {
-        console.log("Processing miles range filter with values:", req.query.miles_from, "to", req.query.miles_to);
-        filters.miles_from = req.query.miles_from;
-        filters.miles_to = req.query.miles_to;
-        console.log("Added miles range filter:", filters.miles_from, "to", filters.miles_to);
-      } else {
-        console.log("No miles range filter or incomplete range");
-      }
-
-      // Fuel Type
-      if (req.query.fuel_type && req.query.fuel_type !== "all") {
-        console.log("Processing fuel type filter with value:", req.query.fuel_type);
-        filters.fuel_type = req.query.fuel_type;
-      } else {
-        console.log("No fuel_type filter or 'all' selected");
-      }
-
-      // Transmission
-      if (req.query.transmission && req.query.transmission !== "all") {
-        console.log("Processing transmission filter with value:", req.query.transmission);
-        filters.transmission = req.query.transmission;
-        console.log("Added transmission filter:", req.query.transmission);
-      } else {
-        console.log("No transmission filter or 'all' selected");
-      }
-
-      // Car Engine Capacity
-      if (req.query.engine_capacity && req.query.engine_capacity !== "all") {
-        console.log("Processing car_engine_capacities filter with value:", req.query.car_engine_capacities);
-        filters.car_engine_capacities = req.query.engine_capacity;
-      } else {
-        console.log("No car_engine_capacities filter or 'all' selected");
-      }
-
-      // Cylinder Count
-      if (req.query.cylinder_count && req.query.cylinder_count !== "all") {
-        console.log("Processing cylinder_count filter with value:", req.query.cylinder_count);
-        filters.cylinder_count = req.query.cylinder_count;
-      } else {
-        console.log("No cylinder_count filter or 'all' selected");
-      }
-
-      // Condition
-      if (req.query.condition && req.query.condition !== "all") {
-        console.log("Processing date condition with values:", req.query.condition);
-        filters.condition = req.query.condition;
-        console.log("Added date range filter:", filters.condition, "to", filters.condition);
-      } else {
-        console.log("No date condition or incomplete range");
-      }
-
-      // Location
-      if (req.query.location && req.query.location !== "all") {
-        console.log("Processing date location with values:", req.query.location);
-        filters.location = req.query.location;
-        console.log("Added date range filter:", filters.location, "to", filters.location);
-      } else {
-        console.log("No date location or incomplete range");
-      }
-
-      // Color
-      if (req.query.color && req.query.color !== "all") {
-        console.log("Processing color filter with value:", req.query.color);
-        filters.color = req.query.color;
-      } else {
-        console.log("No color filter or 'all' selected");
-      }
-
-      // Interior Color
-      if (req.query.interior_color && req.query.interior_color !== "all") {
-        console.log("Processing interior_color filter with value:", req.query.interior_color);
-        filters.interior_color = req.query.interior_color;
-      } else {
-        console.log("No interior_color filter or 'all' selected");
-      }
-
-      // Tinted
-      if (req.query.tinted && req.query.tinted !== "all") {
-        console.log("Processing tinted filter with value:", req.query.tinted);
-        filters.tinted = req.query.tinted;
-      } else {
-        console.log("No tinted filter or 'all' selected");
-      }
-
-      // Status
-      if (req.query.status && req.query.status !== "all") {
-        console.log("Processing status filter with value:", req.query.status);
-        filters.status = req.query.status;
-        console.log("Added status filter:", req.query.status);
-      } else {
-        console.log("No status filter or 'all' selected");
-      }
-
-      // isFeatured
-      if (req.query.is_featured) {
-        console.log("Processing is_featured filter with value:", req.query.is_featured);
-        filters.is_featured = req.query.is_featured === "true";
-        console.log("Added is_featured filter:", filters.is_featured);
-      } else {
-        console.log("No is_featured filter");
-      }
-
-      // isImported
-      if (req.query.is_imported) {
-        console.log("Processing is_imported filter with value:", req.query.is_imported);
-        filters.is_imported = req.query.is_imported === "true";
-        console.log("Added is_imported filter:", filters.is_imported);
-      } else {
-        console.log("No is_imported filter");
-      }
-
-      // Owner Type
-      if (req.query.owner_type && req.query.owner_type !== "all") {
-        console.log("Processing owner_type filter with value:", req.query.owner_type);
-        filters.owner_type = req.query.owner_type;
-      } else {
-        console.log("No owner_type filter or 'all' selected");
-      }
-
-      // Has Warranty
-      if (req.query.has_warranty) {
-        console.log("Processing has_warranty filter with value:", req.query.has_warranty);
-        filters.has_warranty = req.query.has_warranty === "true";
-        console.log("Added has_warranty filter:", filters.has_warranty);
-      } else {
-        console.log("No has_warranty filter");
-      }
-
-      // Has Insurance
-      if (req.query.has_insurance) {
-        console.log("Processing has_insurance filter with value:", req.query.has_insurance);
-        filters.has_insurance = req.query.has_insurance === "true";
-        console.log("Added has_insurance filter:", filters.has_insurance);
-      } else {
-        console.log("No has_insurance filter");
-      }
-
-      // IS Business
-      if (req.query.has_insurance) {
-        console.log("Processing is_business filter with value:", req.query.is_business);
-        filters.is_business = req.query.is_business === "true";
-        console.log("Added is_business filter:", filters.is_business);
-      } else {
-        console.log("No is_business filter");
-      }
-
-      // Date Range
-      if (req.query.updated_from && req.query.updated_to) {
-        console.log("Processing date range filter with values:", req.query.updated_from, "to", req.query.updated_to);
-        filters.updated_from = req.query.updated_from;
-        filters.updated_to = req.query.updated_to;
-        console.log("Added date range filter:", filters.updated_from, "to", filters.updated_to);
-      } else {
-        console.log("No date range filter or incomplete range");
-      }
-
-      console.log("Final filters object before querying storage:", filters);
-      const listings = await storage.getAllCarListings(filters);
-      console.log("Retrieved listings from storage (count):", listings.length);
-      console.log("Retrieved listings from storage:", listings);
-      res.json(listings);
-
-      // Normalize image URLs (example assumes `image` and `thumbnail`)
-    } catch (error) {
-      console.error("Failed to fetch listings:", error);
-      res.status(500).json({ message: "Failed to fetch listings", error });
-    }
-  });
 
 
   app.get("/api/car-featured", async (req, res) => {
@@ -2171,6 +1959,16 @@ app.post("/api/showroom-makes", async (req, res) => {
           console.log("Added customer_id filter:", customerId);
         } else {
           console.log("Invalid customer_id");
+        }
+      }
+
+      if (req.query.user_id) {
+        const userId = parseInt(req.query.user_id as string, 10);
+        if (!isNaN(userId)) {
+          filters.user_id = userId;
+          console.log("Added user_id filter:", userId);
+        } else {
+          console.log("Invalid user_id");
         }
       }
 
@@ -3730,6 +3528,22 @@ app.get("/api/reviews/:id", async (req, res) => {
     res.status(500).json({ message: "Failed to fetch review", error });
   }
 });
+
+app.get("/api/reviews/showroom/:id", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const reviews = await storage.getReviewsByShowroomId(id);
+
+    if (reviews) {
+      res.json(reviews);
+    } else {
+      res.status(404).json({ message: "Reviews not found for this showroom" });
+    }
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch reviews", error });
+  }
+});
+
 
 app.post("/api/reviews", async (req, res) => {
   try {

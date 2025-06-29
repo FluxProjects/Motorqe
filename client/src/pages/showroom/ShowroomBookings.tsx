@@ -75,15 +75,26 @@ export default function CustomerServiceBookings() {
 
 
   // Memoized transformation of bookings data
-  const bookings = useMemo(() => {
-    console.log("bookingsData", bookingsData);
+ const bookings = useMemo(() => {
+  console.log("bookingsData", bookingsData);
+
+  const now = new Date();
+
   const filtered = bookingsData?.filter((booking: ServiceBooking) => {
+    const scheduledAt = new Date(booking.scheduled_at);
+
     if (activeTab === "upcoming") {
-      return booking.status === "pending" || booking.status === "confirmed";
+      const isFuture = scheduledAt >= now;
+      const isPendingOrConfirmed =
+        booking.status === "pending" || booking.status === "confirmed";
+      return isFuture && isPendingOrConfirmed;
     } else {
-      return booking.status === "complete";
+      const isCompletedStatus =
+        booking.status === "complete" || booking.status === "confirmed";
+      const isInPast = scheduledAt < now;
+      return isCompletedStatus || isInPast;
     }
-  });
+  }) ?? [];
 
   return filtered.sort((a, b) =>
     sortBy === "new bookings"
@@ -99,7 +110,7 @@ export default function CustomerServiceBookings() {
     const fetchGarageAvailability = async () => {
       console.log("🔍 Inside fetchGarageAvailability");
   
-      const booking = bookings.find((b) => b.id === rescheduleBookingId);
+      const booking = bookings.find((b: ServiceBooking) => b.id === rescheduleBookingId);
       console.log("📦 Matched booking:", booking);
   
       if (!booking?.showroom_id) {
@@ -300,12 +311,12 @@ export default function CustomerServiceBookings() {
                 {bookings.map((booking: ServiceBooking) => (
                   <div
                     key={booking.id}
-                    className="flex flex-col md:flex-row justify-between pt-4 pb-4 bg-neutral-50 gap-4 border-b-2 border-orange-500/25"
+                    className="flex flex-col md:flex-row justify-between pt-4 pb-4 bg-neutral-50 gap-20 border-b-2 border-orange-500/25"
                   >
-                    <div className="flex items-center space-x-4">
+                    <div className="w-[150px] flex items-center space-x-4">
                       {booking.id}
                     </div>
-                    <div className="flex items-start justify-start space-x-4">
+                    <div className="w-[300px] flex items-left justify-start space-x-4">
                       <Avatar className="h-12 w-12">
                         <AvatarFallback className="bg-gray-300 text-gray-700">
                           {getInitials(booking?.showroom?.name || "G")}
@@ -366,7 +377,7 @@ export default function CustomerServiceBookings() {
                               <DropdownMenuItem
                                 onClick={() => {
                                   setRescheduleBookingId(booking.id);
-                                  setAvailability(booking.showroom.timing);
+                                  setAvailability(booking?.showroom?.timing);
                                 }}
                               >
                                 <CalendarIcon className="h-4 w-4 mr-2 text-blue-500" />

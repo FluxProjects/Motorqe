@@ -21,10 +21,13 @@ const registerFormSchema = z
     firstName: z.string().optional(),
     lastName: z.string().optional(),
     username: z.string().min(3),
+    businessName: z.string().optional(),
+    tLicense: z.string().optional(),
     email: z
       .string()
       .email()
       .transform((val) => val.toLowerCase()),
+    phone: z.string().regex(/^\+?[0-9\s\-]{7,15}$/, "Invalid phone number").min(3),
     password: z
       .string()
       .min(6)
@@ -59,12 +62,14 @@ export const RegisterForm = ({
       await onSubmit(values);
     } catch (err: any) {
       // In case you still want to catch at the child level:
-      form.setError("root", {
+      form.setError("rootServerError", {
         type: "server",
         message: err?.response?.data?.message ?? "Registration failed",
       });
     }
   };
+
+  const role = form.watch("role");
 
   return (
     <Form {...form}>
@@ -103,7 +108,7 @@ export const RegisterForm = ({
               <div className="flex items-center space-x-2">
                 <input
                   type="radio"
-                  id="GARAGE"
+                  id="garage"
                   {...field}
                   checked={field.value === "GARAGE"}
                   onChange={() => field.onChange("GARAGE")}
@@ -177,6 +182,51 @@ export const RegisterForm = ({
           )}
         />
 
+        {(role === "DEALER" || role === "GARAGE") && (
+          <FormField
+            control={form?.control}
+            name="businessName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t("auth.businessName")}</FormLabel>
+                <FormControl>
+                  <Input
+                    className="placeholder-gray-400"
+                    placeholder="My Business"
+                    type="text"
+                    {...field}
+                    disabled={isSubmitting}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+
+        {(role === "DEALER" || role === "GARAGE") && (
+          <FormField
+            control={form?.control}
+            name="tLicense"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t("auth.tlicence")}</FormLabel>
+                <FormControl>
+                  <Input
+                    className="placeholder-gray-400"
+                    placeholder="QA-78564"
+                    type="text"
+                    {...field}
+                    disabled={isSubmitting}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+         )}
+         
+
         <FormField
           control={form?.control}
           name="email"
@@ -185,8 +235,30 @@ export const RegisterForm = ({
               <FormLabel>{t("auth.email")}</FormLabel>
               <FormControl>
                 <Input
+                  autoComplete="email"
                   type="email"
                   placeholder="your@email.com"
+                  {...field}
+                  disabled={isSubmitting}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form?.control}
+          name="phone"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{t("auth.phone")}</FormLabel>
+              <FormControl>
+                <Input
+                  className="placeholder-gray-400"
+                  placeholder="7123 4357"
+                  type="tel"
+                  pattern="^\+?[0-9\s\-]{7,15}$"
                   {...field}
                   disabled={isSubmitting}
                 />
@@ -203,7 +275,7 @@ export const RegisterForm = ({
             <FormItem>
               <FormLabel>{t("auth.password")}</FormLabel>
               <FormControl>
-                <Input type="password" {...field} disabled={isSubmitting} />
+                <Input autoComplete="password" type="password" {...field} disabled={isSubmitting} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -252,9 +324,9 @@ export const RegisterForm = ({
           )}
         />
 
-        {form?.formState?.errors.root && (
+        {form?.formState?.errors.rootServerError && (
           <p className="text-red-500 text-sm">
-            {form?.formState?.errors.root.message}
+            {form?.formState?.errors.rootServerError.message}
           </p>
         )}
 

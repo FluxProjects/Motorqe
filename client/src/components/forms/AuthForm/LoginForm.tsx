@@ -40,9 +40,9 @@ export const LoginForm = ({
       await onSubmit(values);
     } catch (err: any) {
       // In case you still want to catch at the child level:
-      form.setError("root", {
+      form.setError("rootServerError", {
         type: "server",
-        message: err?.response?.data?.message ?? "Login failed",
+        message: err?.response?.data?.message ?? "Registration failed",
       });
     }
   };
@@ -126,6 +126,12 @@ export const LoginForm = ({
             </FormItem>
           )}
         />
+
+        {form?.formState?.errors.rootServerError && (
+          <p className="text-red-500 text-sm">
+            {form?.formState?.errors.rootServerError.message}
+          </p>
+        )}
 
         {/* Submit Button */}
         <div className="pt-10 flex justify-left">

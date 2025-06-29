@@ -43,10 +43,13 @@ export const useCarListingManage = () => {
         category: "all",
         location: [],
         year: [1900, new Date().getFullYear()],
-        fuel_type: [],
+        fuelType: [],
         transmission: [],
-        isFeatured: false,
-        isImported: false,
+        isFeatured: "all",
+        isImported: "all",
+        isInspected: "all",
+        hasWarranty: "all",
+        hasInsurance:"all",
         status: "all",
         sort: "newest",
         page: 1, // Typically starts at page 1
@@ -122,7 +125,7 @@ export const useCarListingManage = () => {
             }
 
             // For buyers, only fetch approved listings
-            if (roleName === "BUYER") {
+            if (roleName === "BUYER" || roleName === undefined) {
                 searchParams.append("status", "active");
             }
 
@@ -136,11 +139,20 @@ export const useCarListingManage = () => {
             if (filters.make && filters.make !== "all") {
                 searchParams.append("make", filters.make);
             }
-            if (filters.isFeatured === true) {
-                searchParams.append("isFeatured", "true");
+            if (filters.isFeatured && filters.isFeatured !== "all") {
+                searchParams.append("isFeatured", filters.isFeatured);
             }
-            if (filters.isImported === true) {
-                searchParams.append("isImported", "true");
+            if (filters.isImported && filters.isImported !== "all") {
+                searchParams.append("isImported", filters.isImported);
+            }
+            if (filters.isInspected && filters.isInspected !== "all") {
+                searchParams.append("isInspected", filters.isInspected);
+            }
+            if (filters.hasWarranty && filters.hasWarranty !== "all") {
+                searchParams.append("hasWarranty", filters.hasWarranty);
+            }
+            if (filters.hasInsurance && filters.hasInsurance !== "all") {
+                searchParams.append("hasInsurance", filters.hasInsurance);
             }
 
             // ✅ Date range
@@ -525,10 +537,13 @@ export const useCarListingManage = () => {
             category: "all",
             location: [],
             year: [1990, new Date().getFullYear()],
-            fuel_type: [],
+            fuelType: [],
             transmission: [],
-            isFeatured: false,
-            isImported: true,
+            isFeatured: "all",
+            isImported: "all",
+            isInspected: "all",
+            hasWarranty:"all",
+            hasInsurance:"all",
             status: "all",
             sort: "newest",
             page: 1, // Typically starts at page 1

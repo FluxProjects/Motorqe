@@ -25,7 +25,13 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Search, MapPin, Car, ChevronDown, ChevronUp } from "lucide-react";
-import { CarCategory, CarEngineCapacity, CarMake, CarModel, CarService } from "@shared/schema";
+import {
+  CarCategory,
+  CarEngineCapacity,
+  CarMake,
+  CarModel,
+  CarService,
+} from "@shared/schema";
 import { fetchModelsByMake } from "@/lib/utils";
 import { MultiSelect } from "@/components/ui/multiselect";
 
@@ -134,16 +140,14 @@ const tintedOptions = [
   { value: "false", label: "No" },
 ];
 
-
-
 const CarSearchForm = ({ is_garage }: CarSearchFormProps) => {
   const { t } = useTranslation();
   const language = i18n.language;
   const direction = language === "ar" ? "rtl" : "ltr";
   const [, navigate] = useLocation();
-   const [activeTab, setActiveTab] = useState<"all" | "new" | "scrap" | "garage">(
-    is_garage ? "garage" : "all"
-  );
+  const [activeTab, setActiveTab] = useState<
+    "all" | "new" | "scrap" | "garage"
+  >(is_garage ? "garage" : "all");
   const [showAdvanced, setShowAdvanced] = useState(false);
   const { reset } = useForm();
 
@@ -202,78 +206,76 @@ const CarSearchForm = ({ is_garage }: CarSearchFormProps) => {
   const totalCount =
     categories?.reduce((sum, category) => sum + (category.count || 0), 0) || 0;
 
- // Handle search form submission
-const onSubmit = (values: SearchFormValues) => {
-  const params = new URLSearchParams();
+  // Handle search form submission
+  const onSubmit = (values: SearchFormValues) => {
+    const params = new URLSearchParams();
 
-  Object.entries(values).forEach(([key, value]) => {
-    if (
-      value === undefined ||
-      value === null ||
-      value === "" ||
-      value === "all" ||
-      (Array.isArray(value) && value.length === 0)
-    ) {
-      return; // skip empty or default 'all' values
-    }
+    Object.entries(values).forEach(([key, value]) => {
+      if (
+        value === undefined ||
+        value === null ||
+        value === "" ||
+        value === "all" ||
+        (Array.isArray(value) && value.length === 0)
+      ) {
+        return; // skip empty or default 'all' values
+      }
 
-    // Arrays: append multiple entries with same key
-    if (Array.isArray(value)) {
-      value.forEach((v) => {
-        if (v !== "" && v !== "all") {
-          params.append(key, v.toString());
-        }
-      });
-    }
-    // Boolean values (like hasWarranty, hasInsurance)
-    else if (typeof value === "boolean") {
-      params.append(key, value ? "true" : "false");
-    }
-    // Sometimes boolean might come as string "true" or "false"
-    else if (value === "true" || value === "false") {
-      params.append(key, value);
-    } else {
-      params.append(key, value.toString());
-    }
-  });
+      // Arrays: append multiple entries with same key
+      if (Array.isArray(value)) {
+        value.forEach((v) => {
+          if (v !== "" && v !== "all") {
+            params.append(key, v.toString());
+          }
+        });
+      }
+      // Boolean values (like hasWarranty, hasInsurance)
+      else if (typeof value === "boolean") {
+        params.append(key, value ? "true" : "false");
+      }
+      // Sometimes boolean might come as string "true" or "false"
+      else if (value === "true" || value === "false") {
+        params.append(key, value);
+      } else {
+        params.append(key, value.toString());
+      }
+    });
 
-  // Determine the base URL based on active tab
-  const baseUrl = activeTab === "garage" ? "/browse-garages" : "/browse";
-  const queryString = params.toString();
-  const url = `${baseUrl}${queryString ? `?${queryString}` : ""}`;
-  navigate(url);
-};
+    // Determine the base URL based on active tab
+    const baseUrl = activeTab === "garage" ? "/browse-garages" : "/browse";
+    const queryString = params.toString();
+    const url = `${baseUrl}${queryString ? `?${queryString}` : ""}`;
+    navigate(url);
+  };
   // Determine which default fields to show based on active tab
   const showDefaultField = (fieldName: keyof SearchFormValues) => {
-  if (activeTab === "all") {
-    // Show these fields by default for "all" tab
-    // Hide year only if advanced search is open
-    const defaultFields = ["make", "model", "condition"];
-    if (!showAdvanced) {
-      defaultFields.push("minYear");
+    if (activeTab === "all") {
+      // Show these fields by default for "all" tab
+      // Hide year only if advanced search is open
+      const defaultFields = ["make", "model", "condition"];
+      if (!showAdvanced) {
+        defaultFields.push("minYear");
+      }
+      return defaultFields.includes(fieldName);
     }
-    return defaultFields.includes(fieldName);
-  }
-  if (activeTab === "new") {
-    return ["make", "model", "minPrice", "maxPrice", "owner_type"].includes(fieldName);
-  }
-  if (activeTab === "scrap") {
-    return ["make", "model", "minYear"].includes(fieldName);
-  }
-  if (activeTab === "garage") {
-    return ["make", "model", "minYear", "service"].includes(fieldName);
-  }
-  return false;
-};
+    if (activeTab === "new") {
+      return ["make", "model", "minPrice", "maxPrice", "owner_type"].includes(
+        fieldName
+      );
+    }
+    if (activeTab === "scrap") {
+      return ["make", "model", "minYear"].includes(fieldName);
+    }
+    if (activeTab === "garage") {
+      return ["make", "model", "minYear", "service"].includes(fieldName);
+    }
+    return false;
+  };
 
   // Determine which fields to show based on active tab
   const showField = (fieldName: keyof SearchFormValues) => {
     if (activeTab === "all") {
-    return ![
-        "condition",
-        "keyword",
-        "category",
-      ].includes(fieldName);
+      return !["condition", "keyword", "category"].includes(fieldName);
     }
     if (activeTab === "new") {
       // Hide fields not relevant for new cars
@@ -346,75 +348,70 @@ const onSubmit = (values: SearchFormValues) => {
   };
 
   const makeOptions = [
-  { value: "all", label: t("common.all") },
-  ...makes?.map((make: CarMake) => ({
-    value: String(make.id),
-    label: make.name,
-  })) ?? [],
-];
+    { value: "all", label: t("common.all") },
+    ...(makes?.map((make: CarMake) => ({
+      value: String(make.id),
+      label: make.name,
+    })) ?? []),
+  ];
 
-const modelOptions = models?.map((model: CarModel) => ({
-  value: String(model.id),
-  label: model.name,
-})) ?? [];
+  const modelOptions =
+    models?.map((model: CarModel) => ({
+      value: String(model.id),
+      label: model.name,
+    })) ?? [];
 
   return (
     <Card className="border-2 border-solid rounded-2xl border-neutral-700">
       <CardContent className="p-6">
         {/* Tabs for status */}
         <div className="flex flex-wrap justify-center mb-8 gap-3">
-        {(is_garage ? ["garage"] : ["all", "new", "scrap", "garage"]).map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab as "all" | "new" | "scrap" | "garage")}
-            className={`px-5 py-2 text-sm font-medium transition-all ${
-              activeTab === tab
-                ? "text-orange-500 border-b-4 border-b-orange-500 hover:font-bold"
-                : "text-blue-900"
-            }`}
-          >
-            {t(`common.${tab}cars`)}
-          </button>
-        ))}
-      </div>
-
+          {(is_garage ? ["garage"] : ["all", "new", "scrap", "garage"]).map(
+            (tab) => (
+              <button
+                key={tab}
+                onClick={() =>
+                  setActiveTab(tab as "all" | "new" | "scrap" | "garage")
+                }
+                className={`px-5 py-2 text-sm font-medium transition-all ${
+                  activeTab === tab
+                    ? "text-orange-500 border-b-4 border-b-orange-500 hover:font-bold"
+                    : "text-blue-900"
+                }`}
+              >
+                {t(`common.${tab}cars`)}
+              </button>
+            )
+          )}
+        </div>
 
         <Form {...form}>
-          
-          <form
-            onSubmit={form.handleSubmit(onSubmit)}
-            className="space-y-4"
-          >
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             {/* Default Fields Section */}
             <div className="w-full flex flex-wrap justify-center gap-4">
               {/* Make */}
               {showDefaultField("make") && (
                 <div className="flex-[1_0_calc(20%-16px)] min-w-[200px] max-w-[calc(20%-16px)]">
-                <FormField
-                  control={form.control}
-                  name="make"
-                  render={({ field }) => (
-                    <FormItem className="w-full">
-                      <FormLabel>{t("car.make")}</FormLabel>
-                       <MultiSelect
-                            options={makeOptions}
-                            selected={
-                              field.value
-                                ? [String(field.value)]
-                                : []
-                            }
-                            onChange={(val: string[]) => {
-                              field.onChange(val.length > 0 ? val[0] : ""); // For single-select
-                            }}
-                            placeholder={t("car.selectMake")}
-                          />
+                  <FormField
+                    control={form.control}
+                    name="make"
+                    render={({ field }) => (
+                      <FormItem className="w-full">
+                        <FormLabel>{t("car.make")}</FormLabel>
+                        <MultiSelect
+                          options={makeOptions}
+                          selected={field.value ? [String(field.value)] : []}
+                          onChange={(val: string[]) => {
+                            field.onChange(val.length > 0 ? val[0] : ""); // For single-select
+                          }}
+                          placeholder={t("car.selectMake")}
+                        />
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                 </div>
-                )}
-
+              )}
 
               {/* Model */}
               {showDefaultField("model") && (
@@ -425,14 +422,14 @@ const modelOptions = models?.map((model: CarModel) => ({
                     render={({ field }) => (
                       <FormItem className="w-full">
                         <FormLabel>{t("car.model")}</FormLabel>
-                         <MultiSelect
-                            options={modelOptions}
-                            selected={field.value ? [String(field.value)] : []}
-                            onChange={(val: string[]) => {
-                              field.onChange(val.length > 0 ? val[0] : ""); // Single select
-                            }}
-                            placeholder={t("car.selectModel")}
-                          />
+                        <MultiSelect
+                          options={modelOptions}
+                          selected={field.value ? [String(field.value)] : []}
+                          onChange={(val: string[]) => {
+                            field.onChange(val.length > 0 ? val[0] : ""); // Single select
+                          }}
+                          placeholder={t("car.selectModel")}
+                        />
                         <FormMessage />
                       </FormItem>
                     )}
@@ -449,14 +446,21 @@ const modelOptions = models?.map((model: CarModel) => ({
                     render={({ field }) => (
                       <FormItem className="w-full">
                         <FormLabel>{t("car.category")}</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                        >
                           <FormControl>
                             <SelectTrigger className="w-full">
-                              <SelectValue placeholder={t("car.selectCategory")} />
+                              <SelectValue
+                                placeholder={t("car.selectCategory")}
+                              />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="all">{t("common.all")}</SelectItem>
+                            <SelectItem value="all">
+                              {t("common.all")}
+                            </SelectItem>
                             {categories?.map((category) => (
                               <SelectItem key={category.id} value={category.id}>
                                 {category.name} ({category.count})
@@ -480,16 +484,26 @@ const modelOptions = models?.map((model: CarModel) => ({
                     render={({ field }) => (
                       <FormItem className="w-full">
                         <FormLabel>{t("car.condition")}</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                        >
                           <FormControl>
                             <SelectTrigger className="w-full">
-                              <SelectValue placeholder={t("car.selectCondition")} />
+                              <SelectValue
+                                placeholder={t("car.selectCondition")}
+                              />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="all">{t("common.all")}</SelectItem>
+                            <SelectItem value="all">
+                              {t("common.all")}
+                            </SelectItem>
                             {conditionOptions.map((option) => (
-                              <SelectItem key={option.value} value={option.value}>
+                              <SelectItem
+                                key={option.value}
+                                value={option.value}
+                              >
                                 {option.label}
                               </SelectItem>
                             ))}
@@ -629,7 +643,7 @@ const modelOptions = models?.map((model: CarModel) => ({
                 </div>
               )}
 
-               {/* Car Service */}
+              {/* Car Service */}
               {showDefaultField("service") && (
                 <div className="flex-[1_0_calc(20%-16px)] min-w-[200px] max-w-[calc(20%-16px)]">
                   <FormField
@@ -662,12 +676,11 @@ const modelOptions = models?.map((model: CarModel) => ({
                   />
                 </div>
               )}
-
             </div>
 
             {/* Advanced Filters Section */}
             {showAdvanced && (
-               <div className="w-full flex flex-wrap justify-center gap-4">
+              <div className="w-full flex flex-wrap justify-center gap-4">
                 {/* Year Range */}
                 {showField("minYear") && (
                   <>
@@ -1235,37 +1248,38 @@ const modelOptions = models?.map((model: CarModel) => ({
 
             {/* Search and Clear Buttons in a New Row */}
             <div className="col-span-4 flex flex-col md:flex-row justify-center items-center gap-4 mt-4">
-             <Button
-              type="submit"
-              className="bg-orange-500 rounded-full w-full md:w-auto"
-            >
-              {t("common.search")}
-              {activeTab !== "garage" && ` ${totalCount} Cars`}
-              {activeTab === "garage" && " Services"}
-            </Button>
-
+              <Button
+                type="submit"
+                className="bg-orange-500 rounded-full w-full md:w-auto"
+              >
+                {t("common.search")}
+                {activeTab !== "garage" && ` ${totalCount} Cars`}
+                {activeTab === "garage" && " Services"}
+              </Button>
             </div>
 
-            {/* Advanced Search Toggle */}
             <div className="col-span-4 flex justify-center mt-2">
-              <Button
-                variant="link"
-                type="button"
-                onClick={() => setShowAdvanced(!showAdvanced)}
-                className="text-blue-900 flex items-center gap-1"
-              >
-                {showAdvanced ? (
-                  <>
-                    <ChevronUp className="h-4 w-4" />
-                    {t("common.hideAdvanced")}
-                  </>
-                ) : (
-                  <>
-                    <ChevronDown className="h-4 w-4" />
-                    {t("common.showAdvanced")}
-                  </>
-                )}
-              </Button>
+              {/* Advanced Search Toggle */}
+              {activeTab !== "garage" && (
+                <Button
+                  variant="link"
+                  type="button"
+                  onClick={() => setShowAdvanced(!showAdvanced)}
+                  className="text-blue-900 flex items-center gap-1"
+                >
+                  {showAdvanced ? (
+                    <>
+                      <ChevronUp className="h-4 w-4" />
+                      {t("common.hideAdvanced")}
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="h-4 w-4" />
+                      {t("common.showAdvanced")}
+                    </>
+                  )}
+                </Button>
+              )}
 
               <Button
                 type="button"

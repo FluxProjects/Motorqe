@@ -44,6 +44,7 @@ import Login from "./pages/Login";
 import Review from "./pages/Review";
 import Feedback from "./pages/Feedback";
 import ConfirmFeedback from "./pages/ConfirmFeedback";
+import ServiceBookingConfirmation from "./pages/ServiceBookingConfirmation";
 
 // 👤 Buyer Pages
 import BuyerDashboard from "./pages/buyer/BuyerDashboard";
@@ -165,6 +166,7 @@ function functionStaticPage({ keyParam }: { keyParam: string }) {
           <Route path="/review" component={Review} />
           <Route path="/confirmfeedback" component={ConfirmFeedback} />
           <Route path="/feedback" component={Feedback} />
+          <Route path="/confirmedbooking" component={ServiceBookingConfirmation} />
 
           {/* ---------- Sell Car & Service--------------- */}
           <Route path="/sell-car">

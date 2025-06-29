@@ -69,7 +69,9 @@ export const useListingFormHandler = (onSuccess?: () => void) => {
 
         owner_type:  formData.specifications?.ownerType,
         featureIds: formData.features?.map((id: string) => Number(id)) ?? [],
-        is_imported: formData.specifications?.isImported,        
+        is_imported: formData.specifications?.isImported,
+        is_inspected: formData.specifications?.isInspected,
+        inspection_report: formData.specifications?.inspectionReport,
         
         user_id: user?.id,
         package_id: formData.package?.packageId

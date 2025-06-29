@@ -53,13 +53,13 @@ export default function GarageNavigation() {
             );
           })}
 
-          <Button
-            variant="ghost"
+          <Link
+            href="/"
             className="ml-auto whitespace-nowrap px-3 py-2 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50"
             onClick={handleLogout}
           >
             {t("auth.logout")}
-          </Button>
+          </Link>
         </nav>
       </div>
     </div>

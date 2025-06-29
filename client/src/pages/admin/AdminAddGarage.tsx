@@ -90,6 +90,7 @@ const [selectedMakeIds, setSelectedMakeIds] = useState<string[]>([]);
       location: "",
       phone: "",
       timing: "",
+      tLicense: "",
       isMainBranch: false,
       logo: "",
       images: [],
@@ -445,6 +446,26 @@ const [selectedMakeIds, setSelectedMakeIds] = useState<string[]>([]);
                     )}
                   />
                 </div>
+
+                 {/* Location & Phone */}
+                <div className="grid grid-cols-1 gap-4">
+                  <FormField
+                    control={form.control as Control<Showroom>}
+                    name="tLicense"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Trade License</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <Input {...field} value={field.value ?? ""} disabled/>
+                            <MapPinIcon className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+              </div>
 
                 {/* Location & Phone */}
                 <div className="grid grid-cols-1 gap-4">

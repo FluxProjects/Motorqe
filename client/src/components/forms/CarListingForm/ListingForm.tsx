@@ -65,6 +65,8 @@ export function ListingForm({ listing, onSuccess }: Props) {
           ownerType: listing.owner_type,
           condition: listing.condition,
           isImported: listing.is_imported?.toString(),
+          isInspected: listing.is_inspected?.toString(),
+          inspectionReport: listing.inspection_report || undefined,
         },
         media: listing.images?.map((img) => {
           try {

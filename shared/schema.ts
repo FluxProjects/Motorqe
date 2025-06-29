@@ -155,6 +155,7 @@ export const showrooms = pgTable("showrooms", {
   isGarage: boolean('is_garage').default(false),
   isMobileService: boolean('is_mobile_service').default(false),
   rating: integer('rating'),
+  tLicense: text("t_license"),
 });
 
 export const insertShowroomSchema = createInsertSchema(showrooms).pick({
@@ -176,6 +177,7 @@ export const insertShowroomSchema = createInsertSchema(showrooms).pick({
   isGarage: true,
   isMobileService: true,
   rating: true,
+  tLicense: true,
 });
 
 export type InsertShowroom = z.infer<typeof insertShowroomSchema>;
@@ -358,7 +360,9 @@ export const carListings = pgTable("car_listings", {
 
   // Media and status
   images: text("images").array(),
+  image360: text("image360"),
   status: text("status").default("draft").notNull().$type<"draft" | "pending" | "active" | "sold" | "expired" | "rejected">(),
+  isActive: boolean("is_active").default(true),
   isFeatured: boolean("is_featured").default(false),
   isImported: boolean("is_imported").default(false),
 
@@ -369,6 +373,8 @@ export const carListings = pgTable("car_listings", {
   hasInsurance: boolean("has_insurance").default(false),
   insuranceType: text("insurance_type").$type<"comprehensive" | "third-party" | "none">(),
   insuranceExpiry: timestamp("insurance_expiry"),
+  isInspected: boolean("is_inspected").default(false),
+  inspectionReport: text("inspection_report"),
 
   isBusiness: boolean("is_business").default(false),
   showroomId: integer("showroom_id"),
@@ -416,7 +422,9 @@ export const insertCarListingSchema = createInsertSchema(carListings).pick({
 
   // Media and status
   images: true,
+  image360: true,
   status: true,
+  isActive: true,
   isFeatured: true,
   isImported: true,
 
@@ -427,6 +435,8 @@ export const insertCarListingSchema = createInsertSchema(carListings).pick({
   hasInsurance: true,
   insuranceType: true,
   insuranceExpiry: true,
+  isInspected:true,
+  inspectionReport: true,
 
   isBusiness: true,
   showroomId: true,
@@ -1298,6 +1308,8 @@ export type ListingFormData = {
 
     ownerType?: string;
     isImported?: string;
+    isInspected?: string;
+    inspectionReport?: string | undefined;
   };
   features?: string[];
   media?: File[] | string[]; // Files before upload or URLs after upload
@@ -1336,7 +1348,7 @@ export interface AdminCarListingFilters {
   category: string;
   // Vehicle specs
   milesRange?: { from: string; to: string };
-  fuel_type?: string[];
+  fuelType?: string[];
   transmission?: string[];
   engineCapacity?: string[];
   cylinderCount?: string;
@@ -1349,13 +1361,15 @@ export interface AdminCarListingFilters {
   location?: string[];
   // Status 
   status: string;
-  isFeatured?: boolean | null;
-  isImported?: boolean | null;
+  isActive?: string;
+  isFeatured?: string;
+  isImported?: string;
+  isInspected?: string;
   // Ownership and insurance
   user_id?: number;
   ownerType?: string;
-  hasWarranty?: boolean | null;
-  hasInsurance?: boolean | null;
+  hasWarranty?: string;
+  hasInsurance?: string;
   // Promotion
   hasPromotion?: boolean;
   packageType?: string;
@@ -1374,7 +1388,8 @@ export interface CarListingFilters {
   // Price and year
   minPrice?: string;
   maxPrice?: string;
-  year?: string;
+  minYear?: string;
+  maxYear?: string;
   // Vehicle make/model/category
   make: string;
   model: string;
@@ -1394,12 +1409,14 @@ export interface CarListingFilters {
   location?: string[];
   // Status 
   status: string;
+  isActive?: boolean;
   isImported?: string;
   isFeatured?: string;
+  isInspected?: string;
   // Ownership and insurance
   ownerType?: string[];
-  hasWarranty?: boolean | string;
-  hasInsurance?: boolean | string;
+  hasWarranty?: string;
+  hasInsurance?: string;
   isBusiness?: boolean | string;
   // Sorting and Pagination
   sort: string;
@@ -1439,14 +1456,15 @@ export interface AdminCarListing {
   images?: string[];
 
   status: 'draft' | 'active' | 'pending' | 'reject' | 'sold';
-  is_active?: boolean;
-  is_featured?: boolean;
-  is_imported?: boolean;
+  is_active?: string;
+  is_featured?: string;
+  is_imported?: string;
+  is_inspected?: string;
   
   owner_type?: 'first' | 'second' |'third' | 'fourth' | 'fifth';
-  has_warranty?: boolean;
+  has_warranty?: string;
   warranty_expirty?: string;
-  has_insurance?: boolean;
+  has_insurance?: string;
   insurance_type?: 'comprehensive' | 'third-party' | 'none';
   insurance_expirty?: string;
   is_business?: string;

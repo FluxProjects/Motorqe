@@ -2,7 +2,15 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { fetchModelsByMake } from "@/lib/utils";
-import { ArrowUp, BarChart3, Edit, Trash, Plus, Check, RotateCcw } from "lucide-react";
+import {
+  ArrowUp,
+  BarChart3,
+  Edit,
+  Trash,
+  Plus,
+  Check,
+  RotateCcw,
+} from "lucide-react";
 import type { AdminCarListing } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -10,8 +18,8 @@ import { ListingForm } from "../forms/CarListingForm/ListingForm";
 import { roleMapping, hasPermission, Permission } from "@shared/permissions";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
-import { Dialog, DialogContent } from "@/components/ui/dialog"; 
-
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { navigate } from "wouter/use-browser-location";
 
 interface CarEditCardProps {
   car: AdminCarListing;
@@ -39,7 +47,9 @@ export default function CarEditCard({ car }: CarEditCardProps) {
     enabled: !!selectedMake?.name,
   });
 
-  const selectedModel = modelsData.find((model: any) => model.id === car.model_id);
+  const selectedModel = modelsData.find(
+    (model: any) => model.id === car.model_id
+  );
 
   const makeName = selectedMake?.name || "Unknown Make";
   const modelName = selectedModel?.name || "Unknown Model";
@@ -53,7 +63,8 @@ export default function CarEditCard({ car }: CarEditCardProps) {
     return diffDays >= 0 ? diffDays : 0;
   })();
 
-  const getBorderClass = () => (car.is_featured ? "border-2 border-orange-500" : "");
+  const getBorderClass = () =>
+    car.is_featured ? "border-2 border-orange-500" : "";
 
   const performAction = useMutation({
     mutationFn: async ({
@@ -84,7 +95,9 @@ export default function CarEditCard({ car }: CarEditCardProps) {
 
       if (action === "publish") {
         if (
-          ["SUPER_ADMIN", "ADMIN", "MODERATOR", "SENIOR_MODERATOR"].includes(roleName)
+          ["SUPER_ADMIN", "ADMIN", "MODERATOR", "SENIOR_MODERATOR"].includes(
+            roleName
+          )
         ) {
           await apiRequest("PUT", `/api/car-listings/${id}/actions`, {
             action: "active",
@@ -98,7 +111,9 @@ export default function CarEditCard({ car }: CarEditCardProps) {
 
       if (["approve", "reject"].includes(action)) {
         if (
-          ["SUPER_ADMIN", "ADMIN", "MODERATOR", "SENIOR_MODERATOR"].includes(roleName)
+          ["SUPER_ADMIN", "ADMIN", "MODERATOR", "SENIOR_MODERATOR"].includes(
+            roleName
+          )
         ) {
           await apiRequest("PUT", `/api/car-listings/${id}/actions`, {
             action,
@@ -125,7 +140,8 @@ export default function CarEditCard({ car }: CarEditCardProps) {
       if (action === "sold") {
         if (
           ["SUPER_ADMIN", "ADMIN"].includes(roleName) ||
-          (roleName === "SELLER" && hasPermission(roleName, Permission.MANAGE_OWN_LISTINGS)) ||
+          (roleName === "SELLER" &&
+            hasPermission(roleName, Permission.MANAGE_OWN_LISTINGS)) ||
           (roleName?.startsWith("DEALER") &&
             hasPermission(roleName, Permission.MANAGE_SHOWROOM_LISTINGS))
         ) {
@@ -142,7 +158,8 @@ export default function CarEditCard({ car }: CarEditCardProps) {
       if (action === "delete") {
         if (
           ["SUPER_ADMIN", "ADMIN"].includes(roleName) ||
-          (roleName === "SELLER" && hasPermission(roleName, Permission.MANAGE_OWN_LISTINGS)) ||
+          (roleName === "SELLER" &&
+            hasPermission(roleName, Permission.MANAGE_OWN_LISTINGS)) ||
           (roleName?.startsWith("DEALER") &&
             hasPermission(roleName, Permission.MANAGE_SHOWROOM_LISTINGS))
         ) {
@@ -174,7 +191,8 @@ export default function CarEditCard({ car }: CarEditCardProps) {
     onError: (error) => {
       toast({
         title: t("common.error"),
-        description: error instanceof Error ? error.message : t("admin.actionFailed"),
+        description:
+          error instanceof Error ? error.message : t("admin.actionFailed"),
         variant: "destructive",
       });
     },
@@ -205,138 +223,151 @@ export default function CarEditCard({ car }: CarEditCardProps) {
   };
 
   return (
-    <>
-      <div className={`bg-white rounded-lg shadow-md overflow-hidden ${getBorderClass()}`}>
-        <div className="relative">
-          <img
-            src={car.images?.[0] || "/placeholder-car.png"}
-            alt={`${makeName} ${modelName}`}
-            className="w-full h-48 object-cover"
-          />
-          {car.is_featured && (
-            <div className="absolute top-2 right-2 bg-blue-600 text-white px-2 py-1 rounded text-xs font-medium">
-              FEATURED
-            </div>
+   <>
+  <div className={`bg-white rounded-lg shadow-md overflow-hidden ${getBorderClass()}`}>
+    <div className="relative">
+      <img
+        src={car.images?.[0] || "/placeholder-car.png"}
+        alt={`${makeName} ${modelName}`}
+        className="w-full h-48 object-cover"
+      />
+      {car.is_featured && (
+        <div className="absolute top-2 right-2 bg-blue-600 text-white px-2 py-1 rounded text-xs font-medium">
+          FEATURED
+        </div>
+      )}
+      {car.status === "sold" && (
+        <div className="absolute inset-0 flex items-center justify-center z-10">
+          <div className="text-red-500 text-xl font-extrabold border-red-500 border-2 px-6 py-2 shadow-lg transform rotate-[-10deg] opacity-90">
+            SOLD
+          </div>
+        </div>
+      )}
+    </div>
+    <div className="p-4">
+      <h3 className="font-bold text-lg mb-1">
+        {makeName} {modelName}
+      </h3>
+      <p className="text-gray-600 text-sm mb-4">{car?.package_name}</p>
+
+      <div className="flex gap-2 mb-2">
+        <button
+          className="flex-1 bg-blue-900 text-white py-3 px-2 rounded-xl text-xs hover:opacity-90 flex flex-col items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+          onClick={() => setEditOpen(true)}
+          disabled={car.status === "sold" || car.status === "pending"}
+        >
+          <ArrowUp className="h-5 w-5 mb-1" />
+          <span>Upgrade Plan</span>
+        </button>
+
+        <button
+          className="flex-1 bg-blue-900 text-white py-3 px-2 rounded-xl text-xs hover:opacity-90 flex flex-col items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+          onClick={() => navigate("/showroom-dashboard")}
+          disabled={car.status === "pending"}
+        >
+          <BarChart3 className="h-5 w-5 mb-1" />
+          <span>Stats</span>
+        </button>
+
+        <button
+          className="flex-1 bg-blue-900 text-white py-3 px-2 rounded-xl text-xs hover:opacity-90 flex flex-col items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+          onClick={() => handleAction(car.is_featured ? "feature" : "Edit")}
+          disabled={car.status === "sold" || car.status === "pending"}
+        >
+          {car.is_featured ? (
+            <>
+              <RotateCcw className="h-5 w-5 mb-1" />
+              <span>Refresh</span>
+            </>
+          ) : (
+            <>
+              <Edit className="h-5 w-5 mb-1" />
+              <span>Edit</span>
+            </>
           )}
-          {car.status === "sold" && (
-                <div className="absolute inset-0 flex items-center justify-center z-10">
-                  <div className="text-red-500 text-xl font-extrabold border-red-500 border-2 px-6 py-2 shadow-lg transform rotate-[-10deg] opacity-90">
-                    SOLD
-                  </div>
-                </div>
-              )}
-        </div>
-        <div className="p-4">
-          <h3 className="font-bold text-lg mb-1">
-            {makeName} {modelName}
-          </h3>
-          <p className="text-gray-600 text-sm mb-4">{car?.package_name}</p>
-
-          <div className="flex gap-2 mb-2">
-  <button
-    className="flex-1 bg-blue-900 text-white py-3 px-2 rounded-xl text-xs hover:opacity-90 flex flex-col items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-    onClick={() => setEditOpen(true)}
-    disabled={car.status === "sold"}
-  >
-    <ArrowUp className="h-5 w-5 mb-1" />
-    <span>Upgrade Plan</span>
-  </button>
-
-  <button
-    className="flex-1 bg-blue-900 text-white py-3 px-2 rounded-xl text-xs hover:opacity-90 flex flex-col items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-    onClick={() => toast({ title: "Stats", description: "Stats view coming soon." })}
-  >
-    <BarChart3 className="h-5 w-5 mb-1" />
-    <span>Stats</span>
-  </button>
-
-  <button
-    className="flex-1 bg-blue-900 text-white py-3 px-2 rounded-xl text-xs hover:opacity-90 flex flex-col items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-    onClick={() => handleAction(car.is_featured ? "feature" : "Edit")}
-    disabled={car.status === "sold"}
-  >
-    {car.is_featured ? (
-      <>
-        <RotateCcw className="h-5 w-5 mb-1" />
-        <span>Refresh</span>
-      </>
-    ) : (
-      <>
-        <Edit className="h-5 w-5 mb-1" />
-        <span>Edit</span>
-      </>
-    )}
-  </button>
-</div>
-
-<div className="flex gap-2 mb-4">
-  <button
-    className="flex-1 bg-blue-900 text-white py-3 px-2 rounded-xl text-xs hover:opacity-90 flex flex-col items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-    onClick={() => setEditOpen(true)}
-    disabled={car.status === "sold"}
-  >
-    <Edit className="h-5 w-5 mb-1" />
-    <span>Edit</span>
-  </button>
-
-  <button
-    className="flex-1 bg-red-500 text-white py-3 px-2 rounded-xl text-xs hover:bg-red-600 flex flex-col items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-    onClick={() => handleAction("delete")}
-    disabled={actionInProgress}
-  >
-    <Trash className="h-5 w-5 mb-1" />
-    <span>Delete</span>
-  </button>
-
-  <button
-  className="flex-1 bg-green-600 text-white py-3 px-2 rounded-xl text-xs hover:bg-green-700 flex flex-col items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-  onClick={() => handleAction("feature")}
-  disabled={actionInProgress || car.status === "sold" || car.status === "reject" || car.is_featured}
->
-  <ArrowUp className="h-5 w-5 mb-1" />
-  <span>Feature Ad</span>
-</button>
-
-</div>
-
-            <div className="flex gap-2 mb-4">
-            <button
-  className="w-full bg-orange-500 text-white text-center py-3 px-2 rounded-xl text-xs hover:bg-orange-600 flex flex-col items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-  onClick={() => handleAction("sold")}
-  disabled={actionInProgress || car.status === "sold"}
->
-  <Check className="h-5 w-5 mb-1" />
-  <span>Sold</span>
-</button>
-
-
-          </div>
-
-          <div className="text-xs text-gray-500">
-            Promotion Start: {car.start_date ? format(new Date(car.start_date), "dd/MM/yyyy") : "N/A"} &nbsp; | &nbsp;
-            Expires: {car.end_date ? format(new Date(car.end_date), "dd/MM/yyyy") : "N/A"}
-            {car.is_featured && featuredDaysRemaining !== null && (
-              <>
-                <br />
-                Featured Ad Days Remaining: <strong>{featuredDaysRemaining} Days</strong>
-              </>
-            )}
-          </div>
-        </div>
+        </button>
       </div>
 
-     <Dialog open={editOpen} onOpenChange={setEditOpen}>
-  <DialogContent className="max-w-3xl p-0 overflow-hidden">
-    <ListingForm
-      listing={car}
-      onSuccess={() => {
-        setEditOpen(false);
-        toast({ title: "Success", description: "Listing updated successfully." });
-      }}
-    />
-  </DialogContent>
-</Dialog>
+      <div className="flex gap-2 mb-4">
+        <button
+          className="flex-1 bg-blue-900 text-white py-3 px-2 rounded-xl text-xs hover:opacity-90 flex flex-col items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+          onClick={() => setEditOpen(true)}
+          disabled={car.status === "sold" || car.status === "pending"}
+        >
+          <Edit className="h-5 w-5 mb-1" />
+          <span>Edit</span>
+        </button>
 
-    </>
+        <button
+          className="flex-1 bg-red-500 text-white py-3 px-2 rounded-xl text-xs hover:bg-red-600 flex flex-col items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+          onClick={() => handleAction("delete")}
+          disabled={actionInProgress}
+        >
+          <Trash className="h-5 w-5 mb-1" />
+          <span>Delete</span>
+        </button>
+
+        <button
+          className="flex-1 bg-green-600 text-white py-3 px-2 rounded-xl text-xs hover:bg-green-700 flex flex-col items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+          onClick={() => handleAction("feature")}
+          disabled={
+            actionInProgress ||
+            car.status === "sold" ||
+            car.status === "reject" ||
+            car.is_featured ||
+            car.status === "pending"
+          }
+        >
+          <ArrowUp className="h-5 w-5 mb-1" />
+          <span>Feature Ad</span>
+        </button>
+      </div>
+
+      <div className="flex gap-2 mb-4">
+        <button
+          className="w-full bg-orange-500 text-white text-center py-3 px-2 rounded-xl text-xs hover:bg-orange-600 flex flex-col items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+          onClick={() => handleAction("sold")}
+          disabled={actionInProgress || car.status === "sold" || car.status === "pending"}
+        >
+          <Check className="h-5 w-5 mb-1" />
+          <span>Sold</span>
+        </button>
+      </div>
+
+      <div className="text-xs text-gray-500">
+        Promotion Start:{" "}
+        {car.start_date
+          ? format(new Date(car.start_date), "dd/MM/yyyy")
+          : "N/A"}{" "}
+        &nbsp; | &nbsp; Expires:{" "}
+        {car.end_date
+          ? format(new Date(car.end_date), "dd/MM/yyyy")
+          : "N/A"}
+        {car.is_featured && featuredDaysRemaining !== null && (
+          <>
+            <br />
+            Featured Ad Days Remaining:{" "}
+            <strong>{featuredDaysRemaining} Days</strong>
+          </>
+        )}
+      </div>
+    </div>
+  </div>
+
+  <Dialog open={editOpen} onOpenChange={setEditOpen}>
+    <DialogContent className="max-w-3xl p-0 overflow-hidden">
+      <ListingForm
+        listing={car}
+        onSuccess={() => {
+          setEditOpen(false);
+          toast({
+            title: "Success",
+            description: "Listing updated successfully.",
+          });
+        }}
+      />
+    </DialogContent>
+  </Dialog>
+</>
   );
 }

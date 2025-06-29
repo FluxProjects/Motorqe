@@ -2,11 +2,12 @@ import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { Role } from "@shared/permissions";
 import { UseFormReturn } from "react-hook-form";
-import { CarEngineCapacity } from "@shared/schema";
+import { CarEngineCapacity, CarService } from "@shared/schema";
 import { t } from "i18next";
 import { Badge } from "@/components/ui/badge";
 
 import { format, addHours } from "date-fns";
+import { useQuery } from "@tanstack/react-query";
 
 export function formatServiceTimeRange(startTime: string): string {
   const [hours, minutes] = startTime.split(":").map(Number);
@@ -37,7 +38,7 @@ export function generateTimeSlots(start: string, end: string, stepMinutes: numbe
   current.setHours(startHour, startMin, 0, 0);
 
   const endTime = new Date();
-  endTime.setHours(endHour, endMin, 0, 0);
+  endTime.setHours(endHour, endMin - 30, 0, 0);
 
   while (current < endTime) {
     const hh = String(current.getHours()).padStart(2, "0");
@@ -47,6 +48,21 @@ export function generateTimeSlots(start: string, end: string, stepMinutes: numbe
   }
 
   return slots;
+}
+
+// utils/timeAgo.ts
+export function formatTimeAgo(dateString: string | Date): string {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diff = Math.floor((now.getTime() - date.getTime()) / 1000); // seconds
+
+  if (diff < 60) return `${diff} seconds ago`;
+  if (diff < 3600) return `${Math.floor(diff / 60)} minutes ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)} hours ago`;
+  if (diff < 2592000) return `${Math.floor(diff / 86400)} days ago`;
+  if (diff < 31536000) return `${Math.floor(diff / 2592000)} months ago`;
+
+  return `${Math.floor(diff / 31536000)} years ago`;
 }
 
 
@@ -149,7 +165,7 @@ export const handleApiError = (
     message = error.message;
   }
 
-  form.setError("root", { type: "manual", message });
+  form.setError("rootServerError", { type: "manual", message });
 };
 
 export function getEngineSizeLabel(
@@ -288,3 +304,63 @@ export const RoleBadge = ({
   );
 };
 
+export const getServiceNames = (
+  serviceIds: string[] | string | undefined,
+  carServices: CarService[]
+): string => {
+  console.log("[getServiceNames] called with:", { serviceIds, carServices });
+
+  if (!serviceIds || !carServices?.length) {
+    console.log("[getServiceNames] Returning N/A: No serviceIds or empty carServices");
+    return "N/A";
+  }
+
+  const idsArray = Array.isArray(serviceIds) ? serviceIds : [serviceIds];
+  console.log("[getServiceNames] Normalized idsArray:", idsArray);
+
+  const names = idsArray.map(serviceId => {
+    const idNumber = parseInt(serviceId, 10);
+    console.log(`[getServiceNames] Processing serviceId: ${serviceId} (parsed: ${idNumber})`);
+
+    const carService = carServices.find(cs => cs.id === idNumber);
+    if (carService) {
+      console.log(`[getServiceNames] Found carService:`, carService);
+      return carService.name;
+    } else {
+      console.log(`[getServiceNames] No match found for serviceId: ${serviceId}`);
+      return `Service ID: ${serviceId}`;
+    }
+  });
+
+  const joinedNames = names.join(", ");
+  console.log("[getServiceNames] Final joined names:", joinedNames);
+
+  return joinedNames;
+};
+
+
+export function calculateMonthlyPayment(
+  vehiclePrice: number,
+  options?: {
+    downPaymentPercentage?: number; // e.g., 0.2 for 20%
+    interestRate?: number;          // Annual rate, e.g., 5.5
+    loanPeriodMonths?: number;      // e.g., 60
+  }
+): number {
+  const downPaymentPercentage = options?.downPaymentPercentage ?? 0.2;
+  const interestRate = options?.interestRate ?? 5.5;
+  const loanPeriod = options?.loanPeriodMonths ?? 60;
+
+  const downPayment = vehiclePrice * downPaymentPercentage;
+  const principal = vehiclePrice - downPayment;
+  const monthlyRate = interestRate / 100 / 12;
+  const numPayments = loanPeriod;
+
+  const monthlyPayment =
+    principal > 0 && monthlyRate > 0
+      ? (principal * monthlyRate * Math.pow(1 + monthlyRate, numPayments)) /
+        (Math.pow(1 + monthlyRate, numPayments) - 1)
+      : principal / numPayments;
+
+  return Math.round(monthlyPayment);
+}
