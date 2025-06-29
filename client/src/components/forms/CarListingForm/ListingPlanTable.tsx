@@ -18,7 +18,7 @@ const packages = packageslist
   ? [
       {
         id: packageslist[0]?.id,
-        plan: packageslist[0]?.plan || "Basic",
+        plan: packageslist[0]?.plan,
         medal: packageslist[0]?.name || packageslist[0]?.name_ar,
         medalType: "silver-medal",
         price: packageslist[0]?.price,
@@ -34,7 +34,7 @@ const packages = packageslist
       },
       {
         id: packageslist[0]?.id,
-        plan: packageslist[1]?.plan || "Featured",
+        plan: packageslist[1]?.plan,
         medal: packageslist[1]?.name || packageslist[1]?.name_ar,
         medalType: "gold-medal",
         price: packageslist[1]?.price,
@@ -51,7 +51,7 @@ const packages = packageslist
       },
       {
         id: packageslist[0]?.id,
-        plan: packageslist[2]?.plan || "Premium",
+        plan: packageslist[2]?.plan,
         medal: packageslist[2]?.name || packageslist[2]?.name_ar,
         medalType: "platinum-medal",
         price: packageslist[2]?.price,
@@ -76,7 +76,7 @@ const packages = packageslist
     <main className="container mx-auto px-4 py-12 bg-white">
       <h1 className="text-4xl font-bold text-center text-gray-800 mb-12">Choose a Plan</h1>
       
-      <div className="flex flex-col md:flex-row justify-center items-center md:items-stretch gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {packages.map((pkg, index) => (
           <PlanCard 
             key={index} 

@@ -24,13 +24,14 @@ export default function PlanCard({
  }: PlanProps) {
 
   const ribbonClass =
-    pakg?.plan === "gold"
-      ? "ribbon-premium"
-      : pakg.plan === "silver"
-      ? "ribbon-featured"
-      : pakg.plan === "basic"
-      ? "ribbon-basic"
-      : "ribbon-basic";
+  pakg.plan.toLowerCase() === "featured"
+    ? "ribbon-featured" // your new blue ribbon class
+    : pakg.plan.toLowerCase() === "platinum"
+    ? "ribbon-platinum"
+    : pakg.plan.toLowerCase() === "basic"
+    ? "ribbon-basic"
+    : "ribbon-basic";
+
 
   const exposureClass =
     pakg?.exposureType === "blue"

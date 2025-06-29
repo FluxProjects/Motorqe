@@ -62,11 +62,11 @@ export function PricingStep({ data, updateData, nextStep }: StepProps) {
 
   return (
     <div className="space-y-4">
-      <ListingPlanCards
-        packageslist={packages}
-        selectedPackageId={selectedPackageId ? parseInt(selectedPackageId) : undefined}
-        onSelect={handleSelectPackage}
-      />
+     <ListingPlanCards
+  packageslist={packages.filter(pkg => pkg.is_active)}
+  selectedPackageId={selectedPackageId ? parseInt(selectedPackageId) : undefined}
+  onSelect={handleSelectPackage}
+/>
     </div>
   );
 }
