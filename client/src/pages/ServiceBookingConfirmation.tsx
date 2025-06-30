@@ -332,13 +332,17 @@ export default function ServiceBookingConfirmation() {
                       key={`${service.serviceId}-${idx}`}
                       className="flex justify-between text-base"
                     >
-                      <span className="text-gray-700">
+                      <span className="text-neutral-800 font-bold">
                         {idx + 1} -{" "}
                         {serviceDetails?.description ||
                           `Service ID: ${service.serviceId}`}
                       </span>
-                      <span className="text-gray-900 font-medium">
-                        {service.currency} {service.price.toFixed(2)}
+                      <span className="text-neutral-800 font-medium">
+                        {service.currency} {service?.price != null
+                ? Number(service?.price).toLocaleString("en-US", {
+                    maximumFractionDigits: 0,
+                  })
+                : "0"}
                       </span>
                     </div>
                   );
@@ -346,11 +350,15 @@ export default function ServiceBookingConfirmation() {
               </div>
 
               {/* Total Price */}
-              <div className="bg-orange-500 text-white p-4 text-center">
-                <div className="text-xl font-bold">
+              <div className="bg-blue-900 text-white p-4 text-center">
+                <div className="text-xl justify-end items-end text-right font-bold">
                   Total Price:{" "}
-                  {payloadWithId?.servicePrices?.[0]?.currency || "QAR"}{" "}
-                  {payloadWithId?.totalPrice?.toFixed(2) || "0.00"}
+                  {payloadWithId?.servicePrices?.[0]?.currency || "QR"}{" "}
+                  {payloadWithId?.totalPrice != null
+                ? Number(payloadWithId?.totalPrice).toLocaleString("en-US", {
+                    maximumFractionDigits: 0,
+                  })
+                : "0"}
                 </div>
               </div>
             </div>
@@ -366,7 +374,7 @@ export default function ServiceBookingConfirmation() {
             </p>
             <p className="text-gray-900 text-base">
               <span className="font-bold underline">
-                Copyright © 2023 Motorqe.Com. All Rights Reserved.
+                Copyright © 2025 Motorqe.com. All Rights Reserved.
               </span>
             </p>
           </div>

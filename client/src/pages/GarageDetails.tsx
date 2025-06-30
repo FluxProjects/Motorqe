@@ -582,10 +582,14 @@ useEffect(() => {
                         className="flex items-center justify-between p-4 cursor-pointer hover:shadow"
                       >
                         <div>
-                          <div className="text-sm">{service.name}</div>
+                          <div className="text-sm text-neutral-800 font-semibold max-w-[100px]">{service.name}</div>
                         </div>
-                        <div className="text-sm text-orange-500">
-                          {service.currency || "QAR"} {service.price}
+                        <div className="text-sm 9l-3 text-neutral-800 font-bold ">
+                          {service.currency || "QR"} {service?.price != null
+                ? Number(service?.price).toLocaleString("en-US", {
+                    maximumFractionDigits: 0,
+                  })
+                : "0"}
                           <input
                             type="checkbox"
                             checked={selectedServiceIds.includes(service.id)}
@@ -857,17 +861,26 @@ useEffect(() => {
                         <SelectValue placeholder={t("common.selectReason")} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="fraud">
-                          {t("common.reportReasonFraud")}
+                        <SelectItem value="wrongprice">
+                          Service price different from garage
                         </SelectItem>
-                        <SelectItem value="inappropriate">
-                          {t("common.reportReasonInappropriate")}
+                        <SelectItem value="wronglocation">
+                          Location is different
                         </SelectItem>
-                        <SelectItem value="duplicate">
-                          {t("common.reportReasonDuplicate")}
+                        <SelectItem value="wrongphone">
+                          Different contact no.
                         </SelectItem>
-                        <SelectItem value="misrepresentation">
-                          {t("common.reportReasonMisrepresentation")}
+                        <SelectItem value="unreachable">
+                          Garage is unreachable
+                        </SelectItem>
+                        <SelectItem value="wongimages">
+                          Garage images do not match
+                        </SelectItem>
+                        <SelectItem value="wongservices">
+                          Inaccurate Garage Services
+                        </SelectItem>
+                        <SelectItem value="misleading">
+                          Misleading Services
                         </SelectItem>
                         <SelectItem value="other">
                           {t("common.reportReasonOther")}

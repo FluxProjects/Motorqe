@@ -10,7 +10,7 @@ import { Link } from "wouter";
 import CarYearCard from "./CarYearCard";
 import CarCapacityCard from "./CarCapacityCard";
 
-type TabType = "category" | "brand" | "budget" | "year";
+type TabType = "category" | "brand" | "budget" | "year" | "capacity";
 
 const CarTypeTabsSection = () => {
   const { t } = useTranslation();
@@ -25,17 +25,17 @@ const CarTypeTabsSection = () => {
   ];
 
   const staticBudgets: BudgetRange[] = [
-    { id: "1", name: "Under QAR 10,000", min: 0, max: 10000 },
-    { id: "2", name: "QAR 10,000 - QAR 20,000", min: 10000, max: 20000 },
-    { id: "3", name: "QAR 20,000 - QAR 30,000", min: 20000, max: 30000 },
-    { id: "4", name: "QAR 30,000 - QAR 40,000", min: 30000, max: 40000 },
-    { id: "5", name: "QAR 40,000 - QAR 50,000", min: 40000, max: 50000 },
-    { id: "6", name: "QAR 50,000 - QAR 60,000", min: 50000, max: 60000 },
-    { id: "7", name: "QAR 60,000 - QAR 70,000", min: 60000, max: 70000 },
-    { id: "8", name: "QAR 70,000 - QAR 80,000", min: 70000, max: 80000 },
-    { id: "9", name: "QAR 80,000 - QAR 100,000", min: 80000, max: 100000 },
-    { id: "10", name: "Above QAR 100,000", min: 100000, max: Infinity },
-  ];
+  { id: "1", name: "Under QAR 5,000", min: 0, max: 5000 },
+  { id: "2", name: "Under QAR 10,000", min: 0, max: 10000 },
+  { id: "3", name: "Under QAR 15,000", min: 0, max: 15000 },
+  { id: "4", name: "Under QAR 20,000", min: 0, max: 20000 },
+  { id: "5", name: "Under QAR 30,000", min: 0, max: 30000 },
+  { id: "6", name: "Under QAR 50,000", min: 0, max: 50000 },
+  { id: "7", name: "Under QAR 75,000", min: 0, max: 75000 },
+  { id: "8", name: "Under QAR 100,000", min: 0, max: 100000 },
+  { id: "9", name: "Under QAR 150,000", min: 0, max: 150000 },
+  { id: "10", name: "Above QAR 150,000", min: 150000, max: Infinity },
+];
 
   const staticYears: BudgetRange[] = [
     { id: "1", name: "2016", min: 2016, max: 2016 },

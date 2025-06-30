@@ -56,9 +56,9 @@ export default function PlanCard({
 
       {/* Medal and Price */}
       <div className="px-6 pt-14 pb-4 text-center border-b border-gray-200">
-        <div className={`medal-icon ${pakg.medalType} mb-5`}>{pakg.medal}</div>
+        <div className={`medal-icon ${pakg.medalType} mb-5`}> </div>
         <h3 className="text-3xl font-bold text-[#ff5722] mt-4">
-          {pakg.currency} {pakg.price}
+          {pakg.price === 0 ? "FREE" : `${pakg.currency} ${pakg.price}`}
         </h3>
       </div>
 

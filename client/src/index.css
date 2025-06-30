@@ -104,18 +104,19 @@
 }
 
 .silver-medal {
-  background: radial-gradient(circle, #e6e6e6 0%, #c0c0c0 50%, #a0a0a0 100%);
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+  background: url('/src/assets/silver.png');
+  background-size: cover;
+
 }
 
 .gold-medal {
-  background: radial-gradient(circle, #ffd700 0%, #ffc107 50%, #ff9800 100%);
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+ background: url('/src/assets/gold.png');
+  background-size: cover;
 }
 
 .platinum-medal {
-  background: radial-gradient(circle, #e5e5e5 0%, #b0b0b0 50%, #7a7a7a 100%);
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+  background: url('/src/assets/platinum.png');
+  background-size: cover;
 }
 
 .medal-icon::before {

@@ -946,19 +946,28 @@ const CarDetails = () => {
                         <SelectValue placeholder={t("common.selectReason")} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="fraud">
-                          {t("common.reportReasonFraud")}
+                        <SelectItem value="fake">
+                          Fake Ad
                         </SelectItem>
-                        <SelectItem value="inappropriate">
-                          {t("common.reportReasonInappropriate")}
+                        <SelectItem value="sold">
+                          Car is Sold
                         </SelectItem>
-                        <SelectItem value="duplicate">
-                          {t("common.reportReasonDuplicate")}
+                        <SelectItem value="wrongprice">
+                          Inaccurate Price
                         </SelectItem>
                         <SelectItem value="misrepresentation">
-                          {t("common.reportReasonMisrepresentation")}
+                          Seller is unreachable
                         </SelectItem>
-                        <SelectItem value="other">
+                        <SelectItem value="wrongimage">
+                          Car images are incorrect
+                        </SelectItem>
+                         <SelectItem value="misleading">
+                          Misleading Ad
+                        </SelectItem>
+                        <SelectItem value="wrongspecs">
+                          Car Specifications does not match
+                        </SelectItem>
+                         <SelectItem value="other">
                           {t("common.reportReasonOther")}
                         </SelectItem>
                       </SelectContent>

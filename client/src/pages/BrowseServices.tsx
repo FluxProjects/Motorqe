@@ -5,6 +5,7 @@ import AllServicesSection from "@/components/services/AllServicesSection";
 import ServicesByMake from "@/components/services/ServicesByMakeSection";
 import FeaturedServicesSection from "@/components/services/FeaturedServicesSection";
 import { useState } from "react";
+import CarSearchForm from "@/components/car/CarSearchForm";
 
 const BrowseServices = () => {
   const { t } = useTranslation();
@@ -21,7 +22,10 @@ const BrowseServices = () => {
         <div className="w-40 h-1 bg-orange-500 mx-auto rounded-full" />
       </div>
 
-      <div className="md:flex md:gap-6">
+      <CarSearchForm is_garage={true} />
+
+      <div className="md:flex md:gap-6 mt-8">
+        
         <Tabs defaultValue="all" className="w-full">
           {/* Updated tabs container with new styling */}
           <div className="flex flex-col gap-4 mb-8 md:flex-row md:items-center md:justify-between">

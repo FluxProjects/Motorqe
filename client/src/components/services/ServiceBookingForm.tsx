@@ -244,16 +244,30 @@ const timeSlots = React.useMemo(() => {
       {currentlySelectedServices.length > 0 && (
         <div className="space-y-1">
           <h3 className="font-semibold">{t("services.selectedServices")}</h3>
-          <ul className="list-disc list-inside text-sm text-muted-foreground">
-            {currentlySelectedServices.map((s) => (
-              <li key={s.id}>
-                {s.name} - {s.currency} {s.price} 
-              </li>
-            ))}
-          </ul>
-          <div className="font-semibold">
-            {t("services.total")}: {currency} {totalPrice}
-          </div>
+          <ul className="text-sm text-muted-foreground space-y-1">
+  {currentlySelectedServices.map((s) => (
+    <li key={s.id} className="flex justify-between">
+      <span>{s.name}</span>
+      <span className="tabular-nums">
+        {s.currency}{" "}
+        {s.price != null
+          ? Number(s.price).toLocaleString("en-US", { maximumFractionDigits: 0 })
+          : "0"}
+      </span>
+    </li>
+  ))}
+</ul>
+
+<div className="mt-3 font-semibold flex justify-between border-t pt-2">
+  <span>{t("services.total")}:</span>
+  <span className="tabular-nums">
+    {currency}{" "}
+    {totalPrice != null
+      ? Number(totalPrice).toLocaleString("en-US", { maximumFractionDigits: 0 })
+      : "0"}
+  </span>
+</div>
+
         </div>
       )}
 

@@ -331,18 +331,18 @@ private async sendEmail(params: {
     try {
         console.log('Creating transporter...');
         const transporter = nodemailer.createTransport({
-          //   host: 'smtp.zoho.com',
-          //  port: 465,
-          //   secure: true,
-          //   auth: {
-          //       user: 'noreply@motorqe.com',
-          //       pass: 'adminmotorqe25!@',
-          //   },
-           service: 'gmail',
+            host: 'smtp.zoho.com',
+           port: 465,
+            secure: true,
             auth: {
-                user: process.env.GMAIL_USERNAME,
-                pass: process.env.GMAIL_PASSWORD,
+                user: 'noreply@motorqe.com',
+                pass: 'adminmotorqe25!@!',
             },
+          //  service: 'gmail',
+          //   auth: {
+          //       user: process.env.GMAIL_USERNAME,
+          //       pass: process.env.GMAIL_PASSWORD,
+          //   },
         });
         console.log('Transporter created');
 
@@ -358,7 +358,7 @@ private async sendEmail(params: {
 
         console.log('Preparing mail options...');
         const mailOptions = {
-            from: '"Motorqe" <${process.env.GMAIL_USERNAME}>',
+            from: '"Motorqe" noreply@motorqe.com', //<${process.env.GMAIL_USERNAME}>
             to: params.to,
             subject: params.subject,
             html: html,
