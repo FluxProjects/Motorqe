@@ -211,20 +211,28 @@ class NotificationService {
         listingId,
         sentAt: now,
     };
-    await storage.createNotification(customerEmailNotification);
-    console.log('Customer email notification created');
+    const newNotification = await storage.createNotification(customerEmailNotification);
+    console.log('Customer email notification created with ID:', newNotification);
 
-    await this.sendEmail({
-      to: customerEmail,
-      subject: `How was your experience at ${showroomName}?`,
-      template: 'service-review',
-      context: {
-        firstName: customerName,
-        showroomName,
-        reviewLink,
-      },
-    });
+    try {
 
+        await this.sendEmail({
+          to: customerEmail,
+          subject: `How was your experience at ${showroomName}?`,
+          template: 'service-review',
+          context: {
+            firstName: customerName,
+            showroomName,
+            reviewLink,
+          },
+        });
+
+        await storage.markNotificationSent(newNotification.id);
+      } catch (error) {
+        console.error(`Failed to send notification ${newNotification.id}:`, error);
+        // Save the error, but don’t mark as sent
+        await storage.markNotificationSent(newNotification.id, error.message || 'Unknown error');
+      }
 
     // 2. Customer SMS notification
     if (customerPhone) {
