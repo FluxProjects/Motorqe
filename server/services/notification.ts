@@ -5,6 +5,8 @@ import fs from 'fs';
 import path from 'path';
 import handlebars from 'handlebars';
 import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
+dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -85,30 +87,30 @@ class NotificationService {
   async processNotifications(): Promise<void> {
     const pendingNotifications = await storage.getPendingNotifications();
     
-    for (const notification of pendingNotifications) {
+    for (const notifi of pendingNotifications) {
       try {
-        if (notification.type === 'email') {
+        if (notifi.type === 'email') {
           // TODO: Implement actual email sending
-          console.log('Sending email notification:', notification);
+          console.log('Sending email notification:', notifi);
 
-          const content = JSON.parse(notification.content);
-          if (notification.receiverId === null) {
+          const content = JSON.parse(notifi.content);
+          if (notifi.receiverId === null) {
             throw new Error("Receiver ID is missing in the notification.");
           }
           await this.sendEmail({
-                        to: await this.getRecipientEmail(notification.receiverId),
+                        to: await this.getRecipientEmail(notifi.receiverId),
                         subject: content.subject,
                         template: content.template,
                         context: content.context
                     });
-          await storage.markNotificationSent(notification.id);
-        } else if (notification.type === 'sms') {
+          await storage.markNotificationSent(notifi.id);
+        } else if (notifi.type === 'sms') {
           // TODO: Implement actual SMS sending
-          console.log('Sending SMS notification:', notification);
-          await storage.markNotificationSent(notification.id);
+          console.log('Sending SMS notification:', notifi);
+          await storage.markNotificationSent(notifi.id);
         }
       } catch (error) {
-        await storage.markNotificationSent(notification.id, error instanceof Error ? error.message : String(error));
+        await storage.markNotificationSent(notifi.id, error instanceof Error ? error.message : String(error));
       }
     }
   }
@@ -282,6 +284,7 @@ class NotificationService {
               }
             });
 
+
         } else {
             console.log('Owner email notifications disabled or email missing');
         }
@@ -329,8 +332,8 @@ private async sendEmail(params: {
           //   },
            service: 'gmail',
             auth: {
-                user: 'chatgpt4.offical@gmail.com',
-                pass: 'jcgu cqdg gmbd jsjk',
+                user: process.env.GMAIL_USERNAME,
+                pass: process.env.GMAIL_PASSWORD,
             },
         });
         console.log('Transporter created');
@@ -347,7 +350,7 @@ private async sendEmail(params: {
 
         console.log('Preparing mail options...');
         const mailOptions = {
-            from: '"Motorqe" <noreply@motorqe.com>',
+            from: '"Motorqe" <${process.env.GMAIL_USERNAME}>',
             to: params.to,
             subject: params.subject,
             html: html,
