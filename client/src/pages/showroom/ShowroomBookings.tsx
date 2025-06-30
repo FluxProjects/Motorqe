@@ -203,7 +203,7 @@ export default function CustomerServiceBookings() {
   };
 
   const handleWhatsapp = (mobileNo: string) => {
-    const cleanNumber = mobileNo.replace(/[^\d]/g, "");
+    const cleanNumber = mobileNo?.replace(/[^\d]/g, "");
     window.open(`https://wa.me/${cleanNumber}`, "_blank");
   };
 

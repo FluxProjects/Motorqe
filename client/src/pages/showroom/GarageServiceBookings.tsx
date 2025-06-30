@@ -361,10 +361,7 @@ const timeSlots = useMemo(() => {
                           {booking?.user?.first_name}
                         </h3>
                         <p className="text-sm text-gray-600">
-                          {booking?.vehicleMake} {booking?.vehicleModel}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {booking?.user?.phone}
+                          {booking?.service_name}
                         </p>
                       </div>
                     </div>

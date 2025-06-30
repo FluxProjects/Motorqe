@@ -320,12 +320,17 @@ private async sendEmail(params: {
     try {
         console.log('Creating transporter...');
         const transporter = nodemailer.createTransport({
-            host: 'smtp.zoho.com',
-            port: 465,
-            secure: false,
+          //   host: 'smtp.zoho.com',
+          //  port: 465,
+          //   secure: true,
+          //   auth: {
+          //       user: 'noreply@motorqe.com',
+          //       pass: 'adminmotorqe25!@',
+          //   },
+           service: 'gmail',
             auth: {
-                user: 'noreply@motorqe.com',
-                pass: 'adminmotorqe25!@',
+                user: 'chatgpt4.offical@gmail.com',
+                pass: 'jcgu cqdg gmbd jsjk',
             },
         });
         console.log('Transporter created');
