@@ -50,10 +50,6 @@ import ServiceBookingConfirmation from "./pages/ServiceBookingConfirmation";
 import BuyerDashboard from "./pages/buyer/BuyerDashboard";
 import BuyerManageSettings from "./pages/buyer/ManageSettings";
 
-// 🧑‍💼 Seller Pages
-import SellerDashboard from "./pages/seller/SellerDashboard";
-import SellerManageSettings from "./pages/seller/ManageSettings";
-
 // 🏢 Showroom Pages
 import ShowroomDashboard from "./pages/showroom/ShowroomDashboard";
 import GarageDashboard from "./pages/showroom/GarageDashboard";
