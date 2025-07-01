@@ -39,6 +39,7 @@ import { Textarea } from "../ui/textarea";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import CompareTool from "./CompareTool";
 
 // Message form schema
 const messageSchema = z.object({
@@ -93,6 +94,7 @@ const CarCard = ({ car, isFavorited = false }: CarCardProps) => {
   const { toast } = useToast();
   const [, setIsFavorited] = useState(isFavorited);
   const [comparisonList, setComparisonList] = useState<CarListing[]>([]);
+  const [compareDialogOpen, setCompareDialogOpen] = useState(false);
   const [authModal, setAuthModal] = useState<
     "login" | "register" | "forget-password" | null
   >(null);
@@ -314,7 +316,7 @@ const CarCard = ({ car, isFavorited = false }: CarCardProps) => {
                 {car.image360 && (
                   <div className="absolute bottom-2 left-2 z-10">
                     <img
-                      src="/360-listing.png"
+                      src="/src/assets/360-listing.png"
                       alt="360 Available"
                       className="w-10 h-10 md:w-12 md:h-12 drop-shadow-lg"
                     />
@@ -421,17 +423,19 @@ const CarCard = ({ car, isFavorited = false }: CarCardProps) => {
                 <Link href="/compare">{t("common.addCompare")}</Link>
               </span>
               <input
-                type="checkbox"
-                checked={isCompared}
-                onChange={() => {
-                  if (isCompared) {
-                    handleRemoveFromCompare(car?.id);
-                  } else {
-                    handleAddToCompare(car);
-                  }
-                }}
-                className="h-4 w-4 rounded border-neutral-300 text-orange-500 focus:ring-orange-500"
-              />
+          type="checkbox"
+          checked={isCompared}
+          onChange={() => {
+            if (isCompared) {
+              handleRemoveFromCompare(car?.id);
+              setCompareDialogOpen(false); // close dialog if unchecked
+            } else {
+              handleAddToCompare(car);
+              setCompareDialogOpen(true); // open dialog on add
+            }
+          }}
+          className="h-4 w-4 rounded border-neutral-300 text-orange-500 focus:ring-orange-500"
+        />
             </div>
 
             <div className="flex justify-between text-xs text-slate-700 mt-2">
@@ -495,18 +499,6 @@ const CarCard = ({ car, isFavorited = false }: CarCardProps) => {
               WhatsApp
             </Button>
         </CardFooter>
-        {/* Auth Modal */}
-        {authModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-            <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 animate-in fade-in duration-300">
-              <AuthForms
-                initialView={authModal}
-                onClose={() => setAuthModal(null)}
-                onSwitchView={(view) => setAuthModal(view)}
-              />
-            </div>
-          </div>
-        )}
       </Card>
 
       {/* Contact Seller Dialog */}
@@ -562,6 +554,21 @@ const CarCard = ({ car, isFavorited = false }: CarCardProps) => {
           </Form>
         </DialogContent>
       </Dialog>
+
+      {/* CompareTool Dialog */}
+    <Dialog open={compareDialogOpen} onOpenChange={setCompareDialogOpen}>
+      <DialogContent className="max-w-5xl p-0">
+        <CompareTool
+          comparisonList={comparisonList}
+          onRemove={handleRemoveFromCompare}
+          onClear={() => {
+            localStorage.removeItem("comparisonList");
+            setComparisonList([]);
+            setCompareDialogOpen(false);
+          }}
+        />
+      </DialogContent>
+    </Dialog>
 
       {/* Auth Modal */}
       {authModal && (

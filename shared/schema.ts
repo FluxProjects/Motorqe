@@ -1462,6 +1462,7 @@ export interface AdminCarListing {
   locationAr?: string;
 
   images?: string[];
+  image360?: string;
 
   status: 'draft' | 'active' | 'pending' | 'reject' | 'sold';
   is_active?: string;

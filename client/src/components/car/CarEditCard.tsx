@@ -243,6 +243,42 @@ export default function CarEditCard({ car }: CarEditCardProps) {
           </div>
         </div>
       )}
+      {/* NEW RIBBON */}
+      {new Date(car.created_at).toDateString() ===
+        new Date().toDateString() && (
+        <div className="absolute top-5 left-[-40px] -rotate-45 bg-red-700 text-white font-black px-20 py-1 text-lg shadow-lg z-10">
+          NEW
+        </div>
+      )}
+      {/* LOW MILEAGE RIBBON */}
+                {(() => {
+                  const currentYear = new Date().getFullYear();
+                  const carYear = parseInt(car.year);
+                  const yearsOwned = Math.max(currentYear - carYear + 1, 1); // Prevent division by zero
+                  const avgMileagePerYear = car.mileage / yearsOwned;
+                  const condition = car.condition?.toLowerCase();
+
+                  if (
+                    condition === "used" &&
+                    avgMileagePerYear < 25000
+                  ) {
+                    return (
+                      <div className="absolute top-10 left-[-60px] -rotate-45 bg-green-500 text-white font-black px-20 py-1 text-sm shadow-lg z-10">
+                        LOW MILEAGE
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+       {car.image360 && (
+                  <div className="absolute bottom-2 left-2 z-10">
+                    <img
+                      src="/src/assets/360-listing.png"
+                      alt="360 Available"
+                      className="w-10 h-10 md:w-12 md:h-12 drop-shadow-lg"
+                    />
+                  </div>
+                )}
     </div>
     <div className="p-4">
       <h3 className="font-bold text-lg mb-1">

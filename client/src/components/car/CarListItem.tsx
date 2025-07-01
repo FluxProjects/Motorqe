@@ -43,6 +43,7 @@ import {
   FormMessage,
 } from "../ui/form";import { Textarea } from "../ui/textarea";
 import { AuthForms } from "../forms/AuthForm/AuthForms";
+import CompareTool from "./CompareTool";
 ;
 
 // Message form schema
@@ -100,6 +101,7 @@ const CarListItem = ({ car, isFavorited = false }: CarListItemProps) => {
   const { toast } = useToast();
   const [, setIsFavorited] = useState(isFavorited);
   const [comparisonList, setComparisonList] = useState<CarListing[]>([]);
+  const [compareDialogOpen, setCompareDialogOpen] = useState(false);
   const [authModal, setAuthModal] = useState<
     "login" | "register" | "forget-password" | null
   >(null);
@@ -336,7 +338,7 @@ const CarListItem = ({ car, isFavorited = false }: CarListItemProps) => {
               {car.image360 && (
                 <div className="absolute bottom-2 left-2 z-10">
                   <img
-                    src="/360-listing.png"
+                    src="/src/assets/360-listing.png"
                     alt="360 Available"
                     className="w-10 h-10 md:w-12 md:h-12 drop-shadow-lg"
                   />
@@ -491,17 +493,19 @@ const CarListItem = ({ car, isFavorited = false }: CarListItemProps) => {
                 <Link href="/compare">{t("common.addCompare")}</Link>
               </span>
               <input
-                type="checkbox"
-                checked={isCompared}
-                onChange={() => {
-                  if (isCompared) {
-                    handleRemoveFromCompare(car?.id);
-                  } else {
-                    handleAddToCompare(car);
-                  }
-                }}
-                className="h-4 w-4 rounded border-neutral-300 text-orange-500 focus:ring-orange-500"
-              />
+          type="checkbox"
+          checked={isCompared}
+          onChange={() => {
+            if (isCompared) {
+              handleRemoveFromCompare(car?.id);
+              setCompareDialogOpen(false); // close dialog if unchecked
+            } else {
+              handleAddToCompare(car);
+              setCompareDialogOpen(true); // open dialog on add
+            }
+          }}
+          className="h-4 w-4 rounded border-neutral-300 text-orange-500 focus:ring-orange-500"
+        />
             </div>
 
             <div className="flex items-center gap-2 mt-2">
@@ -575,6 +579,22 @@ const CarListItem = ({ car, isFavorited = false }: CarListItemProps) => {
                   </DialogFooter>
                 </form>
               </Form>
+            </DialogContent>
+          </Dialog>
+
+          {/* CompareTool Dialog */}
+          <Dialog open={compareDialogOpen} onOpenChange={setCompareDialogOpen}>
+            <DialogContent className="p-0 w-full max-w-5xl h-[90vh] flex flex-col"
+  style={{ maxHeight: "90vh" }}>
+              <CompareTool
+                comparisonList={comparisonList}
+                onRemove={handleRemoveFromCompare}
+                onClear={() => {
+                  localStorage.removeItem("comparisonList");
+                  setComparisonList([]);
+                  setCompareDialogOpen(false);
+                }}
+              />
             </DialogContent>
           </Dialog>
     

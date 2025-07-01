@@ -53,6 +53,7 @@ import { Form, FormField, FormItem, FormLabel, FormMessage } from "@/components/
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import CompareTool from "@/components/car/CompareTool";
 
 // Search form schema
 const searchFormSchema = z.object({
