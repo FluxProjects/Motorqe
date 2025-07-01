@@ -3,11 +3,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { StepProps } from "@shared/schema";
-import { useFormContext } from "react-hook-form";
+import { Controller, useFormContext } from "react-hook-form";
 import { ArrowLeft, ArrowRight } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface BasicInfoFormData {
   basicInfo: {
+    listingType: string;
     title: string;
     titleAr: string;
     description: string;
@@ -18,7 +20,7 @@ interface BasicInfoFormData {
 }
 
 export function BasicInfoStep({ data, updateData, nextStep, prevStep }: StepProps) {
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useFormContext<BasicInfoFormData>();
+  const { register, handleSubmit, formState: { errors, isSubmitting }, control } = useFormContext<BasicInfoFormData>();
 
   const onSubmit = (formData: BasicInfoFormData) => {
     updateData({ basicInfo: formData.basicInfo });
@@ -28,6 +30,32 @@ export function BasicInfoStep({ data, updateData, nextStep, prevStep }: StepProp
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+            <Label>Listing Type*</Label>
+            <Controller
+              name="basicInfo.listingType"
+              control={control}
+              rules={{ required: "Listing type is required" }}
+              render={({ field }) => (
+                <Select
+                  onValueChange={field.onChange}
+                  value={field.value}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select listing type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="sale">For Sale</SelectItem>
+                    <SelectItem value="exchange">For Exchange</SelectItem>
+                    <SelectItem value="both">Sale & Exchange</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            {errors.basicInfo?.listingType && (
+              <p className="text-sm text-red-500">{errors.basicInfo.listingType.message}</p>
+            )}
+          </div>
         <div>
           <Label htmlFor="title">Listing Title*</Label>
           <Input

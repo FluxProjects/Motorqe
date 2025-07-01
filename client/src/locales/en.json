@@ -2,6 +2,7 @@
   "common": {
     "bookmark": "Bookmark",
     "chat": "Chat",
+    "reportReasonOther":"Other Reason",
     "servicesAndPrices":"Service and Prices",
     "selectCategory":"Select Category",
     "selectService":"Select Service",

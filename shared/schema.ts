@@ -378,6 +378,8 @@ export const carListings = pgTable("car_listings", {
 
   isBusiness: boolean("is_business").default(false),
   showroomId: integer("showroom_id"),
+  listingType: text("listing_type").$type<"sale" | "exchange" | "both">(),
+  refreshLeft: text("refresh_left"),
 
   // System info
   views: integer("views").default(0),
@@ -435,8 +437,11 @@ export const insertCarListingSchema = createInsertSchema(carListings).pick({
   hasInsurance: true,
   insuranceType: true,
   insuranceExpiry: true,
+  listingType: true,
   isInspected:true,
   inspectionReport: true,
+
+  refreshLeft: true,
 
   isBusiness: true,
   showroomId: true,
@@ -1111,6 +1116,8 @@ export const promotionPackages = pgTable("promotion_packages", {
   durationDays: integer("duration_days").notNull(),
   isFeatured: boolean("is_featured").default(false),
   priority: integer("priority").default(0),       // Higher = more prominent
+  noOfRefresh: integer("no_of_refresh"),
+  featureDuration: integer("feature_duration"),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -1280,6 +1287,7 @@ export type CarListingWithFeatures = CarListing & {
 // Listing Form
 export type ListingFormData = {
   basicInfo?: {
+    listingType?: string;
     title: string;
     description?: string;
     descriptionAr?: string;

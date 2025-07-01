@@ -465,29 +465,56 @@ const CarDetails = () => {
             <div className="flex justify-center items-center mb-8 mt-8 space-x-2">
               
               <Button
-                variant="outline"
-                size="sm"
-                className="rounded-full text-blue-900 border-blue-500 hover:bg-blue-900 hover:text-white hover:border-blue-900"
-                onClick={() => {
-                  if (navigator.share) {
-                    navigator
-                      .share({
-                        title: car.title,
-                        url: window.location.href,
-                      })
-                      .catch((err) => console.error("Error sharing:", err));
-                  } else {
-                    navigator.clipboard.writeText(window.location.href);
-                    toast({
-                      title: t("common.linkCopied"),
-                      description: t("common.linkCopiedDesc"),
-                    });
-                  }
-                }}
-              >
-                <Share size={16} className="mr-1" />
-                {t("common.share")}
-              </Button>
+  variant="outline"
+  size="sm"
+  className="rounded-full text-blue-900 border-blue-500 hover:bg-blue-900 hover:text-white hover:border-blue-900"
+  onClick={() => {
+    if (navigator.share) {
+      navigator
+        .share({
+          title: car.title,
+          url: window.location.href,
+        })
+        .catch((err) => console.error("Error sharing:", err));
+    } else if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(window.location.href);
+      toast({
+        title: t("common.linkCopied"),
+        description: t("common.linkCopiedDesc"),
+      });
+    } else {
+      // Fallback for older browsers
+      const textArea = document.createElement("textarea");
+      textArea.value = window.location.href;
+      textArea.style.position = "fixed"; // Prevent scrolling
+      textArea.style.opacity = "0";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+
+      try {
+        document.execCommand("copy");
+        toast({
+          title: t("common.linkCopied"),
+          description: t("common.linkCopiedDesc"),
+        });
+      } catch (err) {
+        console.error("Fallback copy failed:", err);
+        toast({
+          title: t("common.copyFailed"),
+          description: t("common.copyFailedDesc"),
+          variant: "destructive",
+        });
+      }
+
+      document.body.removeChild(textArea);
+    }
+  }}
+>
+  <Share size={16} className="mr-1" />
+  {t("common.share")}
+</Button>
+
 
               <Button
                 variant="outline"
@@ -589,14 +616,25 @@ const CarDetails = () => {
 
                 <div className="flex items-center justify-between mb-6">
                   <div className="text-3xl font-bold text-blue-900">
-                    {car.currency || "QR"} {car.price.toLocaleString()}
+                    {car.currency || "QR"}{" "}
+                    {car.price != null
+                      ? Number(car.price).toLocaleString("en-US", { maximumFractionDigits: 0 })
+                      : "0"}
                   </div>
                 </div>
 
                 <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
+                   <div className="flex justify-between">
                     <span className="text-gray-600">Type of Ad:</span>
-                    <span className="font-medium">For Sale</span>
+                    <span className="font-medium">
+                      {car.listing_type === "sale"
+                        ? "For Sale"
+                        : car.listing_type === "exchange"
+                        ? "For Exchange"
+                        : car.listing_type === "both"
+                        ? "Sale & Exchange"
+                        : "For Sale"}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Make:</span>

@@ -41,6 +41,7 @@ export const useListingFormHandler = (onSuccess?: () => void) => {
       }
 
       const payload = {
+        listing_type: formData.basicInfo?.listingType,
         title: formData.basicInfo?.title,
         title_ar: formData.basicInfo?.title,
         description: formData.basicInfo?.description,
