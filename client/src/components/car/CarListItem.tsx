@@ -419,7 +419,11 @@ const CarListItem = ({ car, isFavorited = false }: CarListItemProps) => {
               </div>
               <div className="flex items-center gap-1">
                 <img src="/src/assets/car-mileage.png" className="w-4 h-4" />
-                <span>{car?.mileage?.toLocaleString()} KM</span>
+                <span>{car?.mileage != null
+                ? Number(car.mileage).toLocaleString("en-US", {
+                    maximumFractionDigits: 0,
+                  })
+                : "0"} KM</span>
               </div>
             </div>
 
@@ -447,7 +451,7 @@ const CarListItem = ({ car, isFavorited = false }: CarListItemProps) => {
             </div>
 
             <div className="text-blue-900 text-xs mt-4">
-              Do you have a similar <strong>{carMake} {carModel}</strong> to sell? Sell it yourself!
+              Do you have a similar <Link href={`/browse?make=${car?.make_id}&model=${car?.model_id}`}><strong>{carMake} {carModel}</strong></Link> to sell? Sell it yourself!
             </div>
           </div>
 

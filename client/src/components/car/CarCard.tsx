@@ -384,7 +384,7 @@ const CarCard = ({ car, isFavorited = false }: CarCardProps) => {
                 ? Number(car.price).toLocaleString("en-US", {
                     maximumFractionDigits: 0,
                   })
-                : "N/A"}
+                : "0"}
             </div>
 
             <div className="text-green-500 font-bold text-lg">
@@ -413,7 +413,11 @@ const CarCard = ({ car, isFavorited = false }: CarCardProps) => {
             </div>
             <div className="flex items-center gap-1">
               <img src="/src/assets/car-mileage.png" className="w-4 h-4" />
-              <span>{car?.mileage?.toLocaleString()} KM</span>
+              <span>{car?.mileage != null
+                ? Number(car.mileage).toLocaleString("en-US", {
+                    maximumFractionDigits: 0,
+                  })
+                : "0"} KM</span>
             </div>
           </div>
 

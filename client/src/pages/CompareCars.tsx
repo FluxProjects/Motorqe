@@ -505,12 +505,20 @@ function CompareCars() {
                 </h2>
 
                 <p className="px-4 text-primary text-neutral-300 font-semibold text-lg mb-2">
-                  {car.currency} {car.price}
+                  {car.currency} {car?.price != null
+                ? Number(car.price).toLocaleString("en-US", {
+                    maximumFractionDigits: 0,
+                  })
+                : "0"}
                 </p>
 
                 <div className="px-4 flex justify-between text-sm text-gray-600 mb-4">
                   <span>{car.year}</span>
-                  <span>{car.mileage} km</span>
+                  <span>{car?.mileage != null
+                ? Number(car.mileage).toLocaleString("en-US", {
+                    maximumFractionDigits: 0,
+                  })
+                : "0"} km</span>
                 </div>
 
                 <div className="bg-white px-4 pb-4 mt-auto">

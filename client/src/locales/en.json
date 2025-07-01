@@ -1,6 +1,7 @@
 {
   "common": {
     "bookmark": "Bookmark",
+    "viewLess": "View Less",
     "chat": "Chat",
     "viewMore":"View More",
     "reportReasonOther":"Other Reason",
