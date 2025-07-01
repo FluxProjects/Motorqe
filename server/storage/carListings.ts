@@ -336,17 +336,30 @@ export const CarListingStorage = {
             console.log('No filters applied - using base query');
         }
 
+        const sortMap: Record<string, { column: keyof CarListing, order: 'ASC' | 'DESC' }> = {
+    latest: { column: 'created_at', order: 'DESC' },
+    year_high: { column: 'year', order: 'DESC' },
+    year_low: { column: 'year', order: 'ASC' },
+    price_high: { column: 'price', order: 'DESC' },
+    price_low: { column: 'price', order: 'ASC' },
+    mileage_high: { column: 'mileage', order: 'DESC' },
+    mileage_low: { column: 'mileage', order: 'ASC' },
+};
+
+
         // Handle sorting
         const validSortFields: (keyof CarListing)[] = [
             'id', 'title', 'price', 'year', 'mileage', 'status', 'updated_at', 'created_at'
         ];
 
-        if (sortBy && validSortFields.includes(sortBy)) {
-            baseQuery += ` ORDER BY ${sortBy} ${sortOrder.toUpperCase()}`;
-            console.log(`Applying sort: ORDER BY ${sortBy} ${sortOrder.toUpperCase()}`);
-        } else if (sortBy) {
-            console.log(`Invalid sort field: ${sortBy} - skipping sort`);
-        }
+       if (sortBy && sortMap[sortBy]) {
+    const { column, order } = sortMap[sortBy];
+    baseQuery += ` ORDER BY ${column} ${order}`;
+    console.log(`Applying sort: ORDER BY ${column} ${order}`);
+} else if (sortBy) {
+    console.log(`Invalid sort field: ${sortBy} - skipping sort`);
+}
+
 
         console.log('Final SQL query:', baseQuery);
 

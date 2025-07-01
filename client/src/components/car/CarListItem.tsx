@@ -1,30 +1,87 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import i18n, { resources } from "@/lib/i18n";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Heart, MapPin, Calendar, Fuel, Gauge, Cog } from "lucide-react";
+import {
+  Heart,
+  MapPin,
+  Calendar,
+  Fuel,
+  Gauge,
+  Cog,
+  Phone,
+  MessageCircle,
+  Loader2,
+  MessageSquare,
+} from "lucide-react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { CarCategory, CarListing, CarMake, CarModel, User } from "@shared/schema";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { calculateMonthlyPayment, fetchModelsByMake, formatTimeAgo } from "@/lib/utils";
+import { format } from "date-fns";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "../ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormMessage,
+} from "../ui/form";import { Textarea } from "../ui/textarea";
+import { AuthForms } from "../forms/AuthForm/AuthForms";
+;
+
+// Message form schema
+const messageSchema = z.object({
+  message: z
+    .string()
+    .min(10, "Message must be at least 10 characters")
+    .max(500, "Message cannot exceed 500 characters"),
+});
+
+type MessageValues = z.infer<typeof messageSchema>;
 
 interface CarListItemProps {
   car: {
     id: number;
     title: string;
     titleAr?: string;
+    currency?: string;
     price: number;
     location: string;
     images: string[];
+    image360: string;
+    make_id?: number;
+    model_id?: number;
     mileage: number;
     fuel_type: string;
+    year: string;
     transmission: string;
+    cylinders: string;
     condition: string;
     color: string;
-    isFeatured: boolean;
+    is_featured: boolean;
+    isImported: boolean;
+    is_inspected: boolean;
+    has_warranty: boolean;
+    has_insurace: boolean;
+    status: string;
+    created_at: Date;
+    updated_at?: Date;
     seller: {
       id: number;
       username: string;
@@ -41,83 +98,259 @@ const CarListItem = ({ car, isFavorited = false }: CarListItemProps) => {
   const language = i18n.language;
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
-  const [favorited, setFavorited] = useState(isFavorited);
-
+  const [, setIsFavorited] = useState(isFavorited);
+  const [comparisonList, setComparisonList] = useState<CarListing[]>([]);
+  const [authModal, setAuthModal] = useState<
+    "login" | "register" | "forget-password" | null
+  >(null);
+  const [contactDialogOpen, setContactDialogOpen] = useState(false);
   const title = language === "ar" && car.titleAr ? car.titleAr : car.title;
+  const isCompared = comparisonList?.some((c) => c.id === car.id);
 
-  // Toggle favorite mutation
-  const toggleFavorite = useMutation({
-    mutationFn: async () => {
-      return await apiRequest(
-        favorited ? "DELETE" : "POST",
-        `/api/favorites/${car.id}`,
-        {}
-      );
-    },
-    onSuccess: () => {
-      setFavorited(!favorited);
-      queryClient.invalidateQueries({ queryKey: ["/api/favorites"] });
-
-      toast({
-        title: favorited
-          ? t("favorites.removedFromFavorites")
-          : t("favorites.addedToFavorites"),
-        description: title,
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: t("common.error"),
-        description:
-          error instanceof Error
-            ? error.message
-            : t("common.somethingWentWrong"),
-        variant: "destructive",
-      });
+  // Message form
+  const messageForm = useForm<MessageValues>({
+    resolver: zodResolver(messageSchema),
+    defaultValues: {
+      message: "",
     },
   });
 
-  const handleFavoriteToggle = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const handleAddToCompare = (car: CarListing) => {
+    const existing = JSON.parse(localStorage.getItem("comparisonList") || "[]");
+    const updated = [...existing, car];
+    localStorage.setItem("comparisonList", JSON.stringify(updated));
+    setComparisonList(updated); // if you're using state
+    const stored = localStorage.getItem("comparisonList");
+    console.log("stored", stored);
+  };
 
+  const handleRemoveFromCompare = (carId: number) => {
+    setComparisonList(comparisonList.filter((c) => c.id !== carId));
+  };
+
+  const handleCall = (phone: string) => {
+    window.open(`tel:${phone}`);
+  };
+
+  const handleWhatsApp = (phone: string, carTitle: string) => {
+    const encodedMessage = encodeURIComponent(
+      `Hi, I'm interested in the ${carTitle}`
+    );
+    window.open(`https://wa.me/${phone}?text=${encodedMessage}`);
+  };
+
+  const handleContactSeller = (values: MessageValues) => {
     if (!isAuthenticated) {
-      toast({
-        title: t("common.authRequired"),
-        description: t("common.loginToFavorite"),
-        variant: "destructive",
-      });
+      setContactDialogOpen(false);
+      setAuthModal("login");
       return;
     }
 
-    toggleFavorite.mutate();
+    apiRequest("POST", "/api/messages", {
+      receiverId: car!.sellerId,
+      carId: parseInt(id),
+      content: values.message,
+    })
+      .then(() => {
+        toast({
+          title: "Message sent",
+          description: "Your message has been sent to the seller",
+        });
+        messageForm.reset();
+        setContactDialogOpen(false);
+      })
+      .catch((error) => {
+        toast({
+          title: "Message failed",
+          description:
+            error.message || "There was a problem sending your message",
+          variant: "destructive",
+        });
+      });
   };
 
+  // Toggle favorite mutation
+  if (user) {
+    const { data: favoriteData } = useQuery<any>({
+      queryKey: ["check-favorite", { listingId: car?.id, userId: user?.id }],
+      queryFn: async () => {
+        const res = await fetch("/api/favorites/check", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ listingId: car?.id, userId: user?.id }),
+        });
+        return res.json();
+      },
+      enabled: !!user?.id && !!car.id,
+    });
+
+    useEffect(() => {
+      if (favoriteData !== undefined) {
+        setIsFavorited(favoriteData);
+      }
+    }, [favoriteData]);
+  }
+
+  const {
+    data: seller,
+    error,
+    isLoading,
+  } = useQuery<User>({
+    queryKey: ["/api/users", car?.user_id],
+    queryFn: async () => {
+      console.log("Car User ID:", car?.user_id);
+
+      try {
+        const res = await fetch(`/api/users/${car?.user_id}`);
+        console.log("Response received:", res);
+
+        const data = await res.json();
+        console.log("Fetched seller data:", data);
+        return data;
+      } catch (err) {
+        console.error("Error in query function:", err);
+        throw err;
+      }
+    },
+    enabled: !!car?.user_id, // Only fetch when car data is available
+  });
+
+  
+  const { data: makes = [] } = useQuery<CarMake[]>({
+      queryKey: ["/api/car-makes"],
+    });
+
+    const carMake = makes.find(c => c.id === car.make_id)?.name || "";
+  
+    const { data: models = [] } = useQuery<CarModel[]>({
+    queryKey: ["car-models", car.make_id],
+    queryFn: () => fetchModelsByMake(car.make_id),
+    enabled: !!car.make_id,
+  });
+
+    const carModel = models.find(m => m.id === car.model_id)?.name || "";
+
+  const handleFavoriteToggle = async () => {
+    if (!isAuthenticated) {
+      setAuthModal("login");
+      return;
+    }
+
+    try {
+      if (isFavorited) {
+        await apiRequest("DELETE", "/api/favorites", {
+          listingId: car?.id,
+          userId: user?.id,
+        });
+        setIsFavorited(false);
+        toast({
+          title: "Removed from favorites",
+          description: "Car has been removed from your favorites",
+        });
+      } else {
+        await apiRequest("POST", "/api/favorites", {
+          listingId: parseInt(id),
+          userId: user?.id,
+        });
+        setIsFavorited(true);
+        toast({
+          title: "Added to favorites",
+          description: "Car has been added to your favorites",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Action failed",
+        description: "There was a problem updating your favorites",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const warrantyExpiryText = car?.warranty_expiry
+    ? `Warranty expired on ${format(
+        new Date(car.warranty_expiry),
+        "dd MMM yyyy"
+      )}`
+    : "Warranty expired";
+
+  console.log("Car data", car);
+
   return (
+    <>
     <Card
-      className={`flex flex-col md:flex-row w-full overflow-hidden hover:shadow-md transition-shadow duration-300 ${
+      className={`flex flex-col md:flex-row w-full max-w-full overflow-hidden rounded-2xl shadow-sm border ${
         car.is_featured ? "border-2 border-orange-500 border-solid" : ""
       }`}
     >
-      <Link
-        href={`/cars/${car.id}`}
-        className="flex flex-col md:flex-row w-full"
-      >
-        <div className="relative md:w-1/3 w-full h-64 md:h-auto overflow-hidden group cursor-pointer">
+      <Link href={`/cars/${car.id}`}>
+      <div className="relative w-full md:w-[400px] h-[220px] md:h-auto max-h-[300px] flex-shrink-0 bg-slate-200 flex items-center justify-center">
           {car.images && car.images.length > 0 ? (
-            <img
-              src={car.images[0]}
-              alt={title}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-            />
+            <>
+              <img
+                src={car.images[0]}
+                alt={car.title}
+                className={`h-full w-full object-cover group-hover:scale-105 transition-transform duration-300 ${
+                  car.status === "sold" ? "opacity-50" : ""
+                }`}
+              />
+              {/* SOLD STAMP */}
+              {car.status === "sold" && (
+                <div className="absolute inset-0 flex items-center justify-center z-10">
+                  <div className="text-red-500 text-xl font-extrabold border-red-500 border-2 px-6 py-2 shadow-lg transform rotate-[-10deg] opacity-90">
+                    SOLD
+                  </div>
+                </div>
+              )}
+
+              {/* NEW RIBBON */}
+              {new Date(car.created_at).toDateString() ===
+                new Date().toDateString() && (
+                <div className="absolute top-5 left-[-40px] -rotate-45 bg-red-700 text-white font-black px-20 py-1 text-lg shadow-lg z-10">
+                  NEW
+                </div>
+              )}
+
+               {/* LOW MILEAGE RIBBON */}
+                {(() => {
+                  const currentYear = new Date().getFullYear();
+                  const carYear = parseInt(car.year);
+                  const yearsOwned = Math.max(currentYear - carYear + 1, 1); // Prevent division by zero
+                  const avgMileagePerYear = car.mileage / yearsOwned;
+                  const condition = car.condition?.toLowerCase();
+
+                  if (
+                    condition === "used" &&
+                    avgMileagePerYear < 25000
+                  ) {
+                    return (
+                      <div className="absolute top-10 left-[-60px] -rotate-45 bg-green-500 text-white font-black px-20 py-1 text-sm shadow-lg z-10">
+                        LOW MILEAGE
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+
+              {/* 360 Overlay */}
+              {car.image360 && (
+                <div className="absolute bottom-2 left-2 z-10">
+                  <img
+                    src="/360-listing.png"
+                    alt="360 Available"
+                    className="w-10 h-10 md:w-12 md:h-12 drop-shadow-lg"
+                  />
+                </div>
+              )}
+            </>
           ) : (
-            <div className="h-full w-full bg-slate-200 flex items-center justify-center">
+            <div className="relative h-full w-full bg-slate-200 flex items-center justify-center">
               <p className="text-slate-400">{t("common.noImage")}</p>
             </div>
           )}
 
-          {car.isFeatured && (
-            <Badge className="absolute top-2 left-2 bg-yellow-500 hover:bg-yellow-600">
+          {car.is_featured && (
+            <Badge className="absolute top-2 right-2 bg-blue-700 hover:bg-orange-500">
               {t("common.featured")}
             </Badge>
           )}
@@ -125,98 +358,239 @@ const CarListItem = ({ car, isFavorited = false }: CarListItemProps) => {
           <Button
             size="icon"
             variant="ghost"
-            className={`absolute top-2 right-2 rounded-full ${
-              favorited
-                ? "bg-rose-100 text-rose-500 hover:bg-rose-200 hover:text-rose-600"
-                : "bg-white text-slate-400 hover:bg-slate-100 hover:text-slate-500"
+            className={`absolute top-2 left-2 rounded-full ${
+              isFavorited
+                ? "rounded-full hover:text-orange-600 hover:border-orange-600 bg-orange-600 text-white"
+                : "rounded-full text-orange-600 border-orange-600 hover:bg-orange-600 hover:text-white"
             }`}
             onClick={handleFavoriteToggle}
-            disabled={toggleFavorite.isPending}
           >
-            <Heart className={favorited ? "fill-rose-500" : ""} size={20} />
+            <Heart
+              className="w-4 h-4"
+              fill={isFavorited ? "currentColor" : "none"}
+            />
           </Button>
         </div>
+      </Link>
 
-        <div className="flex-1 flex flex-col justify-between p-4">
-          <div>
-            <h3 className="text-lg font-semibold mb-1 hover:text-blue-600 transition-colors line-clamp-2">
-              {title}
-            </h3>
-            <p className="text-2xl font-bold text-blue-600 mb-3">
-              ${car.price.toLocaleString()}
-            </p>
-            <div className="flex items-center text-slate-500 text-sm mb-3">
-              <MapPin size={16} className="mr-1" />
-              <span>{car.location}</span>
+      <CardContent className="p-4">
+        <div className="grid grid-cols-1 lg:grid-cols-[4fr_1fr] gap-4">
+          {/* LEFT COLUMN: Car Details */}
+
+          <div className="flex-1 p-4 flex flex-col justify-between">
+            <Link href={`/cars/${car?.id}`}>
+              <h3 className="text-base font-extrabold uppercase text-slate-900 whitespace-nowrap overflow-hidden text-ellipsis">
+                {title}
+              </h3>
+            </Link>
+
+            <div className="text-blue-800 font-bold text-lg">
+              {car?.currency || "QR"}{" "}
+              {car?.price != null
+                ? Number(car.price).toLocaleString("en-US", {
+                    maximumFractionDigits: 0,
+                  })
+                : "N/A"}
             </div>
-
-            <div className="grid grid-cols-3 gap-2 text-sm mb-4">
-              <div className="flex flex-col items-center p-2 bg-slate-50 rounded-md">
-                <Gauge size={18} className="text-slate-500 mb-1" />
-                <span>
-                  {car.mileage.toLocaleString()} {t("car.miles")}
-                </span>
-              </div>
-              <div className="flex flex-col items-center p-2 bg-slate-50 rounded-md">
-                <Fuel size={18} className="text-slate-500 mb-1" />
-                <span>
-                  {t(
-                    `car.${car.fuel_type?.toLowerCase?.() || "unknownFuelType"}`
-                  )}
-                </span>
-              </div>
-              <div className="flex flex-col items-center p-2 bg-slate-50 rounded-md">
-                <Cog size={18} className="text-slate-500 mb-1" />
-                <span>
-                  {t(
-                    `car.${
-                      car.transmission?.toLowerCase?.() || "unknownTransmission"
-                    }`
-                  )}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex justify-between items-center border-t pt-4">
-            <div className="flex items-center">
-              {car.showroom_name || car.seller ? (
+            <div className="text-green-500 font-bold text-lg">
+              {car?.price != null ? (
                 <>
-                  <img
-                    src={
-                      car?.showroom_logo ||
-                      (car?.showroom_name && car?.seller.avatar) ||
-                      "/fallback-avatar.png"
-                    }
-                    alt={car?.showroom_name || car?.seller.username}
-                    className="w-8 h-8 rounded-full mr-2 object-cover"
-                    onError={(e) => {
-                      e.currentTarget.onerror = null;
-                      e.currentTarget.src = "/fallback-avatar.png";
-                    }}
-                  />
-                  <span className="text-sm text-slate-600">
-                    {car?.showroom_name || car?.seller.username}
-                  </span>
+                  {car?.currency || "QR"}{" "}
+                  {calculateMonthlyPayment(car.price).toLocaleString("en-US", {
+                    maximumFractionDigits: 0,
+                  })}
+                  /Month
                 </>
               ) : (
-                <div className="text-sm text-slate-400">
-                  {t("common.unknownSeller")}
+                "N/A"
+              )}
+            </div>
+
+            <div className="flex justify-between mt-4 text-xs max-w-[250px] text-slate-700">
+              <div className="flex items-center gap-1">
+                <img src="/src/assets/car-calendar.png" className="w-4 h-4" />
+                <span>{car.year || "2021"}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <img src="/src/assets/car-cylinders.png" className="w-4 h-4" />
+                <span>{car.cylinder_count || "4 Cylinder"}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <img src="/src/assets/car-mileage.png" className="w-4 h-4" />
+                <span>{car?.mileage?.toLocaleString()} KM</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4 mt-4">
+              {car?.has_warranty && (
+                <div className="flex items-center gap-1">
+                  <img
+                    src="/src/assets/car-warranty.png"
+                    className="w-4 h-4"
+                    title={warrantyExpiryText}
+                  />
+                  <span className="text-blue-900 text-sm">Warranty</span>
+                </div>
+              )}
+
+              {car?.is_inspected && (
+                <div className="flex items-center gap-1">
+                  <img
+                    src="/src/assets/car-inspected.png"
+                    className="w-4 h-4"
+                  />
+                  <span className="text-red-500 text-sm">Inspected</span>
                 </div>
               )}
             </div>
 
+            <div className="text-blue-900 text-xs mt-4">
+              Do you have a similar <strong>{carMake} {carModel}</strong> to sell? Sell it yourself!
+            </div>
+          </div>
+
+          {/* RIGHT COLUMN: Buttons */}
+          <div className="flex flex-col gap-2 md:w-40 p-4 items-end justify-start">
             <Button
               size="sm"
-              variant="outline"
-              className="text-blue-600 border-blue-200 hover:bg-blue-50"
+              className="w-full rounded-full bg-blue-900 text-white flex items-center justify-center gap-2"
+              onClick={() => handleCall(car?.showroom?.phone || seller?.phone)}
             >
-              {t("common.viewDetails")}
+              <Phone size={16} />
+              {t("common.call")}
             </Button>
+
+            <Button
+              size="sm"
+              className="w-full rounded-full bg-red-500 text-white flex items-center justify-center gap-2"
+              onClick={() => {
+                if (isAuthenticated) {
+                  setContactDialogOpen(true);
+                } else {
+                  setAuthModal("login");
+                }
+              }}
+            >
+              <MessageCircle size={16} />
+              {t("common.chat")}
+            </Button>
+
+            <Button
+              size="sm"
+              className="w-full rounded-full bg-green-500 text-white flex items-center justify-center gap-2"
+              onClick={() =>
+                handleWhatsApp(car?.showroom?.phone ?? seller?.phone, car.title)
+              }
+            >
+              <MessageCircle size={16} />
+              WhatsApp
+            </Button>
+
+            <div className="flex py-1 px-4 border-2 border-blue-900 mt-4 items-center space-x-2 cursor-pointer">
+              <span className="text-sm font-semibold text-blue-900">
+                <Link href="/compare">{t("common.addCompare")}</Link>
+              </span>
+              <input
+                type="checkbox"
+                checked={isCompared}
+                onChange={() => {
+                  if (isCompared) {
+                    handleRemoveFromCompare(car?.id);
+                  } else {
+                    handleAddToCompare(car);
+                  }
+                }}
+                className="h-4 w-4 rounded border-neutral-300 text-orange-500 focus:ring-orange-500"
+              />
+            </div>
+
+            <div className="flex items-center gap-2 mt-2">
+              <div className="text-neutral-600 font-medium text-sm">
+                {car?.created_at ? formatTimeAgo(car.created_at) : "Just now"}
+              </div>
+
+              {car?.showroom_name && car?.showroom_logo && (
+                <Link href={`/showrooms/${car.showroom_id}`}>
+                  <img
+                    src={car.showroom_logo}
+                    alt={car.showroom_name}
+                    className="w-8 h-8 rounded-full object-cover"
+                  />
+                </Link>
+              )}
+            </div>
           </div>
         </div>
-      </Link>
+      </CardContent>
     </Card>
+
+    {/* Contact Seller Dialog */}
+          <Dialog open={contactDialogOpen} onOpenChange={setContactDialogOpen}>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>{t("car.contactSeller")}</DialogTitle>
+                <DialogDescription>{t("car.contactSellerDesc")}</DialogDescription>
+              </DialogHeader>
+    
+              <Form {...messageForm}>
+                <form
+                  onSubmit={messageForm.handleSubmit(handleContactSeller)}
+                  className="space-y-4"
+                >
+                  <div className="bg-neutral-50 p-3 rounded-md text-sm mb-4">
+                    <p className="font-medium">
+                      {t("car.regarding")}: {title}
+                    </p>
+                    <p className="text-primary font-medium mt-1">
+                      {car.currency || "QR"} {car.price.toLocaleString()}
+                    </p>
+                  </div>
+    
+                  <FormField
+                    control={messageForm.control}
+                    name="message"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <Textarea
+                            placeholder={t("car.writeYourMessage")}
+                            className="min-h-[120px]"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+    
+                  <DialogFooter>
+                    <Button type="submit" className="w-full">
+                      {messageForm.formState.isSubmitting ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <MessageSquare size={16} className="mr-1" />
+                      )}
+                      {t("car.sendMessage")}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </Form>
+            </DialogContent>
+          </Dialog>
+    
+          {/* Auth Modal */}
+          {authModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+              <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 animate-in fade-in duration-300">
+                <AuthForms
+                  initialView={authModal}
+                  onClose={() => setAuthModal(null)}
+                  onSwitchView={(view) => setAuthModal(view)}
+                />
+              </div>
+            </div>
+          )}
+          </>
   );
 };
 

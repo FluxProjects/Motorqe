@@ -12,9 +12,26 @@ import CarCapacityCard from "./CarCapacityCard";
 
 type TabType = "category" | "brand" | "budget" | "year" | "capacity";
 
+
+
 const CarTypeTabsSection = () => {
   const { t } = useTranslation();
   const [activeType, setActiveType] = useState<string | null>(null);
+  const [showAll, setShowAll] = useState<Record<TabType, boolean>>({
+  category: false,
+  brand: false,
+  budget: false,
+  year: false,
+  capacity: false,
+});
+
+const INITIAL_DISPLAY_LIMITS: Record<TabType, number> = {
+  category: 10,
+  brand: 10,
+  budget: 10,
+  year: 10,
+  capacity: 10,
+};
 
   const tabs: { key: TabType; label: string }[] = [
     { key: "category", label: t("common.bodyType") },
@@ -93,6 +110,28 @@ const CarTypeTabsSection = () => {
     "Hyundai",
   ];
 
+  const displayCategories = showAll.category
+  ? categories
+  : categories.slice(0, INITIAL_DISPLAY_LIMITS.category);
+
+const filteredBrands = makes.filter((brand) => famousMakes.includes(brand.name));
+const displayBrands = showAll.brand
+  ? filteredBrands
+  : filteredBrands.slice(0, INITIAL_DISPLAY_LIMITS.brand);
+
+const displayBudgets = showAll.budget
+  ? staticBudgets
+  : staticBudgets.slice(0, INITIAL_DISPLAY_LIMITS.budget);
+
+const displayYears = showAll.year
+  ? staticYears
+  : staticYears.slice(0, INITIAL_DISPLAY_LIMITS.year);
+
+const displayCapacities = showAll.capacity
+  ? engineCapacityRanges
+  : engineCapacityRanges.slice(0, INITIAL_DISPLAY_LIMITS.capacity);
+
+
   return (
     <section className="bg-white py-20">
       <div className="max-w-7xl mx-auto px-4 text-center relative">
@@ -121,40 +160,47 @@ const CarTypeTabsSection = () => {
         {/* Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
           {currentTab === "category" &&
-            categories.map((cat) => (
+            displayCategories.map((cat) => (
               <CarCategoryCard key={cat.id} category={cat} />
             ))}
 
           {currentTab === "brand" &&
-            makes
-              .filter((brand) => famousMakes.includes(brand.name))
-              .slice(0, 10)
-              .map((brand) => <CarMakeCard key={brand.id} make={brand} />)}
+            displayBrands.map((brand) => (
+              <CarMakeCard key={brand.id} make={brand} />
+            ))}
 
           {currentTab === "budget" &&
-            staticBudgets.map((budget) => (
+            displayBudgets.map((budget) => (
               <CarBudgetCard key={budget.id} budget={budget} />
             ))}
 
           {currentTab === "year" &&
-            staticYears.map((year) => (
+            displayYears.map((year) => (
               <CarYearCard key={year.id} yearRange={year} />
             ))}
 
           {currentTab === "capacity" &&
-            engineCapacityRanges.map((capacity) => (
+            displayCapacities.map((capacity) => (
               <CarCapacityCard key={capacity.id} capacity={capacity} />
             ))}
+
         </div>
 
         {/* View More Button */}
         <div className="flex flex-col items-end mt-10">
-          <Link href="/browse">
-            <a className="inline-block bg-orange-500 hover:bg-orange-600 text-white font-semibold px-6 py-2 rounded-full transition">
-              View More
-            </a>
-          </Link>
-        </div>
+  <button
+    onClick={() =>
+      setShowAll((prev) => ({
+        ...prev,
+        [currentTab]: !prev[currentTab as TabType],
+      }))
+    }
+    className="inline-block bg-orange-500 hover:bg-orange-600 text-white font-semibold px-6 py-2 rounded-full transition"
+  >
+    {showAll[currentTab as TabType] ? t("common.viewLess") : t("common.viewMore")}
+  </button>
+</div>
+
       </div>
     </section>
   );

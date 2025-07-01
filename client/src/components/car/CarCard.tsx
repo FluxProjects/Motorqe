@@ -67,7 +67,7 @@ interface CarCardProps {
     cylinders: string;
     condition: string;
     color: string;
-    isFeatured: boolean;
+    is_featured: boolean;
     isImported: boolean;
     is_inspected: boolean;
     has_warranty: boolean;
@@ -91,7 +91,7 @@ const CarCard = ({ car, isFavorited = false }: CarCardProps) => {
   const { t } = useTranslation();
   const language = i18n.language;
   const { toast } = useToast();
-  const [, setIsFavorited] = useState(false);
+  const [, setIsFavorited] = useState(isFavorited);
   const [comparisonList, setComparisonList] = useState<CarListing[]>([]);
   const [authModal, setAuthModal] = useState<
     "login" | "register" | "forget-password" | null
@@ -289,6 +289,27 @@ const CarCard = ({ car, isFavorited = false }: CarCardProps) => {
                   </div>
                 )}
 
+                {/* LOW MILEAGE RIBBON */}
+                {(() => {
+                  const currentYear = new Date().getFullYear();
+                  const carYear = parseInt(car.year);
+                  const yearsOwned = Math.max(currentYear - carYear + 1, 1); // Prevent division by zero
+                  const avgMileagePerYear = car.mileage / yearsOwned;
+                  const condition = car.condition?.toLowerCase();
+
+                  if (
+                    condition === "used" &&
+                    avgMileagePerYear < 25000
+                  ) {
+                    return (
+                      <div className="absolute top-10 left-[-60px] -rotate-45 bg-green-500 text-white font-black px-20 py-1 text-sm shadow-lg z-10">
+                        LOW MILEAGE
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+
                 {/* 360 Overlay */}
                 {car.image360 && (
                   <div className="absolute bottom-2 left-2 z-10">
@@ -395,7 +416,7 @@ const CarCard = ({ car, isFavorited = false }: CarCardProps) => {
           </div>
 
           <div className="flex justify-between items-center mt-3">
-            <label className="flex items-center space-x-2 cursor-pointer">
+            <div className="flex items-center space-x-2 cursor-pointer">
               <span className="text-sm font-semibold text-blue-900">
                 <Link href="/compare">{t("common.addCompare")}</Link>
               </span>
@@ -411,19 +432,23 @@ const CarCard = ({ car, isFavorited = false }: CarCardProps) => {
                 }}
                 className="h-4 w-4 rounded border-neutral-300 text-orange-500 focus:ring-orange-500"
               />
-            </label>
+            </div>
 
-            {car?.has_warranty && (
-              <img
-                src="/src/assets/car-warranty.png"
-                className="w-4 h-4"
-                title={warrantyExpiryText}
-              />
-            )}
+            <div className="flex justify-between text-xs text-slate-700 mt-2">
+                {car?.has_warranty && (
+                  <img
+                    src="/src/assets/car-warranty.png"
+                    className="w-4 h-4"
+                    title={warrantyExpiryText}
+                  />
+                )}
 
-            {car?.is_inspected && (
-              <img src="/src/assets/car-inspected.png" className="w-4 h-4" />
-            )}
+                {car?.is_inspected && (
+                  <img src="/src/assets/car-inspected.png" className="w-4 h-4" />
+                )}
+            </div>
+
+            
 
             <div className="text-neutral-600 font-medium text-sm">
               {car?.created_at ? formatTimeAgo(car.created_at) : "Just now"}

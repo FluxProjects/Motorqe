@@ -48,6 +48,28 @@ import {
 import { fetchModelsByMake } from "@/lib/utils";
 import { MultiSelect } from "@/components/ui/multiselect";
 import { useBannerAds } from "@/hooks/use-bannerAds";
+import { PriceInputCombobox } from "@/components/ui/priceinput";
+import { Form, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+
+// Search form schema
+const searchFormSchema = z.object({
+  minYear: z.string().optional(),
+  maxYear: z.string().optional(),
+
+  make: z.string().optional(),
+  model: z.string().optional(),
+  condition: z.string().optional(),
+
+  owner_type: z.array(z.string()).optional(),
+  sort: z.string().optional(),
+  page: z.number().optional(),
+  limit: z.number().optional(),
+});
+
+type SearchFormValues = z.infer<typeof searchFormSchema>;
 
 const BrowseCars = () => {
   const { t } = useTranslation();
@@ -55,12 +77,17 @@ const BrowseCars = () => {
   const [searchParams, setSearchParams] = useState<URLSearchParams>(
     () => new URLSearchParams(window.location.search)
   );
+   const form = useForm<SearchFormValues>({
+      resolver: zodResolver(searchFormSchema),
+      defaultValues: {
+      },
+    });
   const [filters, setFilters] = useState<CarListingFilters>({
     search: searchParams?.get("search") || "",
     minPrice: "all",
     maxPrice: "all",
-    minYear: "all",
-    maxYear: "all",
+    minYear: "",
+    maxYear: "",
 
     make: "all",
     model: "all",
@@ -86,6 +113,7 @@ const BrowseCars = () => {
     isActive: true,
     isFeatured: "all",
     isImported: "all",
+    isInspected: "all",
 
     ownerType: [],
     hasWarranty: "all",
@@ -96,6 +124,7 @@ const BrowseCars = () => {
     limit: 9,
   });
   const [filtersOpen, setFiltersOpen] = useState(false);
+
 
   // Extract query params on initial load
   useEffect(() => {
@@ -271,17 +300,18 @@ const BrowseCars = () => {
       }));
   }, []);
 
+  const selectedMakeId = form.watch("make");
+
   // Fetch available makes for filter
   const { data: makes = [] } = useQuery<CarMake[]>({
     queryKey: ["/api/car-makes"],
   });
 
-  const { data: models = [] } = useQuery({
-    queryKey: ["car-models", filters.make],
-    queryFn: () => fetchModelsByMake(filters.make),
-    enabled: !!filters.make && filters.make !== "all", // Only fetch if a specific make is selected
+   const { data: models = [] } = useQuery<CarModel[]>({
+    queryKey: ["car-models", selectedMakeId],
+    queryFn: () => fetchModelsByMake(selectedMakeId),
+    enabled: !!selectedMakeId && selectedMakeId !== "all",
   });
-
   // Fetch car categories for filter
   const { data: categories = [] } = useQuery<CarCategory[]>({
     queryKey: ["/api/car-categories"],
@@ -408,7 +438,7 @@ const BrowseCars = () => {
 
       // Year Filter
       const minYear =
-        filters?.minYear === "all" ? 0 : parseFloat(filters?.minYear || "1990");
+        filters?.minYear === "all" ? 0 : parseFloat(filters?.minYear || "1900");
       const maxYear =
         filters?.maxYear === "all"
           ? Infinity
@@ -778,8 +808,8 @@ const BrowseCars = () => {
     setFilters({
       minPrice: "all",
       maxPrice: "all",
-      minYear: "all",
-      maxYear: "all",
+      minYear: "",
+      maxYear: "",
 
       make: "all",
       model: "all",
@@ -876,10 +906,21 @@ const BrowseCars = () => {
   );
 
   const currentYear = new Date().getFullYear();
-  const years = Array.from(
-    { length: currentYear - 1989 },
-    (_, i) => currentYear - i
-  );
+const yearSteps = Array.from({ length: currentYear - 1900 + 1 }, (_, idx) => 1900 + idx);
+
+ const makeOptions = [
+    { value: "all", label: t("common.all") },
+    ...(makes?.map((make: CarMake) => ({
+      value: String(make.id),
+      label: make.name,
+    })) ?? []),
+  ];
+
+  const modelOptions =
+    models?.map((model: CarModel) => ({
+      value: String(model.id),
+      label: model.name,
+    })) ?? [];
 
   return (
     <div className="bg-white min-h-screen py-8">
@@ -906,52 +947,50 @@ const BrowseCars = () => {
                   <FilterX size={18} />
                 </Button>
               </div>
-
+              <Form {...form}>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                 {/* Make Filter */}
                 <div>
-                  <Label className="block text-sm font-medium mb-1">
-                    {t("car.make")}
-                  </Label>
-                  <Select
-                    value={filters.make}
-                    onValueChange={(value) => updateFilters({ make: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={t("car.allMakes")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">{t("car.allMakes")}</SelectItem>
-                      {makes?.map((make: CarMake) => (
-                        <SelectItem key={make.id} value={make.id.toString()}>
-                          {make.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                 <FormField
+                    control={form.control}
+                    name="make"
+                    render={({ field }) => (
+                      <FormItem className="w-full">
+                        <FormLabel>{t("car.make")}</FormLabel>
+                        <MultiSelect
+                          options={makeOptions}
+                          selected={field.value ? [String(field.value)] : []}
+                          onChange={(val: string[]) => {
+                            field.onChange(val.length > 0 ? val[0] : ""); // For single-select
+                          }}
+                          placeholder={t("car.selectMake")}
+                        />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
 
                 {/* Model Filter */}
                 <div>
-                  <Label className="block text-sm font-medium mb-1">
-                    {t("car.model")}
-                  </Label>
-                  <Select
-                    value={filters.model}
-                    onValueChange={(value) => updateFilters({ model: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={t("car.allModels")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">{t("car.allModels")}</SelectItem>
-                      {models?.map((model: CarModel) => (
-                        <SelectItem key={model.id} value={model.id.toString()}>
-                          {model.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                   <FormField
+                      control={form.control}
+                      name="model"
+                      render={({ field }) => (
+                        <FormItem className="w-full">
+                          <FormLabel>{t("car.model")}</FormLabel>
+                          <MultiSelect
+                            options={modelOptions}
+                            selected={field.value ? [String(field.value)] : []}
+                            onChange={(val: string[]) => {
+                              field.onChange(val.length > 0 ? val[0] : ""); // Single select
+                            }}
+                            placeholder={t("car.selectModel")}
+                          />
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                 </div>
 
                 {/* Year Filter */}
@@ -960,26 +999,15 @@ const BrowseCars = () => {
                     {t("car.year")}
                   </Label>
                   <div className="mt-2">
-                    <Select
-                      value={filters.minYear?.toString() ?? ""}
-                      onValueChange={(value) =>
-                        updateFilters({ minYear: value, maxYear: value })
-                      }
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder={t("car.allYears")} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">{t("car.allYears")}</SelectItem>
-                        {years.map((year) => (
-                          <SelectItem key={year} value={year.toString()}>
-                            {year}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <PriceInputCombobox
+                      value={filters.minYear}
+                      onChange={(value) => updateFilters({ minYear: value, maxYear: value })}
+                      placeholder={t("car.allYears")}
+                      options={yearSteps}
+                    />
                   </div>
                 </div>
+
 
                 {/* Condition Filter */}
                 <div>
@@ -1025,6 +1053,7 @@ const BrowseCars = () => {
                   />
                 </div>
               </div>
+              </Form>
             </div>
           </div>
 
@@ -1046,77 +1075,73 @@ const BrowseCars = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="newest">{t("car.newestFirst")}</SelectItem>
-                  <SelectItem value="oldest">{t("car.oldestFirst")}</SelectItem>
-                  <SelectItem value="price_high">
-                    {t("car.priceHighToLow")}
-                  </SelectItem>
-                  <SelectItem value="price_low">
-                    {t("car.priceLowToHigh")}
-                  </SelectItem>
+                  <SelectItem value="year_high">{t("car.yearHighToLow")}</SelectItem>
+                  <SelectItem value="year_low">{t("car.yearLowToHigh")}</SelectItem>
+                  <SelectItem value="price_high">{t("car.priceHighToLow")}</SelectItem>
+                  <SelectItem value="price_low">{t("car.priceLowToHigh")}</SelectItem>
+                  <SelectItem value="mileage_high">{t("car.mileageHighToLow")}</SelectItem>
+                  <SelectItem value="mileage_low">{t("car.mileageLowToHigh")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             {/* Results header */}
-            <div className="bg-white rounded-lg p-4 flex justify-between items-center mb-6">
-              <div>
-                <p className="text-neutral-600">
-                  {isLoading ? (
-                    <span className="flex items-center">
-                      <LoaderCircle className="animate-spin mr-2" size={16} />
-                      {t("common.loading")}
-                    </span>
-                  ) : totalCars > 0 ? (
-                    `${totalCars} ${t("common.carsFound")}`
-                  ) : (
-                    t("common.noResults")
-                  )}
-                </p>
-              </div>
+            <div className="bg-white rounded-lg pt-4 pb-4 flex justify-between items-center mb-6 flex-wrap gap-4">
+  {/* Left: Listing count */}
+  <div>
+    <p className="text-neutral-600">
+      {isLoading ? (
+        <span className="flex items-center">
+          <LoaderCircle className="animate-spin mr-2" size={16} />
+          {t("common.loading")}
+        </span>
+      ) : totalCars > 0 ? (
+        `${totalCars} ${t("common.carsFound")}`
+      ) : (
+        t("common.noResults")
+      )}
+    </p>
+  </div>
 
-              <div className="flex justify-end mb-4">
-                <ToggleGroup
-                  type="single"
-                  value={viewMode}
-                  onValueChange={(value) => {
-                    if (value) setViewMode(value as "grid" | "list");
-                  }}
-                >
-                  <ToggleGroupItem value="grid" aria-label="Grid view">
-                    <LayoutGrid size={16} />
-                  </ToggleGroupItem>
-                  <ToggleGroupItem value="list" aria-label="List view">
-                    <List size={16} />
-                  </ToggleGroupItem>
-                </ToggleGroup>
-              </div>
+  {/* Right: Toggle view + Sort options */}
+  <div className="flex items-center gap-4 ml-auto">
+    {/* Toggle view options */}
+    <ToggleGroup
+      type="single"
+      value={viewMode}
+      onValueChange={(value) => {
+        if (value) setViewMode(value as "grid" | "list");
+      }}
+    >
+      <ToggleGroupItem value="grid" aria-label="Grid view">
+        <LayoutGrid size={16} />
+      </ToggleGroupItem>
+      <ToggleGroupItem value="list" aria-label="List view">
+        <List size={16} />
+      </ToggleGroupItem>
+    </ToggleGroup>
 
-              {/* Sort options - desktop */}
-              <div className="hidden md:block">
-                <Select
-                  value={filters.sort}
-                  onValueChange={(value) => updateFilters({ sort: value })}
-                >
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder={t("car.sortBy")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="newest">
-                      {t("car.newestFirst")}
-                    </SelectItem>
-                    <SelectItem value="oldest">
-                      {t("car.oldestFirst")}
-                    </SelectItem>
-                    <SelectItem value="price_high">
-                      {t("car.priceHighToLow")}
-                    </SelectItem>
-                    <SelectItem value="price_low">
-                      {t("car.priceLowToHigh")}
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+    {/* Sort options */}
+    <Select
+      value={filters.sort}
+      onValueChange={(value) => updateFilters({ sort: value })}
+    >
+      <SelectTrigger className="w-[180px]">
+        <SelectValue placeholder={t("car.sortBy")} />
+      </SelectTrigger>
+     <SelectContent>
+  <SelectItem value="newest">{t("car.newestFirst")}</SelectItem>
+  <SelectItem value="year_high">{t("car.yearHighToLow")}</SelectItem>
+  <SelectItem value="year_low">{t("car.yearLowToHigh")}</SelectItem>
+  <SelectItem value="price_high">{t("car.priceHighToLow")}</SelectItem>
+  <SelectItem value="price_low">{t("car.priceLowToHigh")}</SelectItem>
+  <SelectItem value="mileage_high">{t("car.mileageHighToLow")}</SelectItem>
+  <SelectItem value="mileage_low">{t("car.mileageLowToHigh")}</SelectItem>
+</SelectContent>
+    </Select>
+  </div>
+</div>
+
 
             {/* Results grid */}
             {isLoading ? (
