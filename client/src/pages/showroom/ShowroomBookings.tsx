@@ -75,12 +75,12 @@ export default function CustomerServiceBookings() {
 
 
   // Memoized transformation of bookings data
- const bookings = useMemo(() => {
-  console.log("bookingsData", bookingsData);
+const now = new Date();
 
-  const now = new Date();
+let bookings: ServiceBooking[] = [];
 
-  const filtered = bookingsData?.filter((booking: ServiceBooking) => {
+if (bookingsData) {
+  bookings = bookingsData.filter((booking: ServiceBooking) => {
     const scheduledAt = new Date(booking.scheduled_at);
 
     if (activeTab === "upcoming") {
@@ -94,14 +94,15 @@ export default function CustomerServiceBookings() {
       const isInPast = scheduledAt < now;
       return isCompletedStatus || isInPast;
     }
-  }) ?? [];
+  });
 
-  return filtered.sort((a, b) =>
+  bookings.sort((a, b) =>
     sortBy === "new bookings"
       ? new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       : new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
   );
-}, [bookingsData, activeTab, sortBy]);
+}
+
 
 
   console.log("bookings", bookings);

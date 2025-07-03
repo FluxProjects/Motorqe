@@ -21,7 +21,7 @@ export default function CarLoanCalculator({ vehiclePrice }: LoanCalculatorProps)
   const { data: settingsData = [], isLoading, refetch } = useSettings();
   const [downPaymentPercentage, setDownPaymentPercentage] = useState(20);
   const [interestRate, setInterestRate] = useState(5.5);
-  const [repaymentPeriod, setRepaymentPeriod] = useState(0);
+  const [repaymentPeriod, setRepaymentPeriod] = useState(48);
   const { toast } = useToast();
 
  const handleApplyNow = () => {
@@ -247,20 +247,20 @@ export default function CarLoanCalculator({ vehiclePrice }: LoanCalculatorProps)
 
           {/* Middle Column - Monthly Payment Card */}
           <div className="flex items-stretch">
-            <div className="bg-gray-200 rounded-3xl p-8 w-full shadow-sm flex flex-col justify-center min-h-full">
+            <div className="bg-gray-200 rounded-3xl pt-0 p-8 w-full shadow-sm flex flex-col justify-center min-h-full">
               <div className="text-center">
                 {/* Nationwide Building Society Logo */}
-                <div className="mb-6 inline-block">
+                <div className="mb-20 inline-block">
                   <a href={settingsData?.bank_url} target="_blank" rel="noopener noreferrer">
-                    <img src={settingsData?.bank_logo} alt={settingsData?.bank_logo} className="max-w-[200px]" />
+                    <img src={settingsData?.bank_logo} alt={settingsData?.bank_logo} className="max-w-[275px]" />
                   </a>
                 </div>
                 
-                <div className="mb-4">
+                <div className="mb-2">
                   <span className="text-lg text-gray-700 font-medium">Monthly Payments</span>
                 </div>
                 
-                <div className="text-4xl font-bold text-blue-700 mb-8">
+                <div className="text-4xl font-bold text-blue-700 mb-20">
                   {formatCurrency(loanResults.monthlyPayment)}
                 </div>
                 

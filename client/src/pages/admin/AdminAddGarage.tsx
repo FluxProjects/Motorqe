@@ -488,7 +488,7 @@ const [selectedMakeIds, setSelectedMakeIds] = useState<string[]>([]);
 
                   <div className="h-[300px] w-full rounded border">
                     <GoogleMaps
-                      center={{ lat: 24.8607, lng: 67.0011 }}
+                      center={{ lat: 25.2854, lng: 51.5310 }}
                       zoom={11}
                       onMapClick={({ lat, lng }) => {
                         form.setValue("location", `${lat},${lng}`);

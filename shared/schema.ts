@@ -1289,11 +1289,13 @@ export type ListingFormData = {
   basicInfo?: {
     listingType?: string;
     title: string;
+    titleAr: string;
     description?: string;
     descriptionAr?: string;
-    location?: string;
     price?: string;
     currency?: string;
+    location?: string;
+    
   };
   specifications?: {
     year?: string;
@@ -1426,6 +1428,7 @@ export interface CarListingFilters {
   hasWarranty?: string;
   hasInsurance?: string;
   isBusiness?: boolean | string;
+  userId?: string;
   // Sorting and Pagination
   sort: string;
   page: number;
@@ -1434,10 +1437,11 @@ export interface CarListingFilters {
 
 export interface AdminCarListing {
   id: number;
+  listing_type?: string;
   title: string;
-  titleAr?: string;
+  title_ar?: string;
   description?: string;
-  descriptionAr?: string;
+  description_ar?: string;
 
   price: number;
   currency?: string;
@@ -1477,6 +1481,7 @@ export interface AdminCarListing {
   insurance_type?: 'comprehensive' | 'third-party' | 'none';
   insurance_expirty?: string;
   is_business?: string;
+  inspection_report?: string;
 
   views?: number;
   created_at: string;

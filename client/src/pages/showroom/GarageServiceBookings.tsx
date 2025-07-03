@@ -71,21 +71,20 @@ export default function GarageServiceBookings() {
   console.log("bookingsData", bookingsData);
 
   // Memoized transformation of bookings data
-  const bookings = useMemo(() => {
-    return bookingsData
-      .filter((booking: ServiceBooking) =>
-        activeTab === "pending"
-          ? booking.status === "pending"
-          : booking.status === "confirmed"
-      )
-      .sort((a: ServiceBooking, b: ServiceBooking) =>
-        sortBy === "new bookings"
-          ? new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-          : new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-      );
-  }, [bookingsData, activeTab, sortBy]);
+  const bookings =
+  bookingsData
+    ?.filter((booking: ServiceBooking) =>
+      activeTab === "pending"
+        ? booking.status === "pending"
+        : booking.status === "confirmed"
+    )
+    .sort((a: ServiceBooking, b: ServiceBooking) =>
+      sortBy === "new bookings"
+        ? new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        : new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    ) ?? [];
 
-  console.log("bookings", bookings);
+console.log("bookings", bookings);
 
  useEffect(() => {
   const fetchGarageAvailability = async () => {

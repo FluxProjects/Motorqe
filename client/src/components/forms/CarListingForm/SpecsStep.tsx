@@ -19,33 +19,35 @@ import {
 import { StepProps } from "@shared/schema";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import ImageUpload from "@/components/ui/image-upload";
+import { MultiSelect } from "@/components/ui/multiselect";
+import { useTranslation } from "react-i18next";
 
 export function SpecsStep({ data, updateData, nextStep, prevStep }: StepProps) {
+  const { t } = useTranslation();
   const [formData, setFormData] = useState({
     year: data?.specifications?.year || "",
-
     makeId: data?.specifications?.makeId || "",
     modelId: data?.specifications?.modelId || "",
     categoryId: data?.specifications?.categoryId || "",
-
     mileage: data?.specifications?.mileage || "",
     fuelType: data?.specifications?.fuelType || "",
     transmission: data?.specifications?.transmission || "",
     engineCapacityId: data.specifications?.engineCapacityId || "",
     cylinderCount: data.specifications?.cylinderCount || "",
-
     color: data?.specifications?.color || "",
     interiorColor: data?.specifications?.interiorColor || "",
     tinted: data.specifications?.tinted || "",
-
     condition: data?.specifications?.condition || "used",
-
     isImported: data?.specifications?.isImported || "",
     isInspected: data?.specifications?.isInspected || "",
     inspectionReport: data?.specifications?.inspectionReport || "",
-
     ownerType: data?.specifications?.ownerType || "",
   });
+
+  // Track selected options for display
+  const [selectedMake, setSelectedMake] = useState<{value: string, label: string} | null>(null);
+  const [selectedModel, setSelectedModel] = useState<{value: string, label: string} | null>(null);
+  const [selectedYear, setSelectedYear] = useState<{value: string, label: string} | null>(null);
 
   const { data: categories = [] } = useQuery<CarCategory[]>({
     queryKey: ["car-categories"],
@@ -67,15 +69,39 @@ export function SpecsStep({ data, updateData, nextStep, prevStep }: StepProps) {
   });
 
   const { data: carEngineCapacities = [] } = useQuery<CarEngineCapacity[]>({
-    queryKey: ["/api/car-enginecapacities"], // Changed to a more standard key
+    queryKey: ["/api/car-enginecapacities"],
   });
+
+  // Initialize selected values when data loads or changes
+  useEffect(() => {
+    if (makes.length > 0 && formData.makeId) {
+      const make = makes.find(m => m.id.toString() === formData.makeId);
+      if (make) {
+        setSelectedMake({ value: make.id.toString(), label: make.name });
+      }
+    }
+  }, [makes, formData.makeId]);
+
+  useEffect(() => {
+    if (models.length > 0 && formData.modelId) {
+      const model = models.find(m => m.id.toString() === formData.modelId);
+      if (model) {
+        setSelectedModel({ value: model.id.toString(), label: model.name });
+      }
+    }
+  }, [models, formData.modelId]);
+
+  useEffect(() => {
+    if (formData.year) {
+      setSelectedYear({ value: formData.year, label: formData.year });
+    }
+  }, [formData.year]);
 
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
-    console.log("specs data", formData);
     e.preventDefault();
     updateData({ specifications: formData });
     nextStep();
@@ -104,59 +130,80 @@ export function SpecsStep({ data, updateData, nextStep, prevStep }: StepProps) {
   ];
 
   const handleInspectionReportUpload = (url: string) => {
-  setFormData((prev) => ({
-    ...prev,
-    inspectionReport: url,
-  }));
-};
+    setFormData((prev) => ({
+      ...prev,
+      inspectionReport: url,
+    }));
+  };
 
+  const makeOptions = makes?.map((make: CarMake) => ({
+    value: String(make.id),
+    label: make.name,
+  })) ?? [];
+
+  const modelOptions = models?.map((model: CarModel) => ({
+    value: String(model.id),
+    label: model.name,
+  })) ?? [];
+
+  // Generate year options (e.g., last 30 years)
+  const currentYear = new Date().getFullYear();
+  const yearOptions = Array.from({ length: 30 }, (_, i) => ({
+    value: String(currentYear - i),
+    label: String(currentYear - i),
+  }));
+
+  // Handler for MultiSelect that ensures only one item is selected
+  const handleSingleSelect = (field: string, values: string[]) => {
+    // Take the last selected item (or empty if deselected)
+    const selectedValue = values.length > 0 ? values[values.length - 1] : "";
+    handleChange(field, selectedValue);
+    
+    // Update the selected option state
+    if (field === 'makeId') {
+      const selected = makeOptions.find(opt => opt.value === selectedValue);
+      setSelectedMake(selected || null);
+      // Reset model when make changes
+      if (selectedValue !== formData.makeId) {
+        handleChange("modelId", "");
+        setSelectedModel(null);
+      }
+    } else if (field === 'modelId') {
+      const selected = modelOptions.find(opt => opt.value === selectedValue);
+      setSelectedModel(selected || null);
+    } else if (field === 'year') {
+      const selected = yearOptions.find(opt => opt.value === selectedValue);
+      setSelectedYear(selected || null);
+    }
+  };
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="grid grid-cols-1 md:grid-cols-2 gap-4"
-    >
+    <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {/* Make */}
       <div>
         <Label>Make*</Label>
-        <Select
-          value={formData.makeId}
-          onValueChange={(value) => {
-            setFormData((prev) => ({ ...prev, makeId: value, modelId: "" }));
-          }}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select make" />
-          </SelectTrigger>
-          <SelectContent>
-            {makes?.map((make) => (
-              <SelectItem key={make.id} value={make.id.toString()}>
-                {make.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <MultiSelect
+          options={makeOptions}
+          selected={formData.makeId ? [formData.makeId] : []}
+          value={selectedMake ? [selectedMake] : []}
+          onChange={(values) => handleSingleSelect("makeId", values)}
+          placeholder="Select make"
+          singleSelect
+        />
       </div>
 
       {/* Model */}
       <div>
         <Label>Model*</Label>
-        <Select
-          value={formData.modelId}
+        <MultiSelect
+          options={modelOptions}
+          selected={formData.modelId ? [formData.modelId] : []}
+          value={selectedModel ? [selectedModel] : []}
+          onChange={(values) => handleSingleSelect("modelId", values)}
+          placeholder="Select model"
           disabled={!formData.makeId}
-          onValueChange={(value) => handleChange("modelId", value)}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select model" />
-          </SelectTrigger>
-          <SelectContent>
-            {models?.map((model) => (
-              <SelectItem key={model.id} value={model.id.toString()}>
-                {model.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          singleSelect
+        />
       </div>
 
       {/* Category */}
@@ -183,29 +230,14 @@ export function SpecsStep({ data, updateData, nextStep, prevStep }: StepProps) {
 
       {/* Year */}
       <div>
-        <Label htmlFor="year">Year*</Label>
-        <Input
-          id="year"
-          type="number"
-          placeholder="e.g., 2021"
-          value={formData.year}
-          onChange={(e) => {
-            const value = e.target.value;
-            // Allow empty string or max 4 digits
-            if (/^\d{0,4}$/.test(value)) {
-              handleChange("year", value);
-            }
-          }}
-          onBlur={(e) => {
-            const year = parseInt(e.target.value);
-            if (year < 1900 || year > new Date().getFullYear()) {
-              // Optionally reset or clamp
-              handleChange("year", "");
-            }
-          }}
-          className="rounded-lg border px-3 py-2 shadow-sm"
-          min={1900}
-          max={new Date().getFullYear()}
+        <Label>Year*</Label>
+        <MultiSelect
+          options={yearOptions}
+          selected={formData.year ? [formData.year] : []}
+          value={selectedYear ? [selectedYear] : []}
+          onChange={(values) => handleSingleSelect("year", values)}
+          placeholder="Select year"
+          singleSelect
         />
       </div>
 
@@ -434,6 +466,7 @@ export function SpecsStep({ data, updateData, nextStep, prevStep }: StepProps) {
           <ImageUpload
             currentImage={formData.inspectionReport}
             onUploadComplete={handleInspectionReportUpload}
+            isFile={true}
           />
         </div>
       )}

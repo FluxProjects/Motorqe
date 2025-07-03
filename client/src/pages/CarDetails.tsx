@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import i18n, { resources } from "@/lib/i18n";
+import i18n from "@/lib/i18n";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -63,6 +63,7 @@ import { SimilarCars } from "@/components/car/SimilarCars";
 import { formatAvailability, getEngineSizeLabel, isOpenNow } from "@/lib/utils";
 import { CarImages } from "@/components/car/CarImages";
 import { CarListingDetail } from "@/components/car/CarListingDetail";
+import { navigate } from "wouter/use-browser-location";
 
 // Message form schema
 const messageSchema = z.object({
@@ -101,7 +102,6 @@ const CarDetails = () => {
   >(null);
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
-  const [selectedTab, setSelectedTab] = useState("description");
 
   // Message form
   const messageForm = useForm<MessageValues>({
@@ -399,6 +399,26 @@ const CarDetails = () => {
     window.open(`https://wa.me/${phone}?text=${encodedMessage}`);
   };
 
+  const handleSearchByUser = () => {
+  // First try to get user_id from showroom, then from sellerData
+  const userId = sellerData?.id;
+  
+  if (userId) {
+    // Use URLSearchParams for proper URL encoding
+    const params = new URLSearchParams();
+    params.set('user_id', userId.toString());
+    navigate(`/browse?${params.toString()}`);
+  } else {
+    console.error("No user ID available for filtering");
+    // Optionally show a toast notification
+    toast({
+      title: "Error",
+      description: "Could not filter by this user",
+      variant: "destructive"
+    });
+  }
+};
+
   if (isLoadingCar) {
     return (
       <div className="min-h-screen bg-neutral-100 flex items-center justify-center">
@@ -547,10 +567,11 @@ const CarDetails = () => {
             </div>
 
               <CarListingDetail
-                vehicleDescription={
-                  car?.description ?? "No Description Available"
-                }
+                vehicleDescription={car?.description ?? "No Description Available"}
                 vehicleDescriptionAr={car?.descriptionAr ?? "لا يوجد وصف متاح"}
+                inspectionReportUrl={
+                  car?.is_inspected ? car?.inspectionReport ?? undefined : undefined
+                }
               />
 
               {/* Safety Features */}
@@ -655,7 +676,9 @@ const CarDetails = () => {
                   <div className="flex justify-between">
                     <span className="text-gray-600">Mileage:</span>
                     <span className="font-medium">
-                      {car.mileage.toLocaleString()} Kms
+                      {car.mileage != null
+                      ? Number(car.mileage).toLocaleString("en-US", { maximumFractionDigits: 0 })
+                      : "0"} Kms
                     </span>
                   </div>
                   <div className="flex justify-between">
@@ -708,6 +731,13 @@ const CarDetails = () => {
                       {car.insurance_type || "Fully Insured"}
                     </span>
                   </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 font-xs">Post Date:</span>
+                    <span className="font-xs">
+                      {new Date(car?.created_at).toDateString()}
+                    </span>
+                  </div>
+
                 </div>
               </div>
 
@@ -750,8 +780,12 @@ const CarDetails = () => {
                     )}
                   </div>
 
+                  
                   <div className="text-center mb-4">
-                    <div className="text-orange-500 hover:underline cursor-pointer text-sm">
+                    <div 
+                    className="text-orange-500 hover:underline cursor-pointer text-sm"
+                    onClick={handleSearchByUser}
+                    >
                       See all Cars Listed from{" "}
                       {car?.showroom
                         ? car?.showroom.name

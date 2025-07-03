@@ -30,10 +30,10 @@ export default function ShowroomListings() {
     category: "all",
     location: [],
     year: [1900, new Date().getFullYear()],
-    fuel_type: [],
+    fuelType: [],
     transmission: [],
-    isFeatured: false,
-    isImported: false,
+    isFeatured: "all",
+    isImported: "all",
     status: "all",
     sort: "newest",
     page: 1, // Typically starts at page 1
@@ -312,19 +312,65 @@ export default function ShowroomListings() {
     },
   });
 
-  const statistics: CarStatistic = useMemo(() => {
-    return {
-      publishedCars: cars.filter((car) => car.status === "active").length,
-      pendingListings: cars.filter(
-        (car) => car.status === "pending" || car.status === "draft"
-      ).length,
-      featuredCars: cars.filter((car) => car.is_featured).length,
-      expiredCarAds: cars.filter((car) => {
-        if (!car.end_date) return false;
-        return new Date(car.end_date) < new Date();
-      }).length,
-    };
-  }, [cars]);
+// Extract unique makes
+const availableMakes = Array.from(
+  new Map(
+    cars
+      .filter((car) => car.make?.id)
+      .map((car) => [car.make.id, car.make])
+  ).values()
+);
+
+// Extract unique models (optionally filter by selected make)
+const availableModels = Array.from(
+  new Map(
+    cars
+      .filter((car) => car.model?.id)
+      .filter((car) => {
+        if (!filters.make || filters.make === "all") return true;
+        return car.make?.id === Number(filters.make);
+      })
+      .map((car) => [car.model.id, car.model])
+  ).values()
+);
+
+const filteredCars = cars.filter((car) => {
+  // Make filter
+  if (filters.make && filters.make !== "all") {
+    if (car.make?.id !== Number(filters.make)) return false;
+  }
+
+  // Model filter
+  if (filters.model && filters.model !== "all") {
+    if (car.model?.id !== Number(filters.model)) return false;
+  }
+
+  // Status filter
+  if (filters.status && filters.status !== "all") {
+    if (car.status !== filters.status) return false;
+  }
+
+  // Category filter
+  if (filters.category && filters.category !== "all") {
+    if (car.category_id !== filters.category) return false;
+  }
+
+  return true;
+});
+
+
+  const statistics: CarStatistic = {
+    publishedCars: cars.filter((car) => car.status === "active").length,
+    pendingListings: cars.filter(
+      (car) => car.status === "pending" || car.status === "draft"
+    ).length,
+    featuredCars: cars.filter((car) => car.is_featured).length,
+    expiredCarAds: cars.filter((car) => {
+      if (!car.end_date) return false;
+      return new Date(car.end_date) < new Date();
+    }).length,
+  };
+
 
   return (
     <div className="bg-gray-50 min-h-screen">
@@ -360,7 +406,12 @@ export default function ShowroomListings() {
         </div>
 
         <CarStatistics statistics={statistics} isLoading={isLoading} />
-        <CarFilters filters={filters} onFiltersChange={setFilters} />
+        <CarFilters 
+          filters={filters} 
+          onFiltersChange={setFilters}
+          availableMakes={availableMakes}
+          availableModels={availableModels}
+          />
 
         {/* Results Count */}
         <div className="text-sm text-gray-600 mb-6">

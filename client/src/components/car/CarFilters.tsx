@@ -7,9 +7,16 @@ import { ChevronDown, Grid } from "lucide-react";
 interface CarFiltersProps {
   filters: AdminCarListingFilters;
   onFiltersChange: (updateFn: (prev: any) => any) => void;
+  availableMakes: { id: number; name: string; name_ar?: string }[];
+  availableModels: { id: number; name: string; name_ar?: string }[];
 }
 
-export default function CarFilters({ filters, onFiltersChange }: CarFiltersProps) {
+export default function CarFilters({ 
+  filters, 
+  onFiltersChange, 
+  availableMakes,
+  availableModels
+}: CarFiltersProps) {
   // Fetch makes dynamically
   const { data: makesData = [], isLoading: isMakesLoading } = useQuery({
     queryKey: ["car-makes"],
@@ -44,15 +51,11 @@ export default function CarFilters({ filters, onFiltersChange }: CarFiltersProps
             }}
           >
             <option value="">Select Make</option>
-            {isMakesLoading ? (
-              <option disabled>Loading...</option>
-            ) : (
-              makesData.map((make: any) => (
-                <option key={make.id} value={make.name}>
-                  {make.name}
-                </option>
-              ))
-            )}
+            {availableMakes.map((make) => (
+              <option key={make.id} value={make.name}>
+                {make.name}
+              </option>
+            ))}
           </select>
           <ChevronDown className="absolute right-3 top-9 h-4 w-4 text-gray-400 pointer-events-none" />
         </div>
@@ -64,18 +67,22 @@ export default function CarFilters({ filters, onFiltersChange }: CarFiltersProps
             className="appearance-none bg-white border border-gray-300 rounded-md px-4 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-36"
             value={filters.model}
             onChange={(e) => onFiltersChange((prev) => ({ ...prev, model: e.target.value }))}
-            disabled={!filters.make || isModelsLoading}
+            disabled={!filters.make}
           >
             <option value="">Select Model</option>
-            {isModelsLoading ? (
-              <option disabled>Loading...</option>
-            ) : (
-              modelsData.map((model: any) => (
+            {availableModels
+              .filter((model) => {
+                if (!filters.make) return true;
+                const makeMatch = availableMakes.find(
+                  (make) => make.name === filters.make
+                );
+                return model.make_id === makeMatch?.id;
+              })
+              .map((model) => (
                 <option key={model.id} value={model.name}>
                   {model.name}
                 </option>
-              ))
-            )}
+              ))}
           </select>
           <ChevronDown className="absolute right-3 top-9 h-4 w-4 text-gray-400 pointer-events-none" />
         </div>

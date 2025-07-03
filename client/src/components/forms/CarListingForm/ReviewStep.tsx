@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { CarCategory, PromotionPackage, StepProps } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, FilePen, Rocket } from "lucide-react";
+import GoogleMaps from "@/components/ui/google-maps";
 
 export function ReviewStep({
   data,
@@ -96,8 +97,8 @@ export function ReviewStep({
           <div>
             <Label>{t("listing.price")}</Label>
             <p className="font-medium">
-              {formData.basicInfo?.price
-                ? `${formData.basicInfo?.price} ${t("listing.currency")}`
+             {formData.basicInfo?.currency || "QR"} {formData.basicInfo?.price
+                ? `${formData.basicInfo?.price}`
                 : t("listing.notSpecified")}
             </p>
           </div>
@@ -105,7 +106,21 @@ export function ReviewStep({
           <div>
             <Label>{t("listing.location")}</Label>
             <p className="font-medium">
-              {formData.basicInfo?.location || t("listing.notSpecified")}
+              {formData.basicInfo?.location && (
+              <GoogleMaps
+      center={{
+        lat: parseFloat(formData.basicInfo?.location.split(",")[0]),
+        lng: parseFloat(formData.basicInfo?.location.split(",")[1])
+      }}
+      zoom={14}
+      markers={[
+        {
+          lat: parseFloat(formData.basicInfo.location.split(",")[0]),
+          lng: parseFloat(formData.basicInfo.location.split(",")[1]),
+        },
+      ]}
+      className="rounded-md border mt-2 h-64 w-full"
+    />)}
             </p>
           </div>
 

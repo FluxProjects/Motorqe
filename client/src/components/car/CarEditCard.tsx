@@ -244,8 +244,7 @@ export default function CarEditCard({ car }: CarEditCardProps) {
         </div>
       )}
       {/* NEW RIBBON */}
-      {new Date(car.created_at).toDateString() ===
-        new Date().toDateString() && (
+      {car.condition === "new" && (
         <div className="absolute top-5 left-[-40px] -rotate-45 bg-red-700 text-white font-black px-20 py-1 text-lg shadow-lg z-10">
           NEW
         </div>

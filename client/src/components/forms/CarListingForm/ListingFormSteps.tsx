@@ -4,7 +4,7 @@ import { FeaturesStep } from "./FeaturesStep";
 import { MediaStep } from "./MediaStep";
 import { PricingStep } from "./PricingStep";
 import { ReviewStep } from "./ReviewStep";
-import { AdminCarListing, ListingFormData } from "@shared/schema";
+import { AdminCarListing, ListingFormData, User } from "@shared/schema";
 
 interface Props {
   step: number;
@@ -14,6 +14,7 @@ interface Props {
   prevStep: () => void;
   handleSubmit: (action: 'draft' | 'publish') => void;
   listing?: AdminCarListing | null;
+  user: User;
 }
 
 export const ListingFormSteps = ({
@@ -24,10 +25,22 @@ export const ListingFormSteps = ({
   prevStep,
   handleSubmit,
   listing,
+  user,
 }: Props) => {
+
+  const isPricingSkipped = user?.roleId === 3;
+
+  const adjustedStep = isPricingSkipped
+    ? step + (step >= 0 ? 1 : 0) // shift mapping if pricing is skipped
+    : step;
+
   switch (step) {
     case 0:
-      return <PricingStep data={data} updateData={updateData} nextStep={nextStep} prevStep={prevStep} />;
+      return isPricingSkipped ? (
+        <BasicInfoStep data={data} updateData={updateData} nextStep={nextStep} prevStep={prevStep} />
+      ) : (
+        <PricingStep data={data} updateData={updateData} nextStep={nextStep} prevStep={prevStep} />
+      );
     case 1:
       return <BasicInfoStep data={data} updateData={updateData} nextStep={nextStep} prevStep={prevStep} />;
     case 2:

@@ -8,6 +8,7 @@ import { ListingFormSteps } from "./ListingFormSteps";
 import { ProgressHeader } from "@/components/layout/ProgressHeader";
 import { ListingFormData, AdminCarListing } from "@shared/schema";
 import { calculateDurationDays } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
 
 const steps = [
   "Select Plan",
@@ -27,6 +28,7 @@ export function ListingForm({ listing, onSuccess }: Props) {
   const [step, setStep] = useState(0);
   const methods = useForm<ListingFormData>();
   const { reset, handleSubmit : rhfHandleSubmit, getValues } = methods;
+  const {user} = useAuth();
 
   // Calculate duration days from package dates
   
@@ -40,10 +42,13 @@ export function ListingForm({ listing, onSuccess }: Props) {
       // Transform backend data to frontend format
       const parsedData: ListingFormData = {
         basicInfo: {
+          listingType: listing.listing_type,
           title: listing.title,
+          titleAr: listing.title_ar,
           description: listing.description,
+          descriptionAr: listing.description_ar,
           price: listing.price?.toString(),
-          currency: listing.currency || "QAR",
+          currency: listing.currency || "QR",
           location: listing.location,
         },
         specifications: {
@@ -145,6 +150,7 @@ export function ListingForm({ listing, onSuccess }: Props) {
             prevStep={prevStep}
             handleSubmit={(action: 'draft' | 'publish') => onSubmitHandler(action)()}
             listing={listing}
+            user={user}
           />
         </PermissionGuard>
       </Card>

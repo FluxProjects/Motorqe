@@ -1,5 +1,6 @@
 {
   "common": {
+    "clearAll": "Clear All",
     "bookmark": "Bookmark",
     "viewLess": "View Less",
     "chat": "Chat",
@@ -282,6 +283,11 @@
     "specialOffers": "Special Offers"
   },
   "car": {
+    "first": "First",
+    "second" :"Second",
+    "third" : "Third",
+    "fourth" : "Fourth",
+    "fifth" : "Fifth",
     "sendMessage":"Send Message",
   "contactSellerDesc": "Send a message directly to the seller for quick assistance.",
   "regarding": "Honda Civic in very good condition",
@@ -544,6 +550,8 @@
     "profile": "Profile"
   },
   "listing": {
+    "yes": "Yes",
+    "no":"No",
     "condition":"Condition",
     "isInspected": "Inspected",
     "isImported":"Imported",

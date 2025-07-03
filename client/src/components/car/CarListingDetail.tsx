@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 
-interface TabNavigationProps {
+interface CarListingDetailProps {
   vehicleDescription: string;
   vehicleDescriptionAr: string;
+  inspectionReportUrl?: string; // Pass the PDF file URL here if available
   is_showroom?: boolean;
   is_garage?: boolean;
 }
@@ -11,9 +12,10 @@ interface TabNavigationProps {
 export function CarListingDetail({
   vehicleDescription,
   vehicleDescriptionAr,
+  inspectionReportUrl,
   is_showroom,
   is_garage,
-}: TabNavigationProps) {
+}: CarListingDetailProps) {
   const [activeTab, setActiveTab] = useState("car-details");
 
   if (is_showroom || is_garage) {
@@ -34,7 +36,6 @@ export function CarListingDetail({
       </div>
     );
   }
-
 
   const tabs = [
     { id: "car-details", label: "Car Details" },
@@ -81,19 +82,27 @@ export function CarListingDetail({
         {activeTab === "inspection-report" && (
           <div>
             <h2 className="text-xl font-semibold mb-4">Inspection Report:</h2>
-            <div className="text-gray-700">
-              <p className="mb-4">
-                Comprehensive vehicle inspection report will be displayed here with detailed analysis of:
-              </p>
-              <ul className="list-disc list-inside space-y-2 text-gray-600">
-                <li>Engine condition and performance</li>
-                <li>Transmission and drivetrain</li>
-                <li>Braking system</li>
-                <li>Suspension and steering</li>
-                <li>Electrical systems</li>
-                <li>Body and paint condition</li>
-              </ul>
-            </div>
+            {inspectionReportUrl ? (
+              <div className="flex flex-col items-center space-y-4">
+                <iframe
+                  src={inspectionReportUrl}
+                  title="Inspection Report"
+                  className="w-full h-[500px] rounded border"
+                />
+                <a
+                  href={inspectionReportUrl}
+                  download
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Button className="bg-orange-500 text-white hover:bg-orange-600">
+                    Download Inspection Report
+                  </Button>
+                </a>
+              </div>
+            ) : (
+              <p className="text-gray-500">Inspection report is not available for this vehicle.</p>
+            )}
           </div>
         )}
 

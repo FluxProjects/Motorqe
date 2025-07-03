@@ -49,11 +49,18 @@ import { fetchModelsByMake } from "@/lib/utils";
 import { MultiSelect } from "@/components/ui/multiselect";
 import { useBannerAds } from "@/hooks/use-bannerAds";
 import { PriceInputCombobox } from "@/components/ui/priceinput";
-import { Form, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Form,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import CompareTool from "@/components/car/CompareTool";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 // Search form schema
 const searchFormSchema = z.object({
@@ -75,14 +82,26 @@ type SearchFormValues = z.infer<typeof searchFormSchema>;
 const BrowseCars = () => {
   const { t } = useTranslation();
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid"); // Default to grid view
+  const [comparisonList, setComparisonList] = useState<CarListing[]>([]);
+
+  const handleAddToCompare = (car: CarListing) => {
+    setComparisonList(prev => [...prev, car]);
+  };
+
+  const handleRemoveFromCompare = (id: number) => {
+    setComparisonList(prev => prev.filter(c => c.id !== id));
+  };
+
+  const handleClearComparison = () => {
+    setComparisonList([]);
+  };
   const [searchParams, setSearchParams] = useState<URLSearchParams>(
     () => new URLSearchParams(window.location.search)
   );
-   const form = useForm<SearchFormValues>({
-      resolver: zodResolver(searchFormSchema),
-      defaultValues: {
-      },
-    });
+  const form = useForm<SearchFormValues>({
+    resolver: zodResolver(searchFormSchema),
+    defaultValues: {},
+  });
   const [filters, setFilters] = useState<CarListingFilters>({
     search: searchParams?.get("search") || "",
     minPrice: "all",
@@ -119,13 +138,13 @@ const BrowseCars = () => {
     ownerType: [],
     hasWarranty: "all",
     hasInsurance: "all",
+    userId: "all",
 
     sort: "newest",
     page: 1,
     limit: 9,
   });
   const [filtersOpen, setFiltersOpen] = useState(false);
-
 
   // Extract query params on initial load
   useEffect(() => {
@@ -154,10 +173,17 @@ const BrowseCars = () => {
       }));
     }
 
+    if (params.has("user_id")) {
+      // Match backend expectation
+      const userIdValue = params.get("user_id") || "all";
+      setFilters((prev) => ({ ...prev, userId: userIdValue }));
+    }
+
     if (params.has("make")) {
       const makeValue = params.get("make") || "all";
       setFilters((prev) => ({ ...prev, make: makeValue }));
     }
+
     if (params.has("model")) {
       const modelValue = params.get("model") || "";
       setFilters((prev) => ({ ...prev, model: modelValue }));
@@ -280,7 +306,7 @@ const BrowseCars = () => {
       }
     }
 
-     if (params.has("hasInsurance")) {
+    if (params.has("hasInsurance")) {
       const val = params.get("hasInsurance");
       if (val === "true" || val === "false" || val === "all") {
         setFilters((prev) => ({
@@ -308,7 +334,7 @@ const BrowseCars = () => {
     queryKey: ["/api/car-makes"],
   });
 
-   const { data: models = [] } = useQuery<CarModel[]>({
+  const { data: models = [] } = useQuery<CarModel[]>({
     queryKey: ["car-models", selectedMakeId],
     queryFn: () => fetchModelsByMake(selectedMakeId),
     enabled: !!selectedMakeId && selectedMakeId !== "all",
@@ -390,7 +416,7 @@ const BrowseCars = () => {
         <img
           src={banner?.image_url}
           alt={`Ad banner ${banner?.id}`}
-          className="w-full max-h-[350px] object-cover rounded-3xl shadow-sm"
+          className="w-full max-h-[292px] object-cover rounded-3xl shadow-sm"
         />
       </a>
     </div>
@@ -456,7 +482,21 @@ const BrowseCars = () => {
         );
         return false;
       }
-     
+
+      // User Filter
+      if (filters?.userId && filters?.userId !== "all") {
+        // Convert both to string for consistent comparison
+        if (car.user_id.toString() !== filters.userId.toString()) {
+          console.log(
+            `Filtered out by userId: car.user_id=${
+              car.user_id
+            } (${typeof car.user_id}), filter=${
+              filters.userId
+            } (${typeof filters.userId})`
+          );
+          return false;
+        }
+      }
 
       // Make Filter
       if (filters?.make && filters?.make !== "all") {
@@ -637,7 +677,10 @@ const BrowseCars = () => {
       }
 
       // Inspected Filter
-      if (filters?.isInspected !== undefined && filters?.isInspected !== "all") {
+      if (
+        filters?.isInspected !== undefined &&
+        filters?.isInspected !== "all"
+      ) {
         const filterValue = filters?.isInspected === "true";
         if (car.is_inspected !== filterValue) {
           console.log(
@@ -662,7 +705,10 @@ const BrowseCars = () => {
       }
 
       // Has Warranty Filter
-      if (filters?.hasWarranty !== undefined && filters?.hasWarranty !== "all") {
+      if (
+        filters?.hasWarranty !== undefined &&
+        filters?.hasWarranty !== "all"
+      ) {
         const filterValue = filters?.hasWarranty === "true";
         if (car.has_warranty !== filterValue) {
           console.log(
@@ -673,7 +719,10 @@ const BrowseCars = () => {
       }
 
       // Has Insurance Filter
-      if (filters?.hasInsurance !== undefined && filters?.hasInsurance !== "all") {
+      if (
+        filters?.hasInsurance !== undefined &&
+        filters?.hasInsurance !== "all"
+      ) {
         const filterValue = filters?.hasInsurance === "true";
         if (car.has_insurance !== filterValue) {
           console.log(
@@ -684,11 +733,7 @@ const BrowseCars = () => {
       }
 
       // Status Filter
-       if (
-        filters?.status &&
-        filters?.status.length > 0 &&
-        car.status
-      ) {
+      if (filters?.status && filters?.status.length > 0 && car.status) {
         if (car.status !== filters?.status) {
           console.log(
             `Filtered out by condition: car.status=${car.status}, filter=${filters?.status}`
@@ -696,7 +741,6 @@ const BrowseCars = () => {
           return false;
         }
       }
-
 
       return true;
     });
@@ -725,8 +769,9 @@ const BrowseCars = () => {
         params.append("minYear", updatedFilters.minYear);
       if (updatedFilters.maxYear)
         params.append("maxYear", updatedFilters.maxYear);
-      
 
+      if (updatedFilters.userId)
+        params.append("user_id", updatedFilters.userId); // Use user_id consistently
       if (updatedFilters.make) params.append("make", updatedFilters.make);
       if (updatedFilters.model) params.append("model", updatedFilters.model);
       if (updatedFilters.category)
@@ -841,6 +886,8 @@ const BrowseCars = () => {
       hasWarranty: "all",
       hasInsurance: "all",
 
+      userId: "all",
+
       sort: "newest",
       page: 1,
       limit: 9,
@@ -873,22 +920,17 @@ const BrowseCars = () => {
   const totalCars = filteredCars.length;
   const totalPages = Math.ceil(totalCars / filters.limit);
 
-  const sellerMap = useMemo(() => {
-    console.log("sellersData:", sellersData); // ✅ Check raw seller data
-    const map = new Map<number, UserWithStats>();
-    sellersData.forEach((seller) => {
-      console.log(
-        `Mapping seller ID ${seller.id} to username ${seller.username}`
-      ); // ✅ Confirm map entries
-      map.set(seller.id, seller);
-    });
-    console.log("Final sellerMap:", Array.from(map.entries())); // ✅ Log map content as array
-    return map;
-  }, [sellersData]);
+  console.log("Creating sellerMap from:", sellersData);
+  const sellerMap = new Map<number, UserWithStats>();
+  sellersData.forEach((seller) => {
+    console.log(`Mapping ${seller.id} -> ${seller.username}`);
+    sellerMap.set(seller.id, seller);
+  });
+  console.log("Resulting map:", Object.fromEntries(sellerMap));
 
-  const carsWithSeller = useMemo(() => {
-    console.log("filteredCars:", filteredCars); // ✅ Check what cars are being mapped
-    const enriched = filteredCars.map((car) => {
+  const carsWithSeller = (() => {
+    console.log("filteredCars:", filteredCars);
+    const result = filteredCars.map((car) => {
       const seller = sellerMap.get(car.user_id);
       console.log(`Car ID ${car.id} maps to seller ID ${car.user_id}:`, seller);
       return {
@@ -896,10 +938,9 @@ const BrowseCars = () => {
         seller: seller || null,
       };
     });
-    console.log("carsWithSeller:", enriched); // ✅ Final enriched list
-    return enriched;
-  }, [filteredCars, sellerMap]);
-
+    console.log("carsWithSeller:", result);
+    return result;
+  })();
   // Get only the current page's cars
   const paginatedCars = carsWithSeller.slice(
     (filters.page - 1) * filters.limit,
@@ -907,9 +948,12 @@ const BrowseCars = () => {
   );
 
   const currentYear = new Date().getFullYear();
-const yearSteps = Array.from({ length: currentYear - 1900 + 1 }, (_, idx) => 1900 + idx);
+  const yearSteps = Array.from(
+    { length: currentYear - 1900 + 1 },
+    (_, idx) => 1900 + idx
+  );
 
- const makeOptions = [
+  const makeOptions = [
     { value: "all", label: t("common.all") },
     ...(makes?.map((make: CarMake) => ({
       value: String(make.id),
@@ -924,6 +968,7 @@ const yearSteps = Array.from({ length: currentYear - 1900 + 1 }, (_, idx) => 190
     })) ?? [];
 
   return (
+    <>
     <div className="bg-white min-h-screen py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-8">
@@ -949,32 +994,32 @@ const yearSteps = Array.from({ length: currentYear - 1900 + 1 }, (_, idx) => 190
                 </Button>
               </div>
               <Form {...form}>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-                {/* Make Filter */}
-                <div>
-                 <FormField
-                    control={form.control}
-                    name="make"
-                    render={({ field }) => (
-                      <FormItem className="w-full">
-                        <FormLabel>{t("car.make")}</FormLabel>
-                        <MultiSelect
-                          options={makeOptions}
-                          selected={field.value ? [String(field.value)] : []}
-                          onChange={(val: string[]) => {
-                            field.onChange(val.length > 0 ? val[0] : ""); // For single-select
-                          }}
-                          placeholder={t("car.selectMake")}
-                        />
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                  {/* Make Filter */}
+                  <div>
+                    <FormField
+                      control={form.control}
+                      name="make"
+                      render={({ field }) => (
+                        <FormItem className="w-full">
+                          <FormLabel>{t("car.make")}</FormLabel>
+                          <MultiSelect
+                            options={makeOptions}
+                            selected={field.value ? [String(field.value)] : []}
+                            onChange={(val: string[]) => {
+                              field.onChange(val.length > 0 ? val[0] : ""); // For single-select
+                            }}
+                            placeholder={t("car.selectMake")}
+                          />
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
 
-                {/* Model Filter */}
-                <div>
-                   <FormField
+                  {/* Model Filter */}
+                  <div>
+                    <FormField
                       control={form.control}
                       name="model"
                       render={({ field }) => (
@@ -992,68 +1037,69 @@ const yearSteps = Array.from({ length: currentYear - 1900 + 1 }, (_, idx) => 190
                         </FormItem>
                       )}
                     />
-                </div>
+                  </div>
 
-                {/* Year Filter */}
-                <div>
-                  <Label className="block text-sm font-medium mb-1">
-                    {t("car.year")}
-                  </Label>
-                  <div className="mt-2">
-                    <PriceInputCombobox
-                      value={filters.minYear}
-                      onChange={(value) => updateFilters({ minYear: value, maxYear: value })}
-                      placeholder={t("car.allYears")}
-                      options={yearSteps}
+                  {/* Year Filter */}
+                  <div>
+                    <Label className="block text-sm font-medium mb-1">
+                      {t("car.year")}
+                    </Label>
+                    <div className="mt-2">
+                      <PriceInputCombobox
+                        value={filters.minYear}
+                        onChange={(value) =>
+                          updateFilters({ minYear: value, maxYear: value })
+                        }
+                        placeholder={t("car.allYears")}
+                        options={yearSteps}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Condition Filter */}
+                  <div>
+                    <Label className="block text-sm font-medium mb-1">
+                      {t("car.condition")}
+                    </Label>
+                    <Select
+                      value={filters.condition}
+                      onValueChange={(value) =>
+                        updateFilters({ condition: value })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={t("car.allConditions")} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">
+                          {t("car.allConditions")}
+                        </SelectItem>
+                        <SelectItem value="new">{t("car.new")}</SelectItem>
+                        <SelectItem value="used">{t("car.used")}</SelectItem>
+                        <SelectItem value="scrap">{t("car.scrap")}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Owner Type Filter */}
+                  <div>
+                    <Label className="block text-sm font-medium mb-1">
+                      {t("car.ownerType")}
+                    </Label>
+                    <MultiSelect
+                      options={[
+                        { value: "first", label: t("car.first") },
+                        { value: "second", label: t("car.second") },
+                        { value: "third", label: t("car.third") },
+                        { value: "fourth", label: t("car.fourth") },
+                        { value: "fifth", label: t("car.fifth") },
+                      ]}
+                      selected={filters.ownerType}
+                      onChange={(value) => updateFilters({ ownerType: value })}
+                      placeholder={t("car.selectOwnerTypes")}
                     />
                   </div>
                 </div>
-
-
-                {/* Condition Filter */}
-                <div>
-                  <Label className="block text-sm font-medium mb-1">
-                    {t("car.condition")}
-                  </Label>
-                  <Select
-                    value={filters.condition}
-                    onValueChange={(value) =>
-                      updateFilters({ condition: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={t("car.allConditions")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">
-                        {t("car.allConditions")}
-                      </SelectItem>
-                      <SelectItem value="new">{t("car.new")}</SelectItem>
-                      <SelectItem value="used">{t("car.used")}</SelectItem>
-                      <SelectItem value="scrap">{t("car.scrap")}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Owner Type Filter */}
-                <div>
-                  <Label className="block text-sm font-medium mb-1">
-                    {t("car.ownerType")}
-                  </Label>
-                  <MultiSelect
-                    options={[
-                      { value: "first", label: t("car.first") },
-                      { value: "second", label: t("car.second") },
-                      { value: "third", label: t("car.third") },
-                      { value: "fourth", label: t("car.fourth") },
-                      { value: "fifth", label: t("car.fifth") },
-                    ]}
-                    selected={filters.ownerType}
-                    onChange={(value) => updateFilters({ ownerType: value })}
-                    placeholder={t("car.selectOwnerTypes")}
-                  />
-                </div>
-              </div>
               </Form>
             </div>
           </div>
@@ -1076,73 +1122,108 @@ const yearSteps = Array.from({ length: currentYear - 1900 + 1 }, (_, idx) => 190
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="newest">{t("car.newestFirst")}</SelectItem>
-                  <SelectItem value="year_high">{t("car.yearHighToLow")}</SelectItem>
-                  <SelectItem value="year_low">{t("car.yearLowToHigh")}</SelectItem>
-                  <SelectItem value="price_high">{t("car.priceHighToLow")}</SelectItem>
-                  <SelectItem value="price_low">{t("car.priceLowToHigh")}</SelectItem>
-                  <SelectItem value="mileage_high">{t("car.mileageHighToLow")}</SelectItem>
-                  <SelectItem value="mileage_low">{t("car.mileageLowToHigh")}</SelectItem>
+                  <SelectItem value="year_high">
+                    {t("car.yearHighToLow")}
+                  </SelectItem>
+                  <SelectItem value="year_low">
+                    {t("car.yearLowToHigh")}
+                  </SelectItem>
+                  <SelectItem value="price_high">
+                    {t("car.priceHighToLow")}
+                  </SelectItem>
+                  <SelectItem value="price_low">
+                    {t("car.priceLowToHigh")}
+                  </SelectItem>
+                  <SelectItem value="mileage_high">
+                    {t("car.mileageHighToLow")}
+                  </SelectItem>
+                  <SelectItem value="mileage_low">
+                    {t("car.mileageLowToHigh")}
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             {/* Results header */}
             <div className="bg-white rounded-lg pt-4 pb-4 flex justify-between items-center mb-6 flex-wrap gap-4">
-  {/* Left: Listing count */}
-  <div>
-    <p className="text-neutral-600">
-      {isLoading ? (
-        <span className="flex items-center">
-          <LoaderCircle className="animate-spin mr-2" size={16} />
-          {t("common.loading")}
-        </span>
-      ) : totalCars > 0 ? (
-        `${totalCars} ${t("common.carsFound")}`
-      ) : (
-        t("common.noResults")
-      )}
-    </p>
-  </div>
+              {/* Left: Listing count */}
+              <div>
+                <p className="text-neutral-600">
+                  {isLoading ? (
+                    <span className="flex items-center">
+                      <LoaderCircle className="animate-spin mr-2" size={16} />
+                      {t("common.loading")}
+                    </span>
+                  ) : totalCars > 0 ? (
+                    filters.userId && filters.userId !== "all" ? (
+                      <>
+                        {totalCars} {t("common.carsFound")} from{" "}
+                        <span className="font-semibold text-orange-500">
+                          {filteredCars[0]?.showroom_name ||
+                            carsWithSeller[0]?.seller?.first_name}
+                        </span>
+                      </>
+                    ) : (
+                      `${totalCars} ${t("common.carsFound")}`
+                    )
+                  ) : (
+                    t("common.noResults")
+                  )}
+                </p>
+              </div>
 
-  {/* Right: Toggle view + Sort options */}
-  <div className="flex items-center gap-4 ml-auto">
-    {/* Toggle view options */}
-    <ToggleGroup
-      type="single"
-      value={viewMode}
-      onValueChange={(value) => {
-        if (value) setViewMode(value as "grid" | "list");
-      }}
-    >
-      <ToggleGroupItem value="grid" aria-label="Grid view">
-        <LayoutGrid size={16} />
-      </ToggleGroupItem>
-      <ToggleGroupItem value="list" aria-label="List view">
-        <List size={16} />
-      </ToggleGroupItem>
-    </ToggleGroup>
+              {/* Right: Toggle view + Sort options */}
+              <div className="flex items-center gap-4 ml-auto">
+                {/* Toggle view options */}
+                <ToggleGroup
+                  type="single"
+                  value={viewMode}
+                  onValueChange={(value) => {
+                    if (value) setViewMode(value as "grid" | "list");
+                  }}
+                >
+                  <ToggleGroupItem value="grid" aria-label="Grid view">
+                    <LayoutGrid size={16} />
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="list" aria-label="List view">
+                    <List size={16} />
+                  </ToggleGroupItem>
+                </ToggleGroup>
 
-    {/* Sort options */}
-    <Select
-      value={filters.sort}
-      onValueChange={(value) => updateFilters({ sort: value })}
-    >
-      <SelectTrigger className="w-[180px]">
-        <SelectValue placeholder={t("car.sortBy")} />
-      </SelectTrigger>
-     <SelectContent>
-  <SelectItem value="newest">{t("car.newestFirst")}</SelectItem>
-  <SelectItem value="year_high">{t("car.yearHighToLow")}</SelectItem>
-  <SelectItem value="year_low">{t("car.yearLowToHigh")}</SelectItem>
-  <SelectItem value="price_high">{t("car.priceHighToLow")}</SelectItem>
-  <SelectItem value="price_low">{t("car.priceLowToHigh")}</SelectItem>
-  <SelectItem value="mileage_high">{t("car.mileageHighToLow")}</SelectItem>
-  <SelectItem value="mileage_low">{t("car.mileageLowToHigh")}</SelectItem>
-</SelectContent>
-    </Select>
-  </div>
-</div>
-
+                {/* Sort options */}
+                <Select
+                  value={filters.sort}
+                  onValueChange={(value) => updateFilters({ sort: value })}
+                >
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder={t("car.sortBy")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="newest">
+                      {t("car.newestFirst")}
+                    </SelectItem>
+                    <SelectItem value="year_high">
+                      {t("car.yearHighToLow")}
+                    </SelectItem>
+                    <SelectItem value="year_low">
+                      {t("car.yearLowToHigh")}
+                    </SelectItem>
+                    <SelectItem value="price_high">
+                      {t("car.priceHighToLow")}
+                    </SelectItem>
+                    <SelectItem value="price_low">
+                      {t("car.priceLowToHigh")}
+                    </SelectItem>
+                    <SelectItem value="mileage_high">
+                      {t("car.mileageHighToLow")}
+                    </SelectItem>
+                    <SelectItem value="mileage_low">
+                      {t("car.mileageLowToHigh")}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
 
             {/* Results grid */}
             {isLoading ? (
@@ -1198,7 +1279,15 @@ const yearSteps = Array.from({ length: currentYear - 1900 + 1 }, (_, idx) => 190
 
                     if (carWithSeller) {
                       elements.push(
-                        <CarCard key={`car-${car.id}`} car={carWithSeller} />
+                        <CarCard
+                          key={`car-${car.id}`}
+                          car={carWithSeller}
+                          onAddToCompare={handleAddToCompare}
+                          onRemoveFromCompare={handleRemoveFromCompare}
+                          isCompared={comparisonList.some(
+                            (c) => c.id === car.id
+                          )}
+                        />
                       );
                     }
 
@@ -1488,7 +1577,16 @@ const yearSteps = Array.from({ length: currentYear - 1900 + 1 }, (_, idx) => 190
           </div>
         </div>
       )}
+
+<CompareTool 
+        comparisonList={comparisonList}
+        onRemove={handleRemoveFromCompare}
+        onClear={handleClearComparison}
+      />     
     </div>
+     {/* Compare dialog in parent */}
+
+    </>
   );
 };
 

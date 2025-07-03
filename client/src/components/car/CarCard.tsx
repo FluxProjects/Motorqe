@@ -1,9 +1,9 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useState } from "react";
 import { Link } from "wouter";
-import i18n, { resources } from "@/lib/i18n";
+import i18n from "@/lib/i18n";
 import { useTranslation } from "react-i18next";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -39,7 +39,6 @@ import { Textarea } from "../ui/textarea";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import CompareTool from "./CompareTool";
 
 // Message form schema
 const messageSchema = z.object({
@@ -85,22 +84,22 @@ interface CarCardProps {
     showroom_logo?: string;
   };
   isFavorited?: boolean;
+  isCompared?: boolean;
+  onAddToCompare: (car: CarListing) => void;
+  onRemoveFromCompare: (carId: number) => void;
 }
 
-const CarCard = ({ car, isFavorited = false }: CarCardProps) => {
+const CarCard = ({ car, isFavorited = false, isCompared = false, onAddToCompare, onRemoveFromCompare }: CarCardProps) => {
   const { isAuthenticated, user } = useAuth();
   const { t } = useTranslation();
   const language = i18n.language;
   const { toast } = useToast();
   const [, setIsFavorited] = useState(isFavorited);
-  const [comparisonList, setComparisonList] = useState<CarListing[]>([]);
-  const [compareDialogOpen, setCompareDialogOpen] = useState(false);
   const [authModal, setAuthModal] = useState<
     "login" | "register" | "forget-password" | null
   >(null);
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
-  const title = language === "ar" && car.titleAr ? car.titleAr : car.title;
-  const isCompared = comparisonList?.some((c) => c.id === car.id);
+  const title = language === "ar" && car?.titleAr ? car?.titleAr : car?.title;
 
   // Message form
   const messageForm = useForm<MessageValues>({
@@ -109,19 +108,6 @@ const CarCard = ({ car, isFavorited = false }: CarCardProps) => {
       message: "",
     },
   });
-
-  const handleAddToCompare = (car: CarListing) => {
-    const existing = JSON.parse(localStorage.getItem("comparisonList") || "[]");
-    const updated = [...existing, car];
-    localStorage.setItem("comparisonList", JSON.stringify(updated));
-    setComparisonList(updated); // if you're using state
-    const stored = localStorage.getItem("comparisonList");
-    console.log("stored", stored);
-  };
-
-  const handleRemoveFromCompare = (carId: number) => {
-    setComparisonList(comparisonList.filter((c) => c.id !== carId));
-  };
 
   const handleCall = (phone: string) => {
     window.open(`tel:${phone}`);
@@ -249,7 +235,7 @@ const CarCard = ({ car, isFavorited = false }: CarCardProps) => {
 
   const warrantyExpiryText = car?.warranty_expiry
     ? `Warranty expired on ${format(
-        new Date(car.warranty_expiry),
+        new Date(car?.warranty_expiry),
         "dd MMM yyyy"
       )}`
     : "Warranty expired";
@@ -260,22 +246,22 @@ const CarCard = ({ car, isFavorited = false }: CarCardProps) => {
     <>
       <Card
         className={`overflow-hidden hover:shadow-lg transition-shadow duration-300 border-4 border-solid rounded-2xl ${
-          car.is_featured ? "border-orange-500" : "border-neutral-50"
+          car?.is_featured ? "border-orange-500" : "border-neutral-50"
         }`}
       >
-        <Link href={`/cars/${car.id}`}>
+        <Link href={`/cars/${car?.id}`}>
           <div className="relative h-56 overflow-hidden group cursor-pointer">
-            {car.images && car.images.length > 0 ? (
+            {car?.images && car.images.length > 0 ? (
               <>
                 <img
-                  src={car.images[0]}
-                  alt={car.title}
+                  src={car?.images[0]}
+                  alt={car?.title}
                   className={`h-full w-full object-cover group-hover:scale-105 transition-transform duration-300 ${
-                    car.status === "sold" ? "opacity-50" : ""
+                    car?.status === "sold" ? "opacity-50" : ""
                   }`}
                 />
                 {/* SOLD STAMP */}
-                {car.status === "sold" && (
+                {car?.status === "sold" && (
                   <div className="absolute inset-0 flex items-center justify-center z-10">
                     <div className="text-red-500 text-xl font-extrabold border-red-500 border-2 px-6 py-2 shadow-lg transform rotate-[-10deg] opacity-90">
                       SOLD
@@ -284,8 +270,7 @@ const CarCard = ({ car, isFavorited = false }: CarCardProps) => {
                 )}
 
                 {/* NEW RIBBON */}
-                {new Date(car.created_at).toDateString() ===
-                  new Date().toDateString() && (
+                {car?.condition === "new" && (
                   <div className="absolute top-5 left-[-40px] -rotate-45 bg-red-700 text-white font-black px-20 py-1 text-lg shadow-lg z-10">
                     NEW
                   </div>
@@ -304,7 +289,7 @@ const CarCard = ({ car, isFavorited = false }: CarCardProps) => {
                     avgMileagePerYear < 25000
                   ) {
                     return (
-                      <div className="absolute top-10 left-[-60px] -rotate-45 bg-green-500 text-white font-black px-20 py-1 text-sm shadow-lg z-10">
+                      <div className="absolute top-7 left-[-80px] -rotate-45 bg-green-500 text-white font-black px-20 py-1 text-sm shadow-lg z-10">
                         LOW MILEAGE
                       </div>
                     );
@@ -313,7 +298,7 @@ const CarCard = ({ car, isFavorited = false }: CarCardProps) => {
                 })()}
 
                 {/* 360 Overlay */}
-                {car.image360 && (
+                {car?.image360 && (
                   <div className="absolute bottom-2 left-2 z-10">
                     <img
                       src="/src/assets/360-listing.png"
@@ -426,20 +411,19 @@ const CarCard = ({ car, isFavorited = false }: CarCardProps) => {
               <span className="text-sm font-semibold text-blue-900">
                 <Link href="/compare">{t("common.addCompare")}</Link>
               </span>
+         
               <input
-          type="checkbox"
-          checked={isCompared}
-          onChange={() => {
-            if (isCompared) {
-              handleRemoveFromCompare(car?.id);
-              setCompareDialogOpen(false); // close dialog if unchecked
-            } else {
-              handleAddToCompare(car);
-              setCompareDialogOpen(true); // open dialog on add
-            }
-          }}
-          className="h-4 w-4 rounded border-neutral-300 text-orange-500 focus:ring-orange-500"
-        />
+                type="checkbox"
+                checked={isCompared}
+                onChange={() => {
+                  if (isCompared) {
+                    onRemoveFromCompare(car.id);
+                  } else {
+                    onAddToCompare(car);
+                  }
+                }}
+                className="h-4 w-4 rounded border-neutral-300 text-orange-500 focus:ring-orange-500"
+              />
             </div>
 
             <div className="flex justify-between text-xs text-slate-700 mt-2">
@@ -558,21 +542,6 @@ const CarCard = ({ car, isFavorited = false }: CarCardProps) => {
           </Form>
         </DialogContent>
       </Dialog>
-
-      {/* CompareTool Dialog */}
-    <Dialog open={compareDialogOpen} onOpenChange={setCompareDialogOpen}>
-      <DialogContent className="max-w-5xl p-0">
-        <CompareTool
-          comparisonList={comparisonList}
-          onRemove={handleRemoveFromCompare}
-          onClear={() => {
-            localStorage.removeItem("comparisonList");
-            setComparisonList([]);
-            setCompareDialogOpen(false);
-          }}
-        />
-      </DialogContent>
-    </Dialog>
 
       {/* Auth Modal */}
       {authModal && (

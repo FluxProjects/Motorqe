@@ -100,6 +100,7 @@ export const CarListingStorage = {
             p.duration_days AS package_duration_days,
             p.is_featured AS package_is_featured,
             s.id AS showroom_id,
+            s.user_id AS showroom_user_id,
             s.name AS showroom_name,
             s.name_ar AS showroom_name_ar,
             s.logo AS showroom_logo,
@@ -107,7 +108,7 @@ export const CarListingStorage = {
             s.location AS showroom_location,
             s.timing AS showroom_timing
             FROM car_listings cl
-            INNER JOIN listing_promotions lp ON cl.id = lp.listing_id
+            LEFT JOIN listing_promotions lp ON cl.id = lp.listing_id
             AND lp.end_date > NOW()
             LEFT JOIN promotion_packages p ON lp.package_id = p.id
             LEFT JOIN showrooms s ON cl.is_business = true AND cl.showroom_id = s.id
@@ -478,7 +479,7 @@ export const CarListingStorage = {
 
         if (createdListing.category_id) {
             await db.query(
-                `UPDATE car_category SET count = COALESCE(count, 0) + 1 WHERE id = $1`,
+                `UPDATE car_categories SET count = COALESCE(count, 0) + 1 WHERE id = $1`,
                 [createdListing.category_id]
             );
         }
@@ -529,7 +530,7 @@ export const CarListingStorage = {
         // Decrement category count if applicable
         if (categoryId) {
             await db.query(
-                `UPDATE car_category SET count = GREATEST(COALESCE(count, 0) - 1, 0) WHERE id = $1`,
+                `UPDATE car_categories SET count = GREATEST(COALESCE(count, 0) - 1, 0) WHERE id = $1`,
                 [categoryId]
             );
         }
