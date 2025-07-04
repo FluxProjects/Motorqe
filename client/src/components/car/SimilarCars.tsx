@@ -50,13 +50,57 @@ export function SimilarCars({ vehicleId }: SimilarCarsProps) {
             >
               <div className="relative">
                 <img
-                  src={car.images?.[0] ?? "/placeholder.jpg"}
-                  alt={car.title}
-                  className="w-full h-48 object-cover"
+                  src={car?.images[0]}
+                  alt={car?.title}
+                  className={`h-full w-full object-cover group-hover:scale-105 transition-transform duration-300 ${
+                    car?.status === "sold" ? "opacity-50" : ""
+                  }`}
                 />
-                {index === 0 && (
-                  <div className="absolute top-3 left-3 bg-orange-500 text-white px-3 py-1 rounded-full text-xs font-medium">
-                    New Arrival
+               {/* SOLD STAMP */}
+                {car?.status === "sold" && (
+                  <div className="absolute inset-0 flex items-center justify-center z-10">
+                    <div className="text-red-500 text-xl font-extrabold border-red-500 border-2 px-6 py-2 shadow-lg transform rotate-[-10deg] opacity-90">
+                      SOLD
+                    </div>
+                  </div>
+                )}
+
+                {/* NEW RIBBON */}
+                {car?.condition === "new" && car?.status !== "sold" && (
+                  <div className="absolute top-5 left-[-40px] -rotate-45 bg-red-700 text-white font-black px-20 py-1 text-lg shadow-lg z-10">
+                    NEW
+                  </div>
+                )}
+
+                {/* LOW MILEAGE RIBBON */}
+                {(() => {
+                  const currentYear = new Date().getFullYear();
+                  const carYear = parseInt(car.year);
+                  const yearsOwned = Math.max(currentYear - carYear + 1, 1); // Prevent division by zero
+                  const avgMileagePerYear = car.mileage / yearsOwned;
+                  const condition = car.condition?.toLowerCase();
+
+                  if (
+                    condition === "used" && car?.status !== "sold" &&
+                    avgMileagePerYear < 25000
+                  ) {
+                    return (
+                      <div className="absolute top-7 left-[-80px] -rotate-45 bg-green-500 text-white font-black px-20 py-1 text-sm shadow-lg z-10">
+                        LOW MILEAGE
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+
+                {/* 360 Overlay */}
+                {car?.image360 && (
+                  <div className="absolute bottom-2 left-2 z-10">
+                    <img
+                      src="/src/assets/360-listing.png"
+                      alt="360 Available"
+                      className="w-10 h-10 md:w-12 md:h-12 drop-shadow-lg"
+                    />
                   </div>
                 )}
               </div>

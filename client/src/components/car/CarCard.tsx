@@ -270,7 +270,7 @@ const CarCard = ({ car, isFavorited = false, isCompared = false, onAddToCompare,
                 )}
 
                 {/* NEW RIBBON */}
-                {car?.condition === "new" && (
+                {car?.condition === "new" && car?.status !== "sold" && (
                   <div className="absolute top-5 left-[-40px] -rotate-45 bg-red-700 text-white font-black px-20 py-1 text-lg shadow-lg z-10">
                     NEW
                   </div>
@@ -285,7 +285,7 @@ const CarCard = ({ car, isFavorited = false, isCompared = false, onAddToCompare,
                   const condition = car.condition?.toLowerCase();
 
                   if (
-                    condition === "used" &&
+                    condition === "used" && car?.status !== "sold" &&
                     avgMileagePerYear < 25000
                   ) {
                     return (
