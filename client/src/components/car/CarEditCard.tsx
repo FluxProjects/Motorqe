@@ -20,7 +20,7 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { navigate } from "wouter/use-browser-location";
-import { ListingPlanCards } from "./ListingPlanCards";
+import ListingPlanCards from "../forms/CarListingForm/ListingPlanTable";
 
 interface CarEditCardProps {
   car: AdminCarListing;
