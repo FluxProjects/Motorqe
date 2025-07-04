@@ -174,6 +174,9 @@ const ManagePromotionPackages = () => {
       isFeatured: false,
       priority: 0,
       isActive: true,
+      photo_limit: 3,
+      feature_duration: 0,
+      no_of_refresh: 0,
     };
 
     if (promotionType === "listing") {
@@ -361,6 +364,9 @@ const ManagePromotionPackages = () => {
                           <TableHead className="text-gray-700">Plan</TableHead>
                           <TableHead className="text-gray-700">Price</TableHead>
                           <TableHead className="text-gray-700">Duration</TableHead>
+                          <TableHead className="text-gray-700">Photos</TableHead>
+                          <TableHead className="text-gray-700">Featured Days</TableHead>
+                          <TableHead className="text-gray-700">Daily Boosters</TableHead>
                           <TableHead className="text-gray-700">Status</TableHead>
                           <TableHead className="text-right text-gray-600">
                             {t("common.actions")}
@@ -389,6 +395,15 @@ const ManagePromotionPackages = () => {
                             </TableCell>
                             <TableCell className="text-gray-800">
                               {pkg.duration_days} days
+                            </TableCell>
+                            <TableCell className="text-gray-800">
+                              {pkg.photo_limit}
+                            </TableCell>
+                            <TableCell className="text-gray-800">
+                              {pkg.feature_duration}
+                            </TableCell>
+                            <TableCell className="text-gray-800">
+                              {pkg.no_of_refresh}
                             </TableCell>
                             <TableCell>
                               {pkg.is_active ? (
@@ -617,6 +632,54 @@ const ManagePromotionPackages = () => {
                     disabled={!isEditing}
                   />
                 </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="photosLimit">Photos Limit*</Label>
+                  <Input
+                    id="photosLimit"
+                    type="number"
+                    value={currentPackage.photo_limit}
+                    onChange={(e) =>
+                      setCurrentPackage({
+                        ...currentPackage,
+                        photo_limit: Number(e.target.value),
+                      })
+                    }
+                    disabled={!isEditing}
+                  />
+                </div>
+    
+                  <div className="space-y-2">
+                    <Label htmlFor="featuredDuration">Featured Duration (days)</Label>
+                    <Input
+                      id="featuredDuration"
+                      type="number"
+                      value={currentPackage.feature_duration}
+                      onChange={(e) =>
+                        setCurrentPackage({
+                          ...currentPackage,
+                          feature_duration: Number(e.target.value),
+                        })
+                      }
+                      disabled={!isEditing}
+                    />
+                  </div>
+    
+                  <div className="space-y-2">
+                    <Label htmlFor="boostersPerDay">Daily Boosters*</Label>
+                    <Input
+                      id="boostersPerDay"
+                      type="number"
+                      value={currentPackage.no_of_refresh}
+                      onChange={(e) =>
+                        setCurrentPackage({
+                          ...currentPackage,
+                          no_of_refresh: Number(e.target.value),
+                        })
+                      }
+                      disabled={!isEditing}
+                    />
+                  </div>
                 
                 <div className="space-y-2">
                   <Label htmlFor="priority">Priority</Label>

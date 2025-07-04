@@ -1003,22 +1003,35 @@ const filterKeys = [
       }
 
       if (package_id && start_date && end_date) {
+        console.log("📣 Fetching promotion package details for package_id:", package_id);
+        const pkg = await storage.getPromotionPackage(package_id);
+        if (!pkg) {
+            throw new Error("Promotion package not found");
+        }
+
+        // Update listing with refresh_left and last_refresh
+        await storage.updateCarListing(created.id, {
+            refresh_left: pkg.no_of_refresh ?? 0,
+        });
+        console.log("✅ Listing updated with package refresh_left and last_refresh");
+
         console.log("📣 Creating promotion with:", {
-          listingId: created.id,
-          packageId: package_id,
-          startDate: start_date,
-          endDate: end_date,
+            listingId: created.id,
+            packageId: package_id,
+            startDate: start_date,
+            endDate: end_date,
         });
         await storage.createListingPromotion({
-          listingId: created.id,
-          packageId: package_id,
-          startDate: start_date,
-          endDate: end_date,
-          transactionId: null,
-          isActive: true,
+            listingId: created.id,
+            packageId: package_id,
+            startDate: start_date,
+            endDate: end_date,
+            transactionId: null,
+            isActive: true,
         });
         console.log("✅ Promotion created");
-      }
+    }
+
 
       const fullListing = await storage.getCarListingById(created.id);
       console.log("📤 Returning full listing");
@@ -1073,37 +1086,46 @@ const filterKeys = [
       }
 
       if (package_id && start_date && end_date) {
+        console.log("📣 Fetching promotion package details for package_id:", package_id);
+        const pkg = await storage.getPromotionPackage(package_id);
+        if (!pkg) {
+            throw new Error("Promotion package not found");
+        }
+
+        // Update listing with refresh_left and last_refresh
+        await storage.updateCarListing(id, {
+            refresh_left: pkg.no_of_refresh ?? 0,
+        });
+        console.log("✅ Listing updated with package refresh_left and last_refresh");
+
         console.log("🔍 Checking for existing active promotions");
         const activePromotions = await storage.getActiveListingPromotions(id);
-
         if (activePromotions.length > 0) {
-          console.log("🔄 Updating existing promotion instead of creating new one");
-          const promotionToUpdate = activePromotions[0];
-
-          await storage.updateListingPromotion(promotionToUpdate.id, {
-            packageId: package_id,
-            startDate: start_date,
-            endDate: end_date
-          });
+            console.log("🔄 Updating existing promotion instead of creating new one");
+            const promotionToUpdate = activePromotions[0];
+            await storage.updateListingPromotion(promotionToUpdate.id, {
+                packageId: package_id,
+                startDate: start_date,
+                endDate: end_date,
+            });
         } else {
-          console.log("📣 Creating new promotion with:", {
-            listingId: id,
-            packageId: package_id,
-            startDate: start_date,
-            endDate: end_date,
-          });
-
-          await storage.createListingPromotion({
-            listingId: id,
-            packageId: package_id,
-            startDate: start_date,
-            endDate: end_date,
-            transactionId: null,
-            isActive: true,
-          });
+            console.log("📣 Creating new promotion with:", {
+                listingId: id,
+                packageId: package_id,
+                startDate: start_date,
+                endDate: end_date,
+            });
+            await storage.createListingPromotion({
+                listingId: id,
+                packageId: package_id,
+                startDate: start_date,
+                endDate: end_date,
+                transactionId: null,
+                isActive: true,
+            });
         }
         console.log("✅ Promotion updated");
-      }
+    }
 
       const fullListing = await storage.getCarListingById(id);
       console.log("📤 Returning updated full listing");
@@ -1118,14 +1140,41 @@ const filterKeys = [
     }
   });
 
+
+  app.put('/api/car-listings/:id/refresh', async (req, res) => {
+    try {
+      const carId = parseInt(req.params.id);
+      const car = await storage.getCarListingById(carId);
+      
+      if (!car) {
+        return res.status(404).json({ error: 'Car listing not found' });
+      }
+
+      const refreshLeft = parseInt(car.refresh_left ?? '0');
+      if (refreshLeft <= 0) {
+        return res.status(400).json({ error: 'No refreshes remaining' });
+      }
+
+      const updatedCar = await storage.updateCarListing(carId, {
+        refresh_left: (refreshLeft - 1).toString(),
+      });
+
+
+      res.json(updatedCar);
+    } catch (error) {
+      console.error('Error refreshing listing:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
   app.put("/api/car-listings/:id/actions", async (req, res) => {
     try {
       const id = Number(req.params.id);
-      const { action, reason, featured } = req.body;
+      const { action, reason, featured, package_id } = req.body;
 
       console.log("Action Recieved in route:", action);
       // Validate action
-      const validActions = ['pending', 'draft', 'publish', 'active', 'approve', 'reject', 'feature', 'sold', 'delete'];
+      const validActions = ['pending', 'draft', 'publish', 'active', 'approve', 'reject', 'feature', 'sold', 'delete', 'upgrade'];
       if (!validActions.includes(action)) {
         return res.status(400).json({ message: "Invalid action" });
       }
@@ -1142,6 +1191,7 @@ const filterKeys = [
       switch (action) {
         case 'draft':
           updates.status = 'draft';
+          break;
         case 'publish':
         case 'active':
         case 'approve':
@@ -1163,6 +1213,12 @@ const filterKeys = [
           // Soft delete implementation
           updates.deleted_at = new Date();
           break;
+       case 'upgrade':
+        if (!package_id) {
+          return res.status(400).json({ message: "package_id is required for upgrade action" });
+        }
+        updates.upgradePackageId = package_id;
+        break;
       }
 
       // Apply updates

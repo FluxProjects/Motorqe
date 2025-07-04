@@ -6,93 +6,98 @@ interface PlanCardsProps {
   packageslist: PromotionPackage[];
   selectedPackageId?: number;
   onSelect: (pkg: PromotionPackage) => void;
+  currentPackagePriority?: number; // Add this prop
 }
 
 export default function ListingPlanCards({
   packageslist,
   selectedPackageId,
   onSelect,
+  currentPackagePriority, // Add this prop
 }: PlanCardsProps) {
 
-const packages = packageslist
-  ? [
-      {
-        id: packageslist[0]?.id,
-        plan: packageslist[0]?.plan,
-        medal: packageslist[0]?.name || packageslist[0]?.name_ar,
-        medalType: "silver-medal",
-        price: packageslist[0]?.price,
-        currency: packageslist[0]?.currency,
-        features: [
-          "Upload up to 3 Photos",
-          "Listing active for 25 Days",
-          "No High Exposure"
-        ],
-        showExposure: false,
-        exposureText: "",
-        exposureType: ""
-      },
-      {
-        id: packageslist[0]?.id,
-        plan: packageslist[1]?.plan,
-        medal: packageslist[1]?.name || packageslist[1]?.name_ar,
-        medalType: "gold-medal",
-        price: packageslist[1]?.price,
-        currency: packageslist[1]?.currency,
-        features: [
-          "Upload up to 10 Photos",
-          "Featured Ad for 5 days",
-          "Listing Active for 45 Days",
-          "1 Booster daily to refresh your ad"
-        ],
-        showExposure: true,
-        exposureText: "x 10 High Exposure",
-        exposureType: "blue"
-      },
-      {
-        id: packageslist[0]?.id,
-        plan: packageslist[2]?.plan,
-        medal: packageslist[2]?.name || packageslist[2]?.name_ar,
-        medalType: "platinum-medal",
-        price: packageslist[2]?.price,
-        currency: packageslist[2]?.currency,
-        features: [
-          "Upload up to 20 Photos",
-          "Featured Ad for 10 days",
-          "360 Angle of Interior",
-          "Listing Active for 60 Days",
-          "2 Boosters daily to refresh your ad (One of our members will contact you instantly to take pics & upload them)"
-        ],
-        showExposure: true,
-        exposureText: "x 50 Higher Exposure",
-        exposureType: "orange"
-      }
-    ]
-  : [];
+  // Filter packages based on priority if currentPackagePriority is provided
+  const filteredPackages = currentPackagePriority 
+    ? packageslist.filter(pkg => pkg.priority > currentPackagePriority)
+    : packageslist;
 
-  
+  // Map the filtered packages to your card format
+  const packages = filteredPackages.map(pkg => {
+    // Determine medal type based on priority or name
+    let medalType = "";
+    if (pkg.priority >= 3 || pkg.name.toLowerCase().includes("platinum")) {
+      medalType = "platinum-medal";
+    } else if (pkg.priority >= 2 || pkg.name.toLowerCase().includes("gold")) {
+      medalType = "gold-medal";
+    } else {
+      medalType = "silver-medal";
+    }
+
+    // Create features array based on package properties
+    const features = [];
+    if (pkg.photo_limit) features.push(`Upload up to ${pkg.photo_limit} Photos`);
+    if (pkg.feature_duration) features.push(`Featured Ad for ${pkg.feature_duration} days`);
+    if (pkg.duration_days) features.push(`Listing active for ${pkg.duration_days} Days`);
+    if (pkg.no_of_refresh) features.push(`${pkg.no_of_refresh} Booster${pkg.no_of_refresh > 1 ? "s" : ""} daily`);
+
+    return {
+      id: pkg.id,
+      plan: pkg.plan,
+      medal: pkg.name || pkg.name_ar,
+      medalType,
+      price: pkg.price.toString(),
+      currency: pkg.currency,
+      features,
+      showExposure: pkg.priority >= 2, // Only show exposure for higher priority packages
+      exposureText: pkg.priority >= 3 ? "x 50 Higher Exposure" : "x 10 High Exposure",
+      exposureType: pkg.priority >= 3 ? "orange" : "blue"
+    };
+  });
 
   return (
-    <main className="container mx-auto px-4 py-12 bg-white">
-      <h1 className="text-4xl font-bold text-center text-gray-800 mb-12">Choose a Plan</h1>
+    <main className="container mx-auto px-4 py-12 bg-white justify-center ite">
+      <h1 className="text-4xl font-bold text-center text-gray-800 mb-12">
+        {currentPackagePriority ? "Upgrade Your Plan" : "Choose a Plan"}
+      </h1>
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        {packages.map((pkg, index) => (
-          <PlanCard 
-            key={index} 
-            pakg={pkg}
-            selected={selectedPackageId === pkg.id} // optional
-            onClick={() => onSelect(packageslist[index])}
-          />
-        ))}
-      </div>
-      
-      <div className="text-center mt-10">
-        <p className="flex items-center justify-center text-gray-600 text-sm">
-          <InfoIcon className="h-4 w-4 mr-2" />
-          Can't Find The Right Plan Up? Contact Us For A Customized Plan Or Listing !
-        </p>
-      </div>
+      {packages.length > 0 ? (
+        <>
+          <div
+            className={`
+              grid gap-8
+              grid-cols-1
+              ${packages.length === 1 ? 'md:grid-cols-1 place-items-center' : ''}
+              ${packages.length === 2 ? 'md:grid-cols-2' : ''}
+              ${packages.length === 4 ? 'md:grid-cols-2 lg:grid-cols-3' : ''}
+              ${packages.length >= 3 && packages.length !== 4 ? 'md:grid-cols-3' : ''}
+            `}
+          >
+            {packages.map((pkg, index) => (
+              <PlanCard 
+                key={pkg.id}
+                pakg={pkg}
+                selected={selectedPackageId === pkg.id}
+                onClick={() => onSelect(packageslist.find(pl => pl.id === pkg.id)!)}
+              />
+            ))}
+          </div>
+
+
+          
+          <div className="text-center mt-10">
+            <p className="flex items-center justify-center text-gray-600 text-sm">
+              <InfoIcon className="h-4 w-4 mr-2" />
+              Can't Find The Right Plan Up? Contact Us For A Customized Plan Or Listing !
+            </p>
+          </div>
+        </>
+      ) : (
+        <div className="text-center py-8">
+          <p className="text-lg text-gray-600">
+            No higher-tier plans available for upgrade.
+          </p>
+        </div>
+      )}
     </main>
   );
 }

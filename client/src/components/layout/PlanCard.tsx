@@ -24,11 +24,11 @@ export default function PlanCard({
  }: PlanProps) {
 
   const ribbonClass =
-  pakg.plan.toLowerCase() === "featured"
+  pakg?.plan?.toLowerCase() === "featured"
     ? "ribbon-featured" // your new blue ribbon class
-    : pakg.plan.toLowerCase() === "platinum"
+    : pakg?.plan?.toLowerCase() === "platinum"
     ? "ribbon-platinum"
-    : pakg.plan.toLowerCase() === "basic"
+    : pakg?.plan?.toLowerCase() === "basic"
     ? "ribbon-basic"
     : "ribbon-basic";
 

@@ -79,6 +79,42 @@ export default function CarEditCard({ car }: CarEditCardProps) {
   const getBorderClass = () =>
     car.is_featured ? "border-2 border-orange-500" : "";
 
+  const refreshMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await apiRequest("PUT", `/api/car-listings/${id}/refresh`, {});
+      if (!res.ok) throw new Error("Failed to refresh listing");
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: t("common.success"),
+        description: "Listing refreshed successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/car-listings"] });
+    },
+    onError: (error) => {
+      toast({
+        title: t("common.error"),
+        description: error instanceof Error ? error.message : "Failed to refresh",
+        variant: "destructive",
+      });
+    },
+  });
+
+
+  const handleRefresh = () => {
+  if (!car?.refresh_left || car?.refresh_left <= 0) {
+    toast({
+      title: t("common.error"),
+      description: "No refreshes remaining",
+      variant: "destructive",
+    });
+    return;
+  }
+
+  refreshMutation.mutate(car.id);
+};
+
   const performAction = useMutation({
     mutationFn: async ({
       id,
@@ -103,8 +139,9 @@ export default function CarEditCard({ car }: CarEditCardProps) {
             roleName
           )
         ) {
-          await apiRequest("PUT", `/api/car-listings/${id}/package`, {
+          await apiRequest("PUT", `/api/car-listings/${id}/actions`, {
             package_id: pkg.id,
+            refresh_left: pkg.no_of_refresh
           });
           return action;
         }
@@ -342,13 +379,18 @@ export default function CarEditCard({ car }: CarEditCardProps) {
 
             <button
               className="flex-1 bg-blue-900 text-white py-3 px-2 rounded-xl text-xs hover:opacity-90 flex flex-col items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-              onClick={() => handleAction(car.is_featured ? "feature" : "Edit")}
-              disabled={car.status === "sold" || car.status === "pending"}
+              onClick={() => car.is_featured ? handleRefresh() : window.open(`/sell-car/${car.id}`, '_blank')}
+              disabled={
+                (car.is_featured && (car.status === "sold" || car.status === "pending" || car.refresh_left <= 0)) ||
+                (!car.is_featured && (car.status === "sold" || car.status === "pending"))
+              }
             >
               {car.is_featured ? (
                 <>
                   <RotateCcw className="h-5 w-5 mb-1" />
-                  <span>Refresh</span>
+                  <span>
+                    Refresh ({car.refresh_left}/{currentPackage?.no_of_refresh || 0})
+                  </span>
                 </>
               ) : (
                 <>

@@ -380,6 +380,7 @@ export const carListings = pgTable("car_listings", {
   showroomId: integer("showroom_id"),
   listingType: text("listing_type").$type<"sale" | "exchange" | "both">(),
   refreshLeft: text("refresh_left"),
+  lastRefresh: timestamp("refresh_left"),
 
   // System info
   views: integer("views").default(0),
@@ -442,6 +443,7 @@ export const insertCarListingSchema = createInsertSchema(carListings).pick({
   inspectionReport: true,
 
   refreshLeft: true,
+  lastRefresh: true,
 
   isBusiness: true,
   showroomId: true,
@@ -1120,6 +1122,7 @@ export const promotionPackages = pgTable("promotion_packages", {
   featureDuration: integer("feature_duration"),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
+  photoLimit: integer("photo_limit"),
 });
 
 export const insertPromotionPackageSchema = createInsertSchema(promotionPackages).pick({
@@ -1133,6 +1136,9 @@ export const insertPromotionPackageSchema = createInsertSchema(promotionPackages
   durationDays: true,
   isFeatured: true,
   priority: true,
+  noOfRefresh: true,
+  featureDuration: true,
+  photoLimit: true,
   isActive: true,
 });
 
@@ -1324,11 +1330,15 @@ export type ListingFormData = {
   features?: string[];
   media?: File[] | string[]; // Files before upload or URLs after upload
   status: 'draft' | 'active' | 'pending' | 'reject' | 'sold';
+  refreshLeft?: number;
   package?: {
     packageId?: string;
     packageName?: string;
     packagePrice?: string;
     durationDays?: number;
+    photoLimit?: number;
+    featureDuration?: number;
+    noOfRefresh?: number;
   };
 };
 
@@ -1384,6 +1394,7 @@ export interface AdminCarListingFilters {
   hasPromotion?: boolean;
   packageType?: string;
   promotionStatus?: string;
+  refreshLeft?: string;
   // Sorting and Pagination
   sort: string;
   page: number;
@@ -1484,6 +1495,7 @@ export interface AdminCarListing {
   inspection_report?: string;
 
   views?: number;
+  refresh_left?: number;
   created_at: string;
   updated_at?: string;
   
@@ -1524,6 +1536,9 @@ export interface AdminCarListing {
   package_name?: string;
   package_price?: string;
   duration_days?: number;
+  feature_duration?: number;
+  photo_limit?: number;
+  no_of_refresh?: number;
   start_date?: Date;
   end_date?: Date;
 }
@@ -1747,14 +1762,14 @@ export interface ServiceCategory {
 }
 
 export type StatDashboard = {
-totalUsers: number;
-totalListings: number;
-pendingReports: number;
-pendingListings: number;
-recentUsers: any[];
-recentListings: any[];
-recentReports: any[];
-cmsOverview: any[];
+  totalUsers: number;
+  totalListings: number;
+  pendingReports: number;
+  pendingListings: number;
+  recentUsers: any[];
+  recentListings: any[];
+  recentReports: any[];
+  cmsOverview: any[];
 };
 
 export type ServiceBookingFormProps = {

@@ -37,6 +37,7 @@ const filterKeys = [
   "updated_from",
   "updated_to",
   "is_active",
+  "refresh_left",
 ];
 
 
@@ -54,7 +55,7 @@ export function extractFiltersFromQuery(query: any) {
         filters[key] = value === "true";
       }
       // Convert numeric filters safely
-      else if (["make_id", "model_id", "category_id", "year_from", "year_to", "price_from", "price_to", "miles_from", "miles_to", "cylinder_count"].includes(key)) {
+      else if (["make_id", "model_id", "category_id", "year_from", "year_to", "price_from", "price_to", "miles_from", "miles_to", "cylinder_count", "refresh_left"].includes(key)) {
         const num = Number(value);
         if (!isNaN(num)) {
           filters[key] = num;

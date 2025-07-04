@@ -1,5 +1,5 @@
 import { db } from "../db";
-import { CarListing, CarListingWithFeatures, InsertCarListing, ListingPromotion, Showroom } from "@shared/schema";
+import { CarListing, CarListingWithFeatures, InsertCarListing, ListingPromotion, PromotionPackage, Showroom } from "@shared/schema";
 
 export interface ICarListingStorage {
 
@@ -9,7 +9,13 @@ export interface ICarListingStorage {
     getFeaturedListings(): Promise<CarListing[]>;
     getCarFeaturedListings(filter?: Partial<CarListing>, sortBy?: keyof CarListing, sortOrder?: 'asc' | 'desc'): Promise<CarListing[]>;
     createCarListing(listing: InsertCarListing): Promise<CarListing>;
-    updateCarListing(id: number, updates: Partial<InsertCarListing>): Promise<CarListing | undefined>;
+    updateCarListing(
+        id: number,
+        updates: Partial<InsertCarListing> & {
+            upgradePackageId?: number;
+            refresh_left?: number;
+        }
+    ): Promise<CarListing | undefined>;
     deleteCarListing(id: number): Promise<void>;
     incrementListingViews(id: number): Promise<void>;
     updateListingStatus(id: number, status: 'draft' | 'pending' | 'active' | 'sold' | 'expired' | 'reject'): Promise<void>;
@@ -65,6 +71,8 @@ export const CarListingStorage = {
             status?: string;
             is_active?: string;
 
+            refresg_left?: string;
+
             user_id?: number;
         } = {},
         sortBy?: keyof CarListing,
@@ -99,10 +107,15 @@ export const CarListingStorage = {
             p.currency AS package_currency,
             p.duration_days AS package_duration_days,
             p.is_featured AS package_is_featured,
+            p.feature_duration AS package_feature_duration,
+            p.photo_limit AS package_photo_limit,
+            p.no_of_refresh AS package_no_of_refresh,
             s.id AS showroom_id,
             s.user_id AS showroom_user_id,
             s.name AS showroom_name,
             s.name_ar AS showroom_name_ar,
+            s.description AS showroom_description,
+            s.description_ar AS showroom_description_ar,
             s.logo AS showroom_logo,
             s.phone AS showroom_phone,
             s.location AS showroom_location,
@@ -277,10 +290,16 @@ export const CarListingStorage = {
                             console.log(`Added imported filter: has_insurance = ${value}`);
                             paramIndex++;
                             break;
-                         case 'status':
+                        case 'status':
                             whereClauses.push(`cl.status = $${paramIndex}`);
                             values.push(value);
                             console.log(`Added Status filter: status = ${value}`);
+                            paramIndex++;
+                            break;
+                         case 'refresh_left':
+                            whereClauses.push(`cl.refresh_left = $${paramIndex}`);
+                            values.push(value);
+                            console.log(`Added imported filter: refresh_left = ${value}`);
                             paramIndex++;
                             break;
                         case 'is_active':
@@ -338,14 +357,14 @@ export const CarListingStorage = {
         }
 
         const sortMap: Record<string, { column: keyof CarListing, order: 'ASC' | 'DESC' }> = {
-    latest: { column: 'created_at', order: 'DESC' },
-    year_high: { column: 'year', order: 'DESC' },
-    year_low: { column: 'year', order: 'ASC' },
-    price_high: { column: 'price', order: 'DESC' },
-    price_low: { column: 'price', order: 'ASC' },
-    mileage_high: { column: 'mileage', order: 'DESC' },
-    mileage_low: { column: 'mileage', order: 'ASC' },
-};
+            latest: { column: 'created_at', order: 'DESC' },
+            year_high: { column: 'year', order: 'DESC' },
+            year_low: { column: 'year', order: 'ASC' },
+            price_high: { column: 'price', order: 'DESC' },
+            price_low: { column: 'price', order: 'ASC' },
+            mileage_high: { column: 'mileage', order: 'DESC' },
+            mileage_low: { column: 'mileage', order: 'ASC' },
+        };
 
 
         // Handle sorting
@@ -353,13 +372,13 @@ export const CarListingStorage = {
             'id', 'title', 'price', 'year', 'mileage', 'status', 'updated_at', 'created_at'
         ];
 
-       if (sortBy && sortMap[sortBy]) {
-    const { column, order } = sortMap[sortBy];
-    baseQuery += ` ORDER BY ${column} ${order}`;
-    console.log(`Applying sort: ORDER BY ${column} ${order}`);
-} else if (sortBy) {
-    console.log(`Invalid sort field: ${sortBy} - skipping sort`);
-}
+        if (sortBy && sortMap[sortBy]) {
+            const { column, order } = sortMap[sortBy];
+            baseQuery += ` ORDER BY ${column} ${order}`;
+            console.log(`Applying sort: ORDER BY ${column} ${order}`);
+        } else if (sortBy) {
+            console.log(`Invalid sort field: ${sortBy} - skipping sort`);
+        }
 
 
         console.log('Final SQL query:', baseQuery);
@@ -465,83 +484,153 @@ export const CarListingStorage = {
     },
 
     async createCarListing(listing: InsertCarListing): Promise<CarListing> {
-    const fields = Object.keys(listing);
-    const values = Object.values(listing);
-    const placeholders = fields.map((_, i) => `$${i + 1}`).join(', ');
+        const fields = Object.keys(listing);
+        const values = Object.values(listing);
+        const placeholders = fields.map((_, i) => `$${i + 1}`).join(', ');
 
-    // Begin transaction to keep inserts + update atomic
-    await db.query('BEGIN');
+        // Begin transaction to keep inserts + update atomic
+        await db.query('BEGIN');
 
-    try {
-        const insertQuery = `INSERT INTO car_listings (${fields.join(', ')}) VALUES (${placeholders}) RETURNING *`;
-        const result = await db.query(insertQuery, values);
-        const createdListing = result[0];
+        try {
+            const insertQuery = `INSERT INTO car_listings (${fields.join(', ')}) VALUES (${placeholders}) RETURNING *`;
+            const result = await db.query(insertQuery, values);
+            const createdListing = result[0];
 
-        if (createdListing.category_id) {
-            await db.query(
-                `UPDATE car_categories SET count = COALESCE(count, 0) + 1 WHERE id = $1`,
-                [createdListing.category_id]
+            if (createdListing.category_id) {
+                await db.query(
+                    `UPDATE car_categories SET count = COALESCE(count, 0) + 1 WHERE id = $1`,
+                    [createdListing.category_id]
+                );
+            }
+
+            await db.query('COMMIT');
+
+            return createdListing;
+        } catch (error) {
+            await db.query('ROLLBACK');
+            throw error;
+        }
+    },
+
+   async updateCarListing(
+        id: number,
+        updates: Partial<InsertCarListing> & {
+            upgradePackageId?: number;
+            refresh_left?: number | string;
+        }
+    ): Promise<CarListing | undefined> {
+        const { upgradePackageId, refresh_left, ...fieldsToUpdate } = updates;
+        const fields = Object.keys(fieldsToUpdate);
+        const values = Object.values(fieldsToUpdate);
+
+        try {
+            await db.query('BEGIN');
+
+            // 1️⃣ Update standard fields if any
+            if (fields.length > 0) {
+                const setClause = fields.map((key, i) => `${key} = $${i + 1}`).join(', ');
+                const query = `UPDATE car_listings SET ${setClause} WHERE id = $${fields.length + 1}`;
+                await db.query(query, [...values, id]);
+            }
+
+            // 2️⃣ Handle package upgrade
+            if (upgradePackageId) {
+                const [promotionPackage] = await db.query(
+                    `SELECT * FROM promotion_packages WHERE id = $1`,
+                    [upgradePackageId]
+                );
+
+                if (!promotionPackage) {
+                    throw new Error('Promotion package not found');
+                }
+
+                const durationDays = promotionPackage.durationDays ?? 0;
+                const noOfRefresh = promotionPackage.noOfRefresh ?? 0;
+                const isFeatured = promotionPackage.isFeatured ?? false;
+
+                // Update car listing: refreshLeft, lastRefresh, isFeatured
+                await db.query(
+                    `UPDATE car_listings SET 
+                        "refreshLeft" = $1::text,
+                        "lastRefresh" = NOW(),
+                        "isFeatured" = $2
+                    WHERE id = $3`,
+                    [noOfRefresh.toString(), isFeatured, id]
+                );
+
+                // Insert into listing_promotions for tracking promotion period
+                await db.query(
+                    `INSERT INTO listing_promotions (
+                        listing_id,
+                        package_id,
+                        start_date,
+                        end_date,
+                        created_at
+                    ) VALUES ($1, $2, NOW(), NOW() + ($3 || ' days')::INTERVAL, NOW())`,
+                    [id, promotionPackage.id, durationDays]
+                );
+            }
+
+            // 3️⃣ Handle explicit refresh_left update
+            if (typeof refresh_left !== 'undefined') {
+                await db.query(
+                    `UPDATE car_listings 
+                    SET "refreshLeft" = $1::text,
+                        "lastRefresh" = NOW()
+                    WHERE id = $2`,
+                    [refresh_left.toString(), id]
+                );
+            }
+
+            await db.query('COMMIT');
+
+            // 4️⃣ Return updated listing
+            const [result] = await db.query(
+                `SELECT * FROM car_listings WHERE id = $1`,
+                [id]
             );
+
+            return result;
+        } catch (error) {
+            await db.query('ROLLBACK');
+            console.error('[updateCarListing] Transaction failed:', error);
+            throw new Error(error.message || 'Failed to update car listing');
         }
-
-        await db.query('COMMIT');
-
-        return createdListing;
-    } catch (error) {
-        await db.query('ROLLBACK');
-        throw error;
-    }
-},
-
-    async updateCarListing(id: number, updates: Partial<InsertCarListing>): Promise<CarListing | undefined> {
-        const fields = Object.keys(updates);
-        const values = Object.values(updates);
-
-        if (fields.length === 0) {
-            console.warn("[updateCarListing] No fields to update");
-            return undefined;
-        }
-
-        const setClause = fields.map((key, i) => `${key} = $${i + 1}`).join(', ');
-        const query = `UPDATE car_listings SET ${setClause} WHERE id = $${fields.length + 1} RETURNING *`;
-        const result = await db.query(query, [...values, id]);
-
-        return result[0];
     },
 
     async deleteCarListing(id: number): Promise<void> {
-    await db.query('BEGIN');
+        await db.query('BEGIN');
 
-    try {
-        // Get category_id before deletion
-        const listing = await db.query(
-            'SELECT category_id FROM car_listings WHERE id = $1',
-            [id]
-        );
-        const categoryId = listing[0]?.category_id;
-
-        // Delete dependent rows first
-        await db.query('DELETE FROM car_listing_features WHERE listing_id = $1', [id]);
-        await db.query('DELETE FROM listing_promotions WHERE listing_id = $1', [id]);
-
-        // Then delete the main listing
-        await db.query('DELETE FROM car_listings WHERE id = $1', [id]);
-
-        // Decrement category count if applicable
-        if (categoryId) {
-            await db.query(
-                `UPDATE car_categories SET count = GREATEST(COALESCE(count, 0) - 1, 0) WHERE id = $1`,
-                [categoryId]
+        try {
+            // Get category_id before deletion
+            const listing = await db.query(
+                'SELECT category_id FROM car_listings WHERE id = $1',
+                [id]
             );
-        }
+            const categoryId = listing[0]?.category_id;
 
-        await db.query('COMMIT');
-    } catch (err) {
-        await db.query('ROLLBACK');
-        console.error('Failed to delete listing:', err);
-        throw new Error('Failed to delete listing and its dependencies');
-    }
-},
+            // Delete dependent rows first
+            await db.query('DELETE FROM car_listing_features WHERE listing_id = $1', [id]);
+            await db.query('DELETE FROM listing_promotions WHERE listing_id = $1', [id]);
+
+            // Then delete the main listing
+            await db.query('DELETE FROM car_listings WHERE id = $1', [id]);
+
+            // Decrement category count if applicable
+            if (categoryId) {
+                await db.query(
+                    `UPDATE car_categories SET count = GREATEST(COALESCE(count, 0) - 1, 0) WHERE id = $1`,
+                    [categoryId]
+                );
+            }
+
+            await db.query('COMMIT');
+        } catch (err) {
+            await db.query('ROLLBACK');
+            console.error('Failed to delete listing:', err);
+            throw new Error('Failed to delete listing and its dependencies');
+        }
+    },
 
     async getListingsBySeller(sellerId: number): Promise<CarListing[]> {
         return await db.query('SELECT * FROM car_listings WHERE seller_id = $1 ORDER BY created_at DESC', [sellerId]);
@@ -556,40 +645,40 @@ export const CarListingStorage = {
     },
 
     async getSimilarCarListings(
-    listingId: string,
-    limit = 4
-  ): Promise<CarListing[]> {
-    console.log('🔍 Fetching similar listings for:', listingId);
+        listingId: string,
+        limit = 4
+    ): Promise<CarListing[]> {
+        console.log('🔍 Fetching similar listings for:', listingId);
 
-    // Step 1: Get the target listing's make_id and category_id
-    const [base] = await db.query(
-      `SELECT category_id
+        // Step 1: Get the target listing's make_id and category_id
+        const [base] = await db.query(
+            `SELECT category_id
        FROM car_listings
        WHERE id = $1
        LIMIT 1`,
-      [listingId]
-    );
+            [listingId]
+        );
 
-    console.log('📋 Base listing details:', base);
-    if (!base) {
-      console.warn(`Listing with ID ${listingId} not found, returning empty.`);
-      return [];
-    }
+        console.log('📋 Base listing details:', base);
+        if (!base) {
+            console.warn(`Listing with ID ${listingId} not found, returning empty.`);
+            return [];
+        }
 
-    // Step 2: Query for similar listings
-    const similar = await db.query(
-      `SELECT *
+        // Step 2: Query for similar listings
+        const similar = await db.query(
+            `SELECT *
        FROM car_listings
        WHERE category_id = $1
          AND id != $2
        ORDER BY created_at DESC
        LIMIT $3`,
-      [base.category_id, listingId, limit]
-    );
+            [base.category_id, listingId, limit]
+        );
 
-    console.log(`✅ Found ${similar.length} similar listings.`);
-    return similar as CarListing[];
-  },
+        console.log(`✅ Found ${similar.length} similar listings.`);
+        return similar as CarListing[];
+    },
 
 
 };
