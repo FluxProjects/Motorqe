@@ -4,6 +4,7 @@ import { CarListing, CarListingWithFeatures, InsertCarListing, ListingPromotion,
 export interface ICarListingStorage {
 
     getAllCarListings(filter?: Partial<CarListing>, sortBy?: keyof CarListing, sortOrder?: 'asc' | 'desc'): Promise<CarListing[]>;
+    searchCarsCount(filter?: Partial<CarListing>): Promise<number>;
     getCarListingById(id: number): Promise<CarListingWithFeatures | undefined>;
     getListingsBySeller(sellerId: number): Promise<CarListing[]>;
     getFeaturedListings(): Promise<CarListing[]>;
@@ -171,19 +172,19 @@ export const CarListingStorage = {
                             paramIndex++;
                             break;
                         case 'make':
-                            whereClauses.push(`cl.make = $${paramIndex}`);
+                            whereClauses.push(`cl.make_id = $${paramIndex}`);
                             values.push(value);
                             console.log(`Added make filter: make = ${value}`);
                             paramIndex++;
                             break;
                         case 'model':
-                            whereClauses.push(`cl.model = $${paramIndex}`);
+                            whereClauses.push(`cl.model_id = $${paramIndex}`);
                             values.push(value);
                             console.log(`Added model filter: model = ${value}`);
                             paramIndex++;
                             break;
                         case 'category':
-                            whereClauses.push(`cl.category = $${paramIndex}`);
+                            whereClauses.push(`cl.category_id = $${paramIndex}`);
                             values.push(value);
                             console.log(`Added category filter: category = ${value}`);
                             paramIndex++;
@@ -393,6 +394,270 @@ export const CarListingStorage = {
         } catch (error) {
             console.error('Database query failed:', error);
             console.log('--- END: getAllCarListings (with error) ---');
+            throw error;
+        }
+    },
+
+    async searchCarsCount(
+        filter?: Partial<CarListing> & {
+            price_from?: number | string;
+            price_to?: number | string;
+            year_from?: number;
+            year_to?: number;
+            make?: string;
+            model?: string;
+            category?: string;
+            miles_from?: number | string;
+            miles_to?: number | string;
+            fuel_type?: string;
+            transmission?: string;
+            engine_capacity?: number | string;
+            cylinder_count?: number | string;
+            color?: string;
+            interior_color?: string;
+            tinted?: boolean;
+            condition?: string;
+            location?: string;
+            is_featured?: string;
+            is_imported?: string;
+            owner_type?: string;
+            has_warranty?: string;
+            has_insurance?: string;
+            is_inspected?: string;
+            updated_from?: string;
+            updated_to?: string;
+            is_business?: string;
+            showroom_id?: string;
+            status?: string;
+            is_active?: string;
+            refresh_left?: string;
+            user_id?: number;
+        } = {}
+    ): Promise<number> {
+        console.log('--- START: getCarListingsCount ---');
+        console.log('Incoming filter parameters:', JSON.stringify(filter, null, 2));
+
+        
+
+        let baseQuery = `
+            SELECT COUNT(cl.id) as count
+            FROM car_listings cl
+            LEFT JOIN listing_promotions lp ON cl.id = lp.listing_id
+                AND lp.end_date > NOW()
+             LEFT JOIN car_makes cm ON cl.make_id = cm.id
+            LEFT JOIN car_models cmd ON cl.model_id = cmd.id
+        `;
+
+        const whereClauses: string[] = [];
+        const values: any[] = [];
+        let paramIndex = 1;
+
+        // Process filters - identical to getAllCarListings
+        for (const key in filter) {
+            if (Object.prototype.hasOwnProperty.call(filter, key)) {
+                const value = filter[key as keyof typeof filter];
+
+                console.log(`Processing filter: ${key} =`, value);
+
+                if (value !== undefined && value !== null) {
+                    switch (key) {
+                        case 'user_id':
+                            whereClauses.push(`cl.user_id = $${paramIndex}`);
+                            values.push(value);
+                            paramIndex++;
+                            break;
+                        case 'price_from':
+                            whereClauses.push(`cl.price >= $${paramIndex}`);
+                            values.push(Number(value));
+                            paramIndex++;
+                            break;
+                        case 'price_to':
+                            whereClauses.push(`cl.price <= $${paramIndex}`);
+                            values.push(Number(value));
+                            paramIndex++;
+                            break;
+                        case 'year_from':
+                            whereClauses.push(`cl.year >= $${paramIndex}`);
+                            values.push(Number(value));
+                            paramIndex++;
+                            break;
+                        case 'year_to':
+                            whereClauses.push(`cl.year <= $${paramIndex}`);
+                            values.push(Number(value));
+                            paramIndex++;
+                            break;
+                        case 'make':
+                            whereClauses.push(`cl.make_id = $${paramIndex}`);
+                            values.push(value);
+                            paramIndex++;
+                            break;
+                        case 'model':
+                            whereClauses.push(`cl.model_id = $${paramIndex}`);
+                            values.push(value);
+                            paramIndex++;
+                            break;
+                        case 'category':
+                            whereClauses.push(`cl.category_id = $${paramIndex}`);
+                            values.push(value);
+                            paramIndex++;
+                            break;
+                        case 'miles_from':
+                            whereClauses.push(`cl.mileage >= $${paramIndex}`);
+                            values.push(Number(value));
+                            paramIndex++;
+                            break;
+                        case 'miles_to':
+                            whereClauses.push(`cl.mileage <= $${paramIndex}`);
+                            values.push(Number(value));
+                            paramIndex++;
+                            break;
+                        case 'fuel_type':
+                            whereClauses.push(`cl.fuel_type = $${paramIndex}`);
+                            values.push(value);
+                            paramIndex++;
+                            break;
+                        case 'transmission':
+                            whereClauses.push(`cl.transmission = $${paramIndex}`);
+                            values.push(value);
+                            paramIndex++;
+                            break;
+                        case 'engine_capacity':
+                            whereClauses.push(`cl.engine_capacity = $${paramIndex}`);
+                            values.push(Number(value));
+                            paramIndex++;
+                            break;
+                        case 'cylinder_count':
+                            whereClauses.push(`cl.cylinder_count = $${paramIndex}`);
+                            values.push(Number(value));
+                            paramIndex++;
+                            break;
+                        case 'color':
+                            whereClauses.push(`cl.color = $${paramIndex}`);
+                            values.push(value);
+                            paramIndex++;
+                            break;
+                        case 'interior_color':
+                            whereClauses.push(`cl.interior_color = $${paramIndex}`);
+                            values.push(value);
+                            paramIndex++;
+                            break;
+                        case 'tinted':
+                            whereClauses.push(`cl.tinted = $${paramIndex}`);
+                            values.push(value);
+                            paramIndex++;
+                            break;
+                        case 'condition':
+                            whereClauses.push(`cl.condition = $${paramIndex}`);
+                            values.push(value);
+                            paramIndex++;
+                            break;
+                        case 'location':
+                            whereClauses.push(`cl.location = $${paramIndex}`);
+                            values.push(value);
+                            paramIndex++;
+                            break;
+                        case 'is_featured':
+                            whereClauses.push(`cl.is_featured = $${paramIndex}`);
+                            values.push(value === 'true');
+                            paramIndex++;
+                            break;
+                        case 'is_imported':
+                            whereClauses.push(`cl.is_imported = $${paramIndex}`);
+                            values.push(value === 'true');
+                            paramIndex++;
+                            break;
+                        case 'owner_type':
+                            whereClauses.push(`cl.owner_type = $${paramIndex}`);
+                            values.push(value);
+                            paramIndex++;
+                            break;
+                        case 'has_warranty':
+                            whereClauses.push(`cl.has_warranty = $${paramIndex}`);
+                            values.push(value === 'true');
+                            paramIndex++;
+                            break;
+                        case 'has_insurance':
+                            whereClauses.push(`cl.has_insurance = $${paramIndex}`);
+                            values.push(value === 'true');
+                            paramIndex++;
+                            break;
+                        case 'is_inspected':
+                            whereClauses.push(`cl.is_inspected = $${paramIndex}`);
+                            values.push(value === 'true');
+                            paramIndex++;
+                            break;
+                        case 'updated_from':
+                            whereClauses.push(`cl.updated_at >= $${paramIndex}`);
+                            values.push(new Date(value as string).toISOString());
+                            paramIndex++;
+                            break;
+                        case 'updated_to':
+                            whereClauses.push(`cl.updated_at <= $${paramIndex}`);
+                            values.push(new Date(value as string).toISOString());
+                            paramIndex++;
+                            break;
+                        case 'is_business':
+                            whereClauses.push(`cl.is_business = $${paramIndex}`);
+                            values.push(value === 'true');
+                            paramIndex++;
+                            break;
+                        case 'showroom_id':
+                            whereClauses.push(`cl.showroom_id = $${paramIndex}`);
+                            values.push(value);
+                            paramIndex++;
+                            break;
+                       case 'status':
+                        if (value !== 'all') { // 🚩 SKIP if "all"
+                            whereClauses.push(`cl.status = $${paramIndex}`);
+                            values.push(value);
+                        } else {
+                            paramIndex--; // Do not increment for "all"
+                        }
+                        break;
+                        case 'is_active':
+                            whereClauses.push(`cl.is_active = $${paramIndex}`);
+                            values.push(value === 'true');
+                            paramIndex++;
+                            break;
+                        case 'refresh_left':
+                            whereClauses.push(`cl.refresh_left = $${paramIndex}`);
+                            values.push(Number(value));
+                            paramIndex++;
+                            break;
+                        default:
+                            const column = ['id', 'created_at', 'updated_at'].includes(key) ? `cl.${key}` : key;
+                            whereClauses.push(`${column} = $${paramIndex}`);
+                            values.push(value);
+                            paramIndex++;
+                            break;
+                    }
+                }
+            }
+        }
+
+         if (!('status' in filter)) {
+        whereClauses.push(`cl.status NOT IN ('pending', 'draft', 'rejected')`);
+    }
+
+        // Build WHERE clause
+        if (whereClauses.length > 0) {
+            baseQuery += ' WHERE ' + whereClauses.join(' AND ');
+            console.log('Final WHERE clause:', whereClauses.join(' AND '));
+            console.log('Query parameters:', values);
+        }
+
+        console.log('Final COUNT query:', baseQuery);
+
+        try {
+            const result = await db.query(baseQuery, values);
+            const count = parseInt(result[0]?.count || '0');
+            
+            console.log('Count result:', count);
+            console.log('--- END: getCarListingsCount ---');
+            return count;
+        } catch (error) {
+            console.error('Database query failed:', error);
+            console.log('--- END: getCarListingsCount (with error) ---');
             throw error;
         }
     },

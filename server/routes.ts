@@ -978,6 +978,28 @@ const filterKeys = [
     }
   });
 
+  // Express.js route for getting car count based on filters
+app.get('/api/cars/count', async (req, res) => {
+  try {
+    // Get all query parameters
+    const filters = req.query;
+    
+    console.log('Inside getCarCount route');
+    console.log('Filters:', filters);
+
+    // Get count from storage
+    const count = await storage.searchCarsCount(filters);
+
+    console.log('Car count result:', count);
+    res.json({ count });
+  } catch (error) {
+    console.error('Failed to fetch car count:', error);
+    res
+      .status(500)
+      .json({ message: 'Failed to fetch car count', error });
+  }
+});
+
 
   app.post("/api/car-listings", async (req, res) => {
     try {

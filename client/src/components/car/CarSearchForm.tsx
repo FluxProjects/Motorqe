@@ -213,8 +213,7 @@ const CarSearchForm = ({ is_garage }: CarSearchFormProps) => {
     }));
   }, [carEngineCapacities]);
 
-  const totalCount =
-    categories?.reduce((sum, category) => sum + (category.count || 0), 0) || 0;
+
 
   // Handle search form submission
   const onSubmit = (values: SearchFormValues) => {
@@ -372,6 +371,95 @@ const CarSearchForm = ({ is_garage }: CarSearchFormProps) => {
       value: String(model.id),
       label: model.name,
     })) ?? [];
+
+    // Function to fetch count based on current form values
+  // Function to fetch count based on current form values
+const fetchCarCount = async (values: SearchFormValues) => {
+  try {
+    const params = new URLSearchParams();
+
+    // Same parameter construction as in onSubmit
+    Object.entries(values).forEach(([key, value]) => {
+      if (
+        value === undefined ||
+        value === null ||
+        value === "" ||
+        value === "all" ||
+        (Array.isArray(value) && value.length === 0)
+      ) {
+        return; // skip empty or default 'all' values
+      }
+
+      // Arrays: append multiple entries with same key
+      if (Array.isArray(value)) {
+        value.forEach((v) => {
+          if (v !== "" && v !== "all") {
+            params.append(key, v.toString());
+          }
+        });
+      }
+      // Boolean values (like hasWarranty, hasInsurance)
+      else if (typeof value === "boolean") {
+        params.append(key, value ? "true" : "false");
+      }
+      // Sometimes boolean might come as string "true" or "false"
+      else if (value === "true" || value === "false") {
+        params.append(key, value);
+      } else {
+        params.append(key, value.toString());
+      }
+    });
+
+    // Add status parameter based on activeTab
+    params.append("status", activeTab);
+
+    const response = await fetch(`/api/cars/count?${params.toString()}`);
+    if (!response.ok) {
+      throw new Error("Failed to fetch car count");
+    }
+    const data = await response.json();
+    return data.count || 0;
+  } catch (error) {
+    console.error("Error fetching car count:", error);
+    return 0; // Return 0 on error to show "No cars found"
+  }
+};
+
+  // State for the current count
+ const [currentCount, setCurrentCount] = useState<number>(0);
+
+    // Add a debounce function to prevent too many requests
+  const debounce = (func: (...args: any[]) => void, delay: number) => {
+    let timeoutId: NodeJS.Timeout;
+    return (...args: any[]) => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => func(...args), delay);
+    };
+  };
+
+  const debouncedFetchCount = useMemo(() => {
+  return debounce(async (values: SearchFormValues) => {
+    const count = await fetchCarCount(values);
+    setCurrentCount(count);
+  }, 500);
+}, [activeTab]);
+
+
+  // Watch form values and update count
+ useEffect(() => {
+  const subscription = form.watch((values) => {
+    debouncedFetchCount(values);
+  });
+
+  return () => {
+    subscription.unsubscribe();
+    debouncedFetchCount.cancel?.(); // cancel pending debounce on unmount if supported
+  };
+}, [form, debouncedFetchCount]);
+
+useEffect(() => {
+  fetchCarCount(form.getValues()).then(setCurrentCount);
+}, []);
 
   return (
     <Card className="border-2 border-solid rounded-2xl border-neutral-700">
@@ -1299,7 +1387,10 @@ const CarSearchForm = ({ is_garage }: CarSearchFormProps) => {
                 className="bg-orange-500 rounded-full w-full md:w-auto"
               >
                 {t("common.search")}
-                {activeTab !== "garage" && ` ${totalCount} Cars`}
+                
+                {activeTab !== "garage" && currentCount > 0 && (
+  <> {currentCount} Cars</>
+)}
                 {activeTab === "garage" && " Services"}
               </Button>
             </div>
