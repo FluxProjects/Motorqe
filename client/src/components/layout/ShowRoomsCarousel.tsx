@@ -38,7 +38,8 @@ const ShowRoomsCarousel = () => {
           modules={[Navigation]}
           spaceBetween={40}
           slidesPerView={5}
-          loop={showrooms.length > 3}
+          loop={true}
+           watchOverflow={false} 
           navigation={{
             nextEl: '.swiper-button-next-custom',
             prevEl: '.swiper-button-prev-custom',
@@ -85,13 +86,13 @@ const ShowRoomsCarousel = () => {
         </div>
 
         {/* View More Button */}
-        <div className="flex flex-col items-end mt-10">
+        {/* <div className="flex flex-col items-end mt-10">
           <Link href="/browse-showrooms">
             <a className="inline-block bg-orange-500 hover:bg-orange-600 text-white font-semibold px-6 py-2 rounded-full transition">
               View More
             </a>
           </Link>
-        </div>
+        </div> */}
       </div>
     </section>
   );
