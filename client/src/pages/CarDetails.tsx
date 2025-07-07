@@ -64,6 +64,7 @@ import { formatAvailability, getEngineSizeLabel, isOpenNow } from "@/lib/utils";
 import { CarImages } from "@/components/car/CarImages";
 import { CarListingDetail } from "@/components/car/CarListingDetail";
 import { navigate } from "wouter/use-browser-location";
+import ShareModal from "@/components/layout/ShareModal";
 
 // Message form schema
 const messageSchema = z.object({
@@ -97,6 +98,7 @@ const CarDetails = () => {
   const { isAuthenticated, user } = useAuth();
   const { toast } = useToast();
   const [isFavorited, setIsFavorited] = useState(false);
+  const [isShareOpen, setIsShareOpen] = useState(false);
   const [authModal, setAuthModal] = useState<
     "login" | "register" | "forget-password" | null
   >(null);
@@ -490,55 +492,21 @@ const CarDetails = () => {
             <div className="flex justify-center items-center mb-8 mt-8 space-x-2">
               
               <Button
-  variant="outline"
-  size="sm"
-  className="rounded-full text-blue-900 border-blue-500 hover:bg-blue-900 hover:text-white hover:border-blue-900"
-  onClick={() => {
-    if (navigator.share) {
-      navigator
-        .share({
-          title: car.title,
-          url: window.location.href,
-        })
-        .catch((err) => console.error("Error sharing:", err));
-    } else if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(window.location.href);
-      toast({
-        title: t("common.linkCopied"),
-        description: t("common.linkCopiedDesc"),
-      });
-    } else {
-      // Fallback for older browsers
-      const textArea = document.createElement("textarea");
-      textArea.value = window.location.href;
-      textArea.style.position = "fixed"; // Prevent scrolling
-      textArea.style.opacity = "0";
-      document.body.appendChild(textArea);
-      textArea.focus();
-      textArea.select();
+                variant="outline"
+                size="sm"
+                className="rounded-full text-blue-900 border-blue-500 hover:bg-blue-900 hover:text-white hover:border-blue-900"
+                onClick={() => setIsShareOpen(true)}
+              >
+                <Share size={16} className="mr-1" />
+                {t("common.share")}
+              </Button>
 
-      try {
-        document.execCommand("copy");
-        toast({
-          title: t("common.linkCopied"),
-          description: t("common.linkCopiedDesc"),
-        });
-      } catch (err) {
-        console.error("Fallback copy failed:", err);
-        toast({
-          title: t("common.copyFailed"),
-          description: t("common.copyFailedDesc"),
-          variant: "destructive",
-        });
-      }
-
-      document.body.removeChild(textArea);
-    }
-  }}
->
-  <Share size={16} className="mr-1" />
-  {t("common.share")}
-</Button>
+              <ShareModal
+                open={isShareOpen}
+                onClose={() => setIsShareOpen(false)}
+                title={car.title}
+                url={window.location.href}
+              />
 
 
               <Button

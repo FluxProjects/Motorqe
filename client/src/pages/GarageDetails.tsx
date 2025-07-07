@@ -14,7 +14,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  Heart,
   Share,
   Flag,
   MapPin,
@@ -62,6 +61,7 @@ import { CarImages } from "@/components/car/CarImages";
 import { CarListingDetail } from "@/components/car/CarListingDetail";
 import { SimilarShowrooms } from "@/components/car/SimilarShowrooms";
 import StarRating from "@/components/ui/star-rating";
+import ShareModal from "@/components/layout/ShareModal";
 
 // Message form schema
 const messageSchema = z.object({
@@ -91,6 +91,7 @@ const GarageDetails = () => {
   const language = i18n.language;
   const { isAuthenticated, user } = useAuth();
   const { toast } = useToast();
+  const [isShareOpen, setIsShareOpen] = useState(false);
   const [authModal, setAuthModal] = useState<
     "login" | "register" | "forget-password" | null
   >(null);
@@ -387,56 +388,21 @@ const GarageDetails = () => {
                {/* Action Buttons */}
               <div className="flex items-center justify-center space-x-2 mb-4">
                 <Button
-                variant="outline"
-                size="sm"
-                className="rounded-full text-blue-900 border-blue-500 hover:bg-blue-900 hover:text-white hover:border-blue-900"
-                onClick={() => {
-                  if (navigator.share) {
-                    navigator
-                      .share({
-                        title: car.title,
-                        url: window.location.href,
-                      })
-                      .catch((err) => console.error("Error sharing:", err));
-                  } else if (navigator.clipboard && navigator.clipboard.writeText) {
-                    navigator.clipboard.writeText(window.location.href);
-                    toast({
-                      title: t("common.linkCopied"),
-                      description: t("common.linkCopiedDesc"),
-                    });
-                  } else {
-                    // Fallback for older browsers
-                    const textArea = document.createElement("textarea");
-                    textArea.value = window.location.href;
-                    textArea.style.position = "fixed"; // Prevent scrolling
-                    textArea.style.opacity = "0";
-                    document.body.appendChild(textArea);
-                    textArea.focus();
-                    textArea.select();
+                  variant="outline"
+                  size="sm"
+                  className="rounded-full text-blue-900 border-blue-500 hover:bg-blue-900 hover:text-white hover:border-blue-900"
+                  onClick={() => setIsShareOpen(true)}
+                >
+                  <Share size={16} className="mr-1" />
+                  {t("common.share")}
+                </Button>
 
-                    try {
-                      document.execCommand("copy");
-                      toast({
-                        title: t("common.linkCopied"),
-                        description: t("common.linkCopiedDesc"),
-                      });
-                    } catch (err) {
-                      console.error("Fallback copy failed:", err);
-                      toast({
-                        title: t("common.copyFailed"),
-                        description: t("common.copyFailedDesc"),
-                        variant: "destructive",
-                      });
-                    }
-
-                    document.body.removeChild(textArea);
-                  }
-                }}
-              >
-                <Share size={16} className="mr-1" />
-                {t("common.share")}
-              </Button>
-
+                <ShareModal
+                  open={isShareOpen}
+                  onClose={() => setIsShareOpen(false)}
+                  title={showroom.name}
+                  url={window.location.href}
+                />
 
                 <Button
                   size="sm"
