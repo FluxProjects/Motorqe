@@ -552,7 +552,14 @@ const ShowroomDetails = () => {
               <div className="mb-4">
                 <div className="bg-gray-200 rounded-lg h-80 relative overflow-hidden">
                   <iframe
-                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d57912.294236227725!2d51.441241299999996!3d25.276987!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3e45c534ffdce87f%3A0x44d2e5e5d107b7a7!2sDoha%2C%20Qatar!5e0!3m2!1sen!2sus!4v1694789123456!5m2!1sen!2sus"
+                    src={
+                      showroom?.location && showroom.location.includes(",")
+                        ? (() => {
+                            const [lat, lng] = showroom.location.split(",").map(s => s.trim());
+                            return `https://www.google.com/maps?q=${lat},${lng}&hl=en&z=14&output=embed`;
+                          })()
+                        : "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d57912.294236227725!2d51.441241299999996!3d25.276987!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3e45c534ffdce87f%3A0x44d2e5e5d107b7a7!2sDoha%2C%20Qatar!5e0!3m2!1sen!2sus!4v1694789123456!5m2!1sen!2sus"
+                    }
                     width="100%"
                     height="100%"
                     style={{ border: 0 }}
@@ -562,7 +569,7 @@ const ShowroomDetails = () => {
                     className="rounded-lg"
                   ></iframe>
                 </div>
-              </div>
+                            </div>
 
               {/* Showroom listings */}
               <Card className="border-transparent shadow-none mb-4">
@@ -591,7 +598,7 @@ const ShowroomDetails = () => {
             {/* Car Summary (1/4 width on md and above) */}
             <div className="md:col-span-1">
               <div className="bg-white rounded-lg p-4 shadow-sm border top-24">
-                <h2 className="text-xl font-bold text-gray-900 mb-2">
+                 <h2 className="text-xl font-bold text-gray-900 mb-2 uppercase">
                   {showroom.name}
                 </h2>
 
@@ -638,24 +645,24 @@ const ShowroomDetails = () => {
                     </div>
                   </div>
 
-                  {(showroom?.address || showroom?.addressAr) && (
+                  {(showroom?.address || showroom?.address_ar) && (
                     <div className="flex space-x-2 mb-4">
                       <Button
-                        size="sm"
+                        size="xs"
                         variant="outline"
-                        className="flex-1 rounded-full bg-orange-500 text-white"
+                        className="pt-2 pb-2 flex-1 rounded-full bg-orange-500 text-white"
                         onClick={() =>
                           handleLocationMap(
-                            showroom?.address || showroom?.addressAr
+                            showroom?.address || showroom?.address_ar
                           )
                         }
                       >
                         <MapPin className="h-3 w-3 mr-1" /> Location Map
                       </Button>
                       <Button
-                        size="sm"
+                        size="xs"
                         variant="outline"
-                        className="flex-1 rounded-full bg-orange-500 text-white"
+                        className="pt-2 pb-2 flex-1 rounded-full bg-orange-500 text-white"
                         onClick={() =>
                           handleGetDirection(
                             showroom?.address || showroom?.address_ar
