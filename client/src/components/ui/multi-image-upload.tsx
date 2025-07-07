@@ -68,7 +68,7 @@ function SortableImage({
 
 const MultiImageUpload = ({
   currentImages = [],
-  maxImages = 5,
+  maxImages,
   onUploadComplete
 }: MultiImageUploadProps) => {
   const [isUploading, setIsUploading] = useState(false);

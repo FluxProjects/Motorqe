@@ -1,14 +1,11 @@
-import { apiRequest } from "@/lib/queryClient";
-import { fetchModelsByMake } from "@/lib/utils";
 import { AdminCarListingFilters } from "@shared/schema";
-import { useQuery } from "@tanstack/react-query";
 import { ChevronDown, Grid } from "lucide-react";
 
 interface CarFiltersProps {
   filters: AdminCarListingFilters;
   onFiltersChange: (updateFn: (prev: any) => any) => void;
-  availableMakes: { id: number; name: string; name_ar?: string }[];
-  availableModels: { id: number; name: string; name_ar?: string }[];
+  availableMakes: { id: number; name: string;}[];
+  availableModels: { id: number; name: string; }[];
 }
 
 export default function CarFilters({ 
@@ -17,18 +14,9 @@ export default function CarFilters({
   availableMakes,
   availableModels
 }: CarFiltersProps) {
-  // Fetch makes dynamically
-  const { data: makesData = [], isLoading: isMakesLoading } = useQuery({
-    queryKey: ["car-makes"],
-    queryFn: () => apiRequest("GET", "/api/car-makes").then((res) => res.json()),
-  });
 
-  // Fetch models dynamically based on selected make
-  const { data: modelsData = [], isLoading: isModelsLoading } = useQuery({
-    queryKey: ["car-models", filters.make],
-    queryFn: () => fetchModelsByMake(filters.make),
-    enabled: !!filters.make && filters.make !== "Select Make",
-  });
+  console.log("availableModels", availableModels);
+
 
   const sortOptions = ["Newly added", "Price: Low to High", "Price: High to Low", "Most Popular"];
 
@@ -39,20 +27,19 @@ export default function CarFilters({
         <div className="relative">
           <label className="block text-sm font-medium text-gray-700 mb-1">Make</label>
           <select
-            className="appearance-none bg-white border border-gray-300 rounded-md px-4 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-36"
             value={filters.make}
             onChange={(e) => {
               const selectedMake = e.target.value;
               onFiltersChange((prev) => ({
                 ...prev,
                 make: selectedMake,
-                model: "", // reset model when make changes
+                model: "", // Reset model when make changes
               }));
             }}
           >
             <option value="">Select Make</option>
             {availableMakes.map((make) => (
-              <option key={make.id} value={make.name}>
+              <option key={make.id} value={make.id}> {/* Use make.id as value */}
                 {make.name}
               </option>
             ))}
@@ -64,25 +51,16 @@ export default function CarFilters({
         <div className="relative">
           <label className="block text-sm font-medium text-gray-700 mb-1">Model</label>
           <select
-            className="appearance-none bg-white border border-gray-300 rounded-md px-4 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-36"
             value={filters.model}
             onChange={(e) => onFiltersChange((prev) => ({ ...prev, model: e.target.value }))}
             disabled={!filters.make}
           >
             <option value="">Select Model</option>
-            {availableModels
-              .filter((model) => {
-                if (!filters.make) return true;
-                const makeMatch = availableMakes.find(
-                  (make) => make.name === filters.make
-                );
-                return model.make_id === makeMatch?.id;
-              })
-              .map((model) => (
-                <option key={model.id} value={model.name}>
-                  {model.name}
-                </option>
-              ))}
+            {availableModels.map((model) => (
+              <option key={model.id} value={model.id}> {/* Use model.id as value */}
+                {model.name}
+              </option>
+            ))}
           </select>
           <ChevronDown className="absolute right-3 top-9 h-4 w-4 text-gray-400 pointer-events-none" />
         </div>

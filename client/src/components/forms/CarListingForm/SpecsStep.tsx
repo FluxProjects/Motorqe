@@ -21,6 +21,7 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 import ImageUpload from "@/components/ui/image-upload";
 import { MultiSelect } from "@/components/ui/multiselect";
 import { useTranslation } from "react-i18next";
+import { toast } from "@/hooks/use-toast";
 
 export function SpecsStep({ data, updateData, nextStep, prevStep }: StepProps) {
   const { t } = useTranslation();
@@ -34,15 +35,23 @@ export function SpecsStep({ data, updateData, nextStep, prevStep }: StepProps) {
     transmission: data?.specifications?.transmission || "",
     engineCapacityId: data.specifications?.engineCapacityId || "",
     cylinderCount: data.specifications?.cylinderCount || "",
+    wheelDrive: data.specifications?.wheelDrive || "",
     color: data?.specifications?.color || "",
     interiorColor: data?.specifications?.interiorColor || "",
     tinted: data.specifications?.tinted || "",
     condition: data?.specifications?.condition || "used",
     isImported: data?.specifications?.isImported || "",
+    hasInsurance: data?.specifications?.hasInsurance || "",
+    insuranceExpiry: data?.specifications?.insuranceExpiry || "",
+    hasWarranty: data?.specifications?.hasWarranty || "",
+    warrantyExpiry: data?.specifications?.warrantyExpiry || "",
     isInspected: data?.specifications?.isInspected || "",
     inspectionReport: data?.specifications?.inspectionReport || "",
     ownerType: data?.specifications?.ownerType || "",
   });
+
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Track selected options for display
   const [selectedMake, setSelectedMake] = useState<{value: string, label: string} | null>(null);
@@ -70,6 +79,7 @@ export function SpecsStep({ data, updateData, nextStep, prevStep }: StepProps) {
 
   const { data: carEngineCapacities = [] } = useQuery<CarEngineCapacity[]>({
     queryKey: ["/api/car-enginecapacities"],
+    queryFn: () => fetch("/api/car-enginecapacities").then((res) => res.json()),
   });
 
   // Initialize selected values when data loads or changes
@@ -99,12 +109,78 @@ export function SpecsStep({ data, updateData, nextStep, prevStep }: StepProps) {
 
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+    // Clear error when field is updated
+    if (formErrors[field]) {
+      setFormErrors(prev => {
+        const newErrors = {...prev};
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
+  };
+
+  const validateForm = () => {
+    const errors: Record<string, string> = {};
+    const requiredFields = [
+      'year', 'makeId', 'modelId', 'categoryId', 'mileage', 'fuelType',
+      'transmission', 'engineCapacityId', 'cylinderCount', 'color',
+      'interiorColor', 'condition', 'isImported', 'ownerType'
+    ];
+
+    requiredFields.forEach(field => {
+      if (!formData[field as keyof typeof formData]) {
+        errors[field] = `${field.charAt(0).toUpperCase() + field.slice(1)} is required`;
+      }
+    });
+
+    // Additional validation for numeric fields
+    if (formData.mileage && isNaN(Number(formData.mileage))) {
+      errors.mileage = "Mileage must be a number";
+    }
+
+    if (formData.cylinderCount && isNaN(Number(formData.cylinderCount))) {
+      errors.cylinderCount = "Cylinder count must be a number";
+    }
+
+    // Validate inspection report if inspected
+    if (formData.isInspected === "true" && !formData.inspectionReport) {
+      errors.inspectionReport = "Inspection report is required when car is inspected";
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    updateData({ specifications: formData });
+    setIsSubmitting(true);
+
+    if (!validateForm()) {
+      setIsSubmitting(false);
+      toast({
+        title: "Validation Error",
+        description: "Please fill all required fields correctly",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // ✅ Normalize wheelDrive before updating data
+const validWheelDrives = ["AWD", "FWD", "RWD"] as const;
+const wheelDriveNormalized = validWheelDrives.includes(formData.wheelDrive.toUpperCase() as any)
+  ? formData.wheelDrive.toUpperCase() as "AWD" | "FWD" | "RWD"
+  : undefined;
+
+// ✅ Create a clean specifications payload matching the expected type
+const cleanSpecifications = {
+  ...formData,
+  wheelDrive: wheelDriveNormalized,
+};
+
+
+    updateData({ specifications: cleanSpecifications });
     nextStep();
+    setIsSubmitting(false);
   };
 
   useEffect(() => {
@@ -134,6 +210,13 @@ export function SpecsStep({ data, updateData, nextStep, prevStep }: StepProps) {
       ...prev,
       inspectionReport: url,
     }));
+    if (formErrors.inspectionReport) {
+      setFormErrors(prev => {
+        const newErrors = {...prev};
+        delete newErrors.inspectionReport;
+        return newErrors;
+      });
+    }
   };
 
   const makeOptions = makes?.map((make: CarMake) => ({
@@ -190,6 +273,7 @@ export function SpecsStep({ data, updateData, nextStep, prevStep }: StepProps) {
           placeholder="Select make"
           singleSelect
         />
+        {formErrors.makeId && <p className="text-red-500 text-sm mt-1">{formErrors.makeId}</p>}
       </div>
 
       {/* Model */}
@@ -204,6 +288,7 @@ export function SpecsStep({ data, updateData, nextStep, prevStep }: StepProps) {
           disabled={!formData.makeId}
           singleSelect
         />
+        {formErrors.modelId && <p className="text-red-500 text-sm mt-1">{formErrors.modelId}</p>}
       </div>
 
       {/* Category */}
@@ -211,9 +296,8 @@ export function SpecsStep({ data, updateData, nextStep, prevStep }: StepProps) {
         <Label>Category*</Label>
         <Select
           value={formData.categoryId}
-          onValueChange={(value) => {
-            setFormData((prev) => ({ ...prev, categoryId: value }));
-          }}
+          onValueChange={(value) => handleChange("categoryId", value)}
+          required
         >
           <SelectTrigger>
             <SelectValue placeholder="Select Category" />
@@ -226,6 +310,7 @@ export function SpecsStep({ data, updateData, nextStep, prevStep }: StepProps) {
             ))}
           </SelectContent>
         </Select>
+        {formErrors.categoryId && <p className="text-red-500 text-sm mt-1">{formErrors.categoryId}</p>}
       </div>
 
       {/* Year */}
@@ -239,25 +324,29 @@ export function SpecsStep({ data, updateData, nextStep, prevStep }: StepProps) {
           placeholder="Select year"
           singleSelect
         />
+        {formErrors.year && <p className="text-red-500 text-sm mt-1">{formErrors.year}</p>}
       </div>
 
       {/* Mileage */}
       <div>
-        <Label>Mileage (km)</Label>
+        <Label>Mileage (km)*</Label>
         <Input
           type="number"
           placeholder="e.g., 50000"
           value={formData.mileage}
           onChange={(e) => handleChange("mileage", e.target.value)}
+          required
         />
+        {formErrors.mileage && <p className="text-red-500 text-sm mt-1">{formErrors.mileage}</p>}
       </div>
 
       {/* Fuel Type */}
       <div>
-        <Label>Fuel Type</Label>
+        <Label>Fuel Type*</Label>
         <Select
           value={formData.fuelType}
           onValueChange={(value) => handleChange("fuelType", value)}
+          required
         >
           <SelectTrigger>
             <SelectValue placeholder="Select fuel type" />
@@ -270,14 +359,16 @@ export function SpecsStep({ data, updateData, nextStep, prevStep }: StepProps) {
             <SelectItem value="electric">Electric</SelectItem>
           </SelectContent>
         </Select>
+        {formErrors.fuelType && <p className="text-red-500 text-sm mt-1">{formErrors.fuelType}</p>}
       </div>
 
       {/* Transmission */}
       <div>
-        <Label>Transmission</Label>
+        <Label>Transmission*</Label>
         <Select
           value={formData.transmission}
           onValueChange={(value) => handleChange("transmission", value)}
+          required
         >
           <SelectTrigger>
             <SelectValue placeholder="Select transmission" />
@@ -287,14 +378,16 @@ export function SpecsStep({ data, updateData, nextStep, prevStep }: StepProps) {
             <SelectItem value="automatic">Automatic</SelectItem>
           </SelectContent>
         </Select>
+        {formErrors.transmission && <p className="text-red-500 text-sm mt-1">{formErrors.transmission}</p>}
       </div>
 
       {/* Engine Capacity ID */}
       <div>
-        <Label>Engine Capacity</Label>
+        <Label>Engine Capacity*</Label>
         <Select
           value={formData.engineCapacityId}
           onValueChange={(value) => handleChange("engineCapacityId", value)}
+          required
         >
           <SelectTrigger>
             <SelectValue placeholder="Select engine size" />
@@ -307,25 +400,49 @@ export function SpecsStep({ data, updateData, nextStep, prevStep }: StepProps) {
             ))}
           </SelectContent>
         </Select>
+        {formErrors.engineCapacityId && <p className="text-red-500 text-sm mt-1">{formErrors.engineCapacityId}</p>}
       </div>
 
       {/* Cylinder Count */}
       <div>
-        <Label>Cylinder Count</Label>
+        <Label>Cylinder Count*</Label>
         <Input
           type="number"
           placeholder="e.g., 4"
           value={formData.cylinderCount}
           onChange={(e) => handleChange("cylinderCount", e.target.value)}
+          required
         />
+        {formErrors.cylinderCount && <p className="text-red-500 text-sm mt-1">{formErrors.cylinderCount}</p>}
+      </div>
+
+      {/* Wheel Drive */}
+      <div>
+        <Label>Wheel Drive*</Label>
+        <Select
+          value={formData.wheelDrive}
+          onValueChange={(value) => handleChange("wheelDrive", value)}
+          required
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select wheel drive" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="FWD">Front Wheel Drive (FWD)</SelectItem>
+            <SelectItem value="RWD">Rear Wheel Drive (RWD)</SelectItem>
+            <SelectItem value="AWD">All Wheel Drive (AWD)</SelectItem>
+          </SelectContent>
+        </Select>
+        {formErrors.wheelDrive && <p className="text-red-500 text-sm mt-1">{formErrors.wheelDrive}</p>}
       </div>
 
       {/* Color */}
       <div>
-        <Label>Color</Label>
+        <Label>Color*</Label>
         <Select
           value={formData.color}
           onValueChange={(value) => handleChange("color", value)}
+          required
         >
           <SelectTrigger>
             <SelectValue placeholder="Select exterior color" />
@@ -338,14 +455,16 @@ export function SpecsStep({ data, updateData, nextStep, prevStep }: StepProps) {
             ))}
           </SelectContent>
         </Select>
+        {formErrors.color && <p className="text-red-500 text-sm mt-1">{formErrors.color}</p>}
       </div>
 
       {/* Interior Color */}
       <div>
-        <Label>Interior Color</Label>
+        <Label>Interior Color*</Label>
         <Select
           value={formData.interiorColor}
           onValueChange={(value) => handleChange("interiorColor", value)}
+          required
         >
           <SelectTrigger>
             <SelectValue placeholder="Select interior color" />
@@ -358,11 +477,12 @@ export function SpecsStep({ data, updateData, nextStep, prevStep }: StepProps) {
             ))}
           </SelectContent>
         </Select>
+        {formErrors.interiorColor && <p className="text-red-500 text-sm mt-1">{formErrors.interiorColor}</p>}
       </div>
 
       {/* Tinted */}
       <div>
-        <Label>Tinted</Label>
+        <Label>Tinted*</Label>
         <div className="flex items-center gap-4 mt-2">
           <label className="flex items-center gap-1">
             <input
@@ -371,6 +491,7 @@ export function SpecsStep({ data, updateData, nextStep, prevStep }: StepProps) {
               value="true"
               checked={formData.tinted === "true"}
               onChange={(e) => handleChange("tinted", e.target.value)}
+              required
             />
             Yes
           </label>
@@ -385,14 +506,16 @@ export function SpecsStep({ data, updateData, nextStep, prevStep }: StepProps) {
             No
           </label>
         </div>
+        {formErrors.tinted && <p className="text-red-500 text-sm mt-1">{formErrors.tinted}</p>}
       </div>
 
       {/* Condition */}
       <div>
-        <Label>Condition</Label>
+        <Label>Condition*</Label>
         <Select
           value={formData.condition}
           onValueChange={(value) => handleChange("condition", value)}
+          required
         >
           <SelectTrigger>
             <SelectValue placeholder="Select condition" />
@@ -403,38 +526,100 @@ export function SpecsStep({ data, updateData, nextStep, prevStep }: StepProps) {
             <SelectItem value="scrap">Scrap</SelectItem>
           </SelectContent>
         </Select>
+        {formErrors.condition && <p className="text-red-500 text-sm mt-1">{formErrors.condition}</p>}
       </div>
 
-      {/* Is Imported */}
+    
+
+      {/* Has Insurance */}
       <div>
-        <Label>Is Imported</Label>
+        <Label>Has Insurance*</Label>
         <div className="flex items-center gap-4 mt-2">
           <label className="flex items-center gap-1">
             <input
               type="radio"
-              name="isImported"
+              name="hasInsurance"
               value="true"
-              checked={formData.isImported === "true"}
-              onChange={(e) => handleChange("isImported", e.target.value)}
+              checked={formData.hasInsurance === "true"}
+              onChange={(e) => handleChange("hasInsurance", e.target.value)}
+              required
             />
             Yes
           </label>
           <label className="flex items-center gap-1">
             <input
               type="radio"
-              name="isImported"
+              name="hasInsurance"
               value="false"
-              checked={formData.isImported === "false"}
-              onChange={(e) => handleChange("isImported", e.target.value)}
+              checked={formData.hasInsurance === "false"}
+              onChange={(e) => handleChange("hasInsurance", e.target.value)}
             />
             No
           </label>
         </div>
+        {formErrors.hasInsurance && <p className="text-red-500 text-sm mt-1">{formErrors.hasInsurance}</p>}
       </div>
+
+      {/* Insurance Expiry */}
+      {formData.hasInsurance === "true" && (
+        <div>
+          <Label>Insurance Expiry Date*</Label>
+          <Input
+            type="date"
+            value={formData.insuranceExpiry}
+            onChange={(e) => handleChange("insuranceExpiry", e.target.value)}
+            required
+          />
+          {formErrors.insuranceExpiry && <p className="text-red-500 text-sm mt-1">{formErrors.insuranceExpiry}</p>}
+        </div>
+      )}
+
+      {/* Has Warranty */}
+      <div>
+        <Label>Has Warranty*</Label>
+        <div className="flex items-center gap-4 mt-2">
+          <label className="flex items-center gap-1">
+            <input
+              type="radio"
+              name="hasWarranty"
+              value="true"
+              checked={formData.hasWarranty === "true"}
+              onChange={(e) => handleChange("hasWarranty", e.target.value)}
+              required
+            />
+            Yes
+          </label>
+          <label className="flex items-center gap-1">
+            <input
+              type="radio"
+              name="hasWarranty"
+              value="false"
+              checked={formData.hasWarranty === "false"}
+              onChange={(e) => handleChange("hasWarranty", e.target.value)}
+            />
+            No
+          </label>
+        </div>
+        {formErrors.hasWarranty && <p className="text-red-500 text-sm mt-1">{formErrors.hasWarranty}</p>}
+      </div>
+
+      {/* Warranty Expiry */}
+      {formData.hasWarranty === "true" && (
+        <div>
+          <Label>Warranty Expiry Date*</Label>
+          <Input
+            type="date"
+            value={formData.warrantyExpiry}
+            onChange={(e) => handleChange("warrantyExpiry", e.target.value)}
+            required
+          />
+          {formErrors.warrantyExpiry && <p className="text-red-500 text-sm mt-1">{formErrors.warrantyExpiry}</p>}
+        </div>
+      )}
 
       {/* Is Inspected */}
       <div>
-        <Label>Is Inspected</Label>
+        <Label>Is Inspected*</Label>
         <div className="flex items-center gap-4 mt-2">
           <label className="flex items-center gap-1">
             <input
@@ -443,6 +628,7 @@ export function SpecsStep({ data, updateData, nextStep, prevStep }: StepProps) {
               value="true"
               checked={formData.isInspected === "true"}
               onChange={(e) => handleChange("isInspected", e.target.value)}
+              required
             />
             Yes
           </label>
@@ -457,26 +643,60 @@ export function SpecsStep({ data, updateData, nextStep, prevStep }: StepProps) {
             No
           </label>
         </div>
+        {formErrors.isInspected && <p className="text-red-500 text-sm mt-1">{formErrors.isInspected}</p>}
+      </div>
+
+        {/* Is Imported */}
+      <div>
+        <Label>Is Imported*</Label>
+        <div className="flex items-center gap-4 mt-2">
+          <label className="flex items-center gap-1">
+            <input
+              type="radio"
+              name="isImported"
+              value="true"
+              checked={formData.isImported === "true"}
+              onChange={(e) => handleChange("isImported", e.target.value)}
+              required
+            />
+            Yes
+          </label>
+          <label className="flex items-center gap-1">
+            <input
+              type="radio"
+              name="isImported"
+              value="false"
+              checked={formData.isImported === "false"}
+              onChange={(e) => handleChange("isImported", e.target.value)}
+            />
+            No
+          </label>
+        </div>
+        {formErrors.isImported && <p className="text-red-500 text-sm mt-1">{formErrors.isImported}</p>}
       </div>
 
       {/* Inspection Report Upload */}
       {formData.isInspected === "true" && (
-        <div className="mt-4">
-          <Label>Inspection Report</Label>
+        <div className="mt-4 mb-8">
+          <Label>Inspection Report*</Label>
+          <div className="w-[200px] h-[200px]">
           <ImageUpload
             currentImage={formData.inspectionReport}
             onUploadComplete={handleInspectionReportUpload}
             isFile={true}
           />
+          </div>
+          {formErrors.inspectionReport && <p className="text-red-500 text-sm mt-1">{formErrors.inspectionReport}</p>}
         </div>
       )}
 
       {/* Owner Type */}
       <div>
-        <Label>Owner Type</Label>
+        <Label>Owner Type*</Label>
         <Select
           value={formData.ownerType}
           onValueChange={(value) => handleChange("ownerType", value)}
+          required
         >
           <SelectTrigger>
             <SelectValue placeholder="Select owner type" />
@@ -485,8 +705,10 @@ export function SpecsStep({ data, updateData, nextStep, prevStep }: StepProps) {
             <SelectItem value="first">First</SelectItem>
             <SelectItem value="second">Second</SelectItem>
             <SelectItem value="third">Third</SelectItem>
+            <SelectItem value="fourth">Fourth</SelectItem>
           </SelectContent>
         </Select>
+        {formErrors.ownerType && <p className="text-red-500 text-sm mt-1">{formErrors.ownerType}</p>}
       </div>
 
       {/* Navigation buttons */}
@@ -499,8 +721,12 @@ export function SpecsStep({ data, updateData, nextStep, prevStep }: StepProps) {
           <ArrowLeft className="w-4 h-4" />
           Back
         </Button>
-        <Button className="bg-orange-500 flex items-center gap-2" type="submit">
-          Next: Features
+        <Button 
+          className="bg-orange-500 flex items-center gap-2" 
+          type="submit"
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? "Validating..." : "Next: Features"}
           <ArrowRight className="w-4 h-4" />
         </Button>
       </div>

@@ -816,32 +816,57 @@ export const CarListingStorage = {
                 // Update car listing: refreshLeft, lastRefresh, isFeatured
                 await db.query(
                     `UPDATE car_listings SET 
-                        "refreshLeft" = $1::text,
-                        "lastRefresh" = NOW(),
-                        "isFeatured" = $2
+                        "refresh_left" = $1,
+                        "last_refresh" = NOW(),
+                        "is_featured" = $2
                     WHERE id = $3`,
-                    [noOfRefresh.toString(), isFeatured, id]
+                    [noOfRefresh, isFeatured, id]
                 );
 
-                // Insert into listing_promotions for tracking promotion period
-                await db.query(
-                    `INSERT INTO listing_promotions (
-                        listing_id,
-                        package_id,
-                        start_date,
-                        end_date,
-                        created_at
-                    ) VALUES ($1, $2, NOW(), NOW() + ($3 || ' days')::INTERVAL, NOW())`,
-                    [id, promotionPackage.id, durationDays]
+                // Check if listing promotion already exists
+                const result = await db.query(
+                    `SELECT * FROM listing_promotions
+                    WHERE listing_id = $1 AND is_active = true AND end_date > NOW()
+                    ORDER BY start_date DESC
+                    LIMIT 1`,
+                    [id]
                 );
+
+                const existingPromotion = result[0];
+                console.log("existingPromotion", result);
+                console.log("existingPromotion 2", existingPromotion);
+
+                if (existingPromotion) {
+                    // Extend existing promotion
+                    await db.query(
+                        `UPDATE listing_promotions
+                        SET end_date = end_date + ($1 || ' days')::INTERVAL,
+                            package_id = $2,
+                            updated_at = NOW()
+                        WHERE id = $3`,
+                        [durationDays, promotionPackage.id, existingPromotion.id]
+                    );
+                } else {
+                    // Insert new promotion record
+                    await db.query(
+                        `INSERT INTO listing_promotions (
+                            listing_id,
+                            package_id,
+                            start_date,
+                            end_date,
+                            created_at
+                        ) VALUES ($1, $2, NOW(), NOW() + ($3 || ' days')::INTERVAL, NOW())`,
+                        [id, promotionPackage.id, durationDays]
+                    );
+                }
             }
 
             // 3️⃣ Handle explicit refresh_left update
             if (typeof refresh_left !== 'undefined') {
                 await db.query(
                     `UPDATE car_listings 
-                    SET "refreshLeft" = $1::text,
-                        "lastRefresh" = NOW()
+                    SET "refresh_left" = $1,
+                        "last_refresh" = NOW()
                     WHERE id = $2`,
                     [refresh_left.toString(), id]
                 );

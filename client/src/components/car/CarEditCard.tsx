@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { fetchModelsByMake } from "@/lib/utils";
 import {
   ArrowUp,
   BarChart3,
@@ -21,6 +20,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { navigate } from "wouter/use-browser-location";
 import ListingPlanCards from "../forms/CarListingForm/ListingPlanTable";
+import { DialogTitle } from "@radix-ui/react-dialog";
 
 interface CarEditCardProps {
   car: AdminCarListing;
@@ -36,25 +36,9 @@ export default function CarEditCard({ car }: CarEditCardProps) {
   const [showUpgradePlans, setShowUpgradePlans] = useState(false);
   const [actionInProgress, setActionInProgress] = useState(false);
 
-  const { data: makesData = [] } = useQuery({
-    queryKey: ["car-makes"],
-    queryFn: () => fetch("/api/car-makes").then((res) => res.json()),
-  });
 
-  const selectedMake = makesData.find((make: any) => make.id === car.make_id);
+console.log("car", car);
 
-  const { data: modelsData = [] } = useQuery({
-    queryKey: ["car-models", selectedMake?.name],
-    queryFn: () => fetchModelsByMake(selectedMake?.name),
-    enabled: !!selectedMake?.name,
-  });
-
-  const selectedModel = modelsData.find(
-    (model: any) => model.id === car.model_id
-  );
-
-  const makeName = selectedMake?.name || "Unknown Make";
-  const modelName = selectedModel?.name || "Unknown Model";
 
   const featuredDaysRemaining = (() => {
     if (!car.start_date || !car.end_date) return null;
@@ -132,16 +116,22 @@ export default function CarEditCard({ car }: CarEditCardProps) {
       setActionInProgress(true);
       const roleName = roleMapping[user?.roleId];
       const isListingOwner = car?.user_id === user?.id;
+      
 
-      if (action === "upgrade" && pkg) {
-        if (
+      if (action === "upgrade") {
+        console.log("ACTION:", action);
+    console.log("PKG:", pkg);
+    console.log("isListingOwner:", isListingOwner);
+    console.log("roleName:", roleName);
+        if (isListingOwner ||
           ["SUPER_ADMIN", "ADMIN", "MODERATOR", "SENIOR_MODERATOR", "SELLER", "DEALER"].includes(
             roleName
           )
         ) {
           await apiRequest("PUT", `/api/car-listings/${id}/actions`, {
+            action: "upgrade",                   // ✅ send action explicitly
             package_id: pkg.id,
-            refresh_left: pkg.no_of_refresh
+            refresh_left: pkg.no_of_refresh      // optional
           });
           return action;
         }
@@ -289,7 +279,7 @@ export default function CarEditCard({ car }: CarEditCardProps) {
     }
     if (!window.confirm(confirmText)) return;
 
-    performAction.mutate({ id: car.id, action: actionType });
+    performAction.mutate({ id: car.id, action: actionType, package: pkg });
   };
 
   return (
@@ -300,7 +290,7 @@ export default function CarEditCard({ car }: CarEditCardProps) {
         <div className="relative">
           <img
             src={car.images?.[0] || "/placeholder-car.png"}
-            alt={`${makeName} ${modelName}`}
+            alt={`${car?.make?.name} ${car?.model?.name}`}
             className="w-full h-48 object-cover"
           />
           {car.is_featured && (
@@ -354,7 +344,7 @@ export default function CarEditCard({ car }: CarEditCardProps) {
         </div>
         <div className="p-4">
           <h3 className="font-bold text-lg mb-1">
-            {makeName} {modelName}
+            {car?.make?.name} {car?.model?.name}
           </h3>
           <p className="text-gray-600 text-sm mb-4">{car?.package_name}</p>
 
@@ -489,7 +479,7 @@ export default function CarEditCard({ car }: CarEditCardProps) {
 <Dialog open={showUpgradePlans} onOpenChange={setShowUpgradePlans}>
   <DialogContent className="max-w-3xl p-0 overflow-hidden">
     <div className="p-6">
-      <h2 className="text-xl font-bold mb-4">Upgrade Your Listing Plan</h2>
+      <DialogTitle className="text-xl font-bold mb-4">Upgrade Your Listing Plan</DialogTitle>
       <ListingPlanCards
         packageslist={packages.filter(pkg => 
           pkg.is_active && 

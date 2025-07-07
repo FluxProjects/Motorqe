@@ -153,7 +153,10 @@ const CarSearchForm = ({ is_garage }: CarSearchFormProps) => {
   const { reset } = useForm();
 
   const currentYear = new Date().getFullYear();
-  const yearSteps = Array.from({ length: currentYear - 1900 + 1 }, (_, idx) => 1900 + idx);
+  const yearSteps = Array.from(
+    { length: currentYear - 1900 + 1 },
+    (_, idx) => 1900 + idx
+  );
 
   const mileageSteps = Array.from({ length: 31 }, (_, idx) => idx * 10000); // 0 to 300,000
   const priceSteps = Array.from(
@@ -212,8 +215,6 @@ const CarSearchForm = ({ is_garage }: CarSearchFormProps) => {
       label: capacity.size_liters,
     }));
   }, [carEngineCapacities]);
-
-
 
   // Handle search form submission
   const onSubmit = (values: SearchFormValues) => {
@@ -372,63 +373,66 @@ const CarSearchForm = ({ is_garage }: CarSearchFormProps) => {
       label: model.name,
     })) ?? [];
 
-    // Function to fetch count based on current form values
-  // Function to fetch count based on current form values
-const fetchCarCount = async (values: SearchFormValues) => {
-  try {
-    const params = new URLSearchParams();
+   // Function to fetch count based on current form values
+  const fetchCarCount = async (values: SearchFormValues) => {
+    try {
 
-    // Same parameter construction as in onSubmit
-    Object.entries(values).forEach(([key, value]) => {
-      if (
-        value === undefined ||
-        value === null ||
-        value === "" ||
-        value === "all" ||
-        (Array.isArray(value) && value.length === 0)
-      ) {
-        return; // skip empty or default 'all' values
-      }
-
-      // Arrays: append multiple entries with same key
-      if (Array.isArray(value)) {
-        value.forEach((v) => {
-          if (v !== "" && v !== "all") {
-            params.append(key, v.toString());
-          }
-        });
-      }
-      // Boolean values (like hasWarranty, hasInsurance)
-      else if (typeof value === "boolean") {
-        params.append(key, value ? "true" : "false");
-      }
-      // Sometimes boolean might come as string "true" or "false"
-      else if (value === "true" || value === "false") {
-        params.append(key, value);
-      } else {
-        params.append(key, value.toString());
-      }
-    });
-
-    // Add status parameter based on activeTab
-    params.append("status", activeTab);
-
-    const response = await fetch(`/api/cars/count?${params.toString()}`);
-    if (!response.ok) {
-      throw new Error("Failed to fetch car count");
+      if (activeTab === "garage") {
+      return 0; // 🚫 do not count if active tab is garage
     }
-    const data = await response.json();
-    return data.count || 0;
-  } catch (error) {
-    console.error("Error fetching car count:", error);
-    return 0; // Return 0 on error to show "No cars found"
-  }
-};
+      const params = new URLSearchParams();
+
+      // Same parameter construction as in onSubmit
+      Object.entries(values).forEach(([key, value]) => {
+        if (
+          value === undefined ||
+          value === null ||
+          value === "" ||
+          value === "all" ||
+          (Array.isArray(value) && value.length === 0)
+        ) {
+          return; // skip empty or default 'all' values
+        }
+
+        // Arrays: append multiple entries with same key
+        if (Array.isArray(value)) {
+          value.forEach((v) => {
+            if (v !== "" && v !== "all") {
+              params.append(key, v.toString());
+            }
+          });
+        }
+        // Boolean values (like hasWarranty, hasInsurance)
+        else if (typeof value === "boolean") {
+          params.append(key, value ? "true" : "false");
+        }
+        // Sometimes boolean might come as string "true" or "false"
+        else if (value === "true" || value === "false") {
+          params.append(key, value);
+        } else {
+          params.append(key, value.toString());
+        }
+      });
+
+      // Add status parameter based on activeTab
+      params.append("status", activeTab);
+
+      const response = await fetch(`/api/cars/count?${params.toString()}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch car count");
+      }
+      const data = await response.json();
+      return data.count || 0;
+    } catch (error) {
+      console.error("Error fetching car count:", error);
+      return 0; // Return 0 on error to show "No cars found"
+    }
+  };
 
   // State for the current count
- const [currentCount, setCurrentCount] = useState<number>(0);
+  const [currentCount, setCurrentCount] = useState<number>(0);
 
-    // Add a debounce function to prevent too many requests
+  // Add a debounce function to prevent too many requests
   const debounce = (func: (...args: any[]) => void, delay: number) => {
     let timeoutId: NodeJS.Timeout;
     return (...args: any[]) => {
@@ -438,28 +442,27 @@ const fetchCarCount = async (values: SearchFormValues) => {
   };
 
   const debouncedFetchCount = useMemo(() => {
-  return debounce(async (values: SearchFormValues) => {
-    const count = await fetchCarCount(values);
-    setCurrentCount(count);
-  }, 500);
-}, [activeTab]);
-
+    return debounce(async (values: SearchFormValues) => {
+      const count = await fetchCarCount(values);
+      setCurrentCount(count);
+    }, 500);
+  }, [activeTab]);
 
   // Watch form values and update count
- useEffect(() => {
-  const subscription = form.watch((values) => {
-    debouncedFetchCount(values);
-  });
+  useEffect(() => {
+    const subscription = form.watch((values) => {
+      debouncedFetchCount(values);
+    });
 
-  return () => {
-    subscription.unsubscribe();
-    debouncedFetchCount.cancel?.(); // cancel pending debounce on unmount if supported
-  };
-}, [form, debouncedFetchCount]);
+    return () => {
+      subscription.unsubscribe();
+      debouncedFetchCount.cancel?.(); // cancel pending debounce on unmount if supported
+    };
+  }, [form, debouncedFetchCount]);
 
-useEffect(() => {
-  fetchCarCount(form.getValues()).then(setCurrentCount);
-}, []);
+  useEffect(() => {
+    fetchCarCount(form.getValues()).then(setCurrentCount);
+  }, []);
 
   return (
     <Card className="border-2 border-solid rounded-2xl border-neutral-700">
@@ -622,79 +625,80 @@ useEffect(() => {
 
               {/* Year */}
               {showDefaultField("minYear") && (
-                  <div className="flex-[1_0_calc(20%-16px)] min-w-[200px] max-w-[calc(20%-16px)]">
-                    <FormField
-                      control={form.control}
-                      name="minYear"
-                      render={({ field }) => (
-                        <FormItem className="flex-[1_0_calc(20%-16px)] min-w-[200px] max-w-[calc(20%-16px)]">
-                          <FormLabel>{t("car.year")}</FormLabel>
-                          <FormControl>
-                            <PriceInputCombobox
-                              value={field.value}
-                              onChange={field.onChange}
-                              placeholder={t("car.minYearPlaceholder")}
-                              options={yearSteps}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
+                <div className="flex-[1_0_calc(20%-16px)] min-w-[200px] max-w-[calc(20%-16px)]">
+                  <FormField
+                    control={form.control}
+                    name="minYear"
+                    render={({ field }) => (
+                      <FormItem className="flex-[1_0_calc(20%-16px)] min-w-[200px] max-w-[calc(20%-16px)]">
+                        <FormLabel>{t("car.year")}</FormLabel>
+                        <FormControl>
+                          <PriceInputCombobox
+                            value={field.value}
+                            onChange={field.onChange}
+                            placeholder={t("car.minYearPlaceholder")}
+                            options={yearSteps}
+                            useCommas={false}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
               )}
 
               {/* Min Price */}
               {showDefaultField("minPrice") && (
                 <div className="flex-[1_0_calc(20%-16px)] min-w-[200px] max-w-[calc(20%-16px)]">
-                <FormField
-                  control={form.control}
-                  name="minPrice"
-                  render={({ field }) => (
-                    <FormItem className="flex-[1_0_calc(20%-16px)] min-w-[200px] max-w-[calc(20%-16px)]">
-                      <FormLabel>{t("car.minPrice")}</FormLabel>
-                      <FormControl>
-                        <PriceInputCombobox
-                          value={field.value}
-                          onChange={field.onChange}
-                          placeholder={t("car.minPricePlaceholder")}
-                          options={priceSteps}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                  <FormField
+                    control={form.control}
+                    name="minPrice"
+                    render={({ field }) => (
+                      <FormItem className="flex-[1_0_calc(20%-16px)] min-w-[200px] max-w-[calc(20%-16px)]">
+                        <FormLabel>{t("car.minPrice")}</FormLabel>
+                        <FormControl>
+                          <PriceInputCombobox
+                            value={field.value}
+                            onChange={field.onChange}
+                            placeholder={t("car.minPricePlaceholder")}
+                            options={priceSteps}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
               )}
 
               {showDefaultField("maxPrice") && (
                 <div className="flex-[1_0_calc(20%-16px)] min-w-[200px] max-w-[calc(20%-16px)]">
-                <FormField
-                  control={form.control}
-                  name="maxPrice"
-                  render={({ field }) => {
-                    const minPrice = form.watch("minPrice") ?? 100000;
-                    const filteredPriceSteps = priceSteps.filter(
-                      (price) => price >= minPrice
-                    );
+                  <FormField
+                    control={form.control}
+                    name="maxPrice"
+                    render={({ field }) => {
+                      const minPrice = form.watch("minPrice") ?? 100000;
+                      const filteredPriceSteps = priceSteps.filter(
+                        (price) => price >= minPrice
+                      );
 
-                    return (
-                      <FormItem className="flex-[1_0_calc(20%-16px)] min-w-[200px] max-w-[calc(20%-16px)]">
-                        <FormLabel>{t("car.maxPrice")}</FormLabel>
-                        <FormControl>
-                          <PriceInputCombobox
-                            value={field.value}
-                            onChange={field.onChange}
-                            placeholder={t("car.maxPricePlaceholder")}
-                            options={filteredPriceSteps}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    );
-                  }}
-                />
+                      return (
+                        <FormItem className="flex-[1_0_calc(20%-16px)] min-w-[200px] max-w-[calc(20%-16px)]">
+                          <FormLabel>{t("car.maxPrice")}</FormLabel>
+                          <FormControl>
+                            <PriceInputCombobox
+                              value={field.value}
+                              onChange={field.onChange}
+                              placeholder={t("car.maxPricePlaceholder")}
+                              options={filteredPriceSteps}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
+                  />
                 </div>
               )}
 
@@ -782,7 +786,7 @@ useEffect(() => {
                   />
                 </div>
               )}
-    
+
               {/* Advanced Filters Section */}
               {showAdvanced && (
                 <>
@@ -801,6 +805,7 @@ useEffect(() => {
                                 onChange={field.onChange}
                                 placeholder={t("car.minYearPlaceholder")}
                                 options={yearSteps}
+                                useCommas={false}
                               />
                             </FormControl>
                             <FormMessage />
@@ -817,7 +822,9 @@ useEffect(() => {
                         name="maxYear"
                         render={({ field }) => {
                           const minYear = form.watch("minYear") ?? 1900;
-                          const filteredYearSteps = yearSteps.filter((year) => year >= minYear);
+                          const filteredYearSteps = yearSteps.filter(
+                            (year) => year >= minYear
+                          );
 
                           return (
                             <FormItem className="flex-[1_0_calc(20%-16px)] min-w-[200px] max-w-[calc(20%-16px)]">
@@ -828,6 +835,7 @@ useEffect(() => {
                                   onChange={field.onChange}
                                   placeholder={t("car.maxYearPlaceholder")}
                                   options={filteredYearSteps}
+                                  useCommas={false}
                                 />
                               </FormControl>
                               <FormMessage />
@@ -841,54 +849,54 @@ useEffect(() => {
                   {/* Min Price */}
                   {showField("minPrice") && (
                     <div className="flex-[1_0_calc(20%-16px)] min-w-[200px] max-w-[calc(20%-16px)]">
-                    <FormField
-                      control={form.control}
-                      name="minPrice"
-                      render={({ field }) => (
-                        <FormItem className="flex-[1_0_calc(20%-16px)] min-w-[200px] max-w-[calc(20%-16px)]">
-                          <FormLabel>{t("car.minPrice")}</FormLabel>
-                          <FormControl>
-                            <PriceInputCombobox
-                              value={field.value}
-                              onChange={field.onChange}
-                              placeholder={t("car.minPricePlaceholder")}
-                              options={priceSteps}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                      <FormField
+                        control={form.control}
+                        name="minPrice"
+                        render={({ field }) => (
+                          <FormItem className="flex-[1_0_calc(20%-16px)] min-w-[200px] max-w-[calc(20%-16px)]">
+                            <FormLabel>{t("car.minPrice")}</FormLabel>
+                            <FormControl>
+                              <PriceInputCombobox
+                                value={field.value}
+                                onChange={field.onChange}
+                                placeholder={t("car.minPricePlaceholder")}
+                                options={priceSteps}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                     </div>
                   )}
 
                   {showField("maxPrice") && (
                     <div className="flex-[1_0_calc(20%-16px)] min-w-[200px] max-w-[calc(20%-16px)]">
-                    <FormField
-                      control={form.control}
-                      name="maxPrice"
-                      render={({ field }) => {
-                        const minPrice = form.watch("minPrice") ?? 100000;
-                        const filteredPriceSteps = priceSteps.filter(
-                          (price) => price >= minPrice
-                        );
+                      <FormField
+                        control={form.control}
+                        name="maxPrice"
+                        render={({ field }) => {
+                          const minPrice = form.watch("minPrice") ?? 100000;
+                          const filteredPriceSteps = priceSteps.filter(
+                            (price) => price >= minPrice
+                          );
 
-                        return (
-                          <FormItem className="flex-[1_0_calc(20%-16px)] min-w-[200px] max-w-[calc(20%-16px)]">
-                            <FormLabel>{t("car.maxPrice")}</FormLabel>
-                            <FormControl>
-                              <PriceInputCombobox
-                                value={field.value}
-                                onChange={field.onChange}
-                                placeholder={t("car.maxPricePlaceholder")}
-                                options={filteredPriceSteps}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        );
-                      }}
-                    />
+                          return (
+                            <FormItem className="flex-[1_0_calc(20%-16px)] min-w-[200px] max-w-[calc(20%-16px)]">
+                              <FormLabel>{t("car.maxPrice")}</FormLabel>
+                              <FormControl>
+                                <PriceInputCombobox
+                                  value={field.value}
+                                  onChange={field.onChange}
+                                  placeholder={t("car.maxPricePlaceholder")}
+                                  options={filteredPriceSteps}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          );
+                        }}
+                      />
                     </div>
                   )}
 
@@ -907,7 +915,9 @@ useEffect(() => {
                                 onChange={field.onChange}
                                 placeholder={t("car.minMilesPlaceholder")}
                                 options={mileageSteps}
-                                formatOption={(val) => `${val.toLocaleString()} km`}
+                                formatOption={(val) =>
+                                  `${val.toLocaleString()} km`
+                                }
                               />
                             </FormControl>
                             <FormMessage />
@@ -924,7 +934,9 @@ useEffect(() => {
                         name="maxMiles"
                         render={({ field }) => {
                           const minMiles = form.watch("minMiles") ?? 0;
-                          const filteredMileageSteps = mileageSteps.filter((miles) => miles >= minMiles);
+                          const filteredMileageSteps = mileageSteps.filter(
+                            (miles) => miles >= minMiles
+                          );
                           const options = [...filteredMileageSteps, 300001]; // 300,000+ option
 
                           return (
@@ -937,7 +949,9 @@ useEffect(() => {
                                   placeholder={t("car.maxMilesPlaceholder")}
                                   options={options}
                                   formatOption={(val) =>
-                                    val === 300001 ? "300,000+ km" : `${val.toLocaleString()} km`
+                                    val === 300001
+                                      ? "300,000+ km"
+                                      : `${val.toLocaleString()} km`
                                   }
                                 />
                               </FormControl>
@@ -1387,10 +1401,10 @@ useEffect(() => {
                 className="bg-orange-500 rounded-full w-full md:w-auto"
               >
                 {t("common.search")}
-                
+
                 {activeTab !== "garage" && currentCount > 0 && (
-  <> {currentCount} Cars</>
-)}
+                  <> {currentCount} Cars</>
+                )}
                 {activeTab === "garage" && " Services"}
               </Button>
             </div>

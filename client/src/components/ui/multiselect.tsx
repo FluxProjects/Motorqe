@@ -21,6 +21,7 @@ interface MultiSelectProps {
   onChange: (value: string[]) => void;
   placeholder?: string;
   className?: string;
+  value?: { value: string; label: string }[];
 }
 
 export function MultiSelect({
@@ -29,6 +30,7 @@ export function MultiSelect({
   onChange,
   placeholder = "Select options...",
   className,
+  value,
 }: MultiSelectProps) {
   const safeSelected = Array.isArray(selected) ? selected : [];
   return (

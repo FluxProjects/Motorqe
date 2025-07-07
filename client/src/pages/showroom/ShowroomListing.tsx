@@ -95,10 +95,10 @@ export default function ShowroomListings() {
       if (filters.make && filters.make !== "all") {
         searchParams.append("make", filters.make);
       }
-      if (filters.isFeatured === true) {
+      if (filters.isFeatured === "true") {
         searchParams.append("isFeatured", "true");
       }
-      if (filters.isImported === true) {
+      if (filters.isImported === "true") {
         searchParams.append("isImported", "true");
       }
 
@@ -312,38 +312,50 @@ export default function ShowroomListings() {
     },
   });
 
-// Extract unique makes
-const availableMakes = Array.from(
-  new Map(
-    cars
-      .filter((car) => car.make?.id)
-      .map((car) => [car.make.id, car.make])
-  ).values()
-);
+  const availableMakes = useMemo(() => {
+  return Array.from(
+    new Map(
+      cars
+        .filter(car => car.make?.id) // Filter out cars with undefined makes
+        .map(car => [car.make!.id, car.make!]) // Use non-null assertion safely
+    ).values()
+  );
+}, [cars]);
 
-// Extract unique models (optionally filter by selected make)
-const availableModels = Array.from(
-  new Map(
-    cars
-      .filter((car) => car.model?.id)
-      .filter((car) => {
-        if (!filters.make || filters.make === "all") return true;
-        return car.make?.id === Number(filters.make);
-      })
-      .map((car) => [car.model.id, car.model])
-  ).values()
-);
 
-const filteredCars = cars.filter((car) => {
+  // Extract unique models (optionally filter by selected make)
+  const availableModels = useMemo(() => {
+  const uniqueModels = (carsToFilter: typeof cars) =>
+    Array.from(
+      new Map(
+        carsToFilter
+          .filter(car => car.model?.id)
+          .map(car => [car.model!.id, car.model!])
+      ).values()
+    );
+
+  if (filters.model === "all" || !filters.make) {
+    return uniqueModels(cars);
+  }
+
+  return uniqueModels(
+    cars.filter(car => car.make?.id === Number(filters.make))
+  );
+}, [cars, filters.make, filters.model]);
+
+
+
+const filteredCars = useMemo(() => {
+  return cars.filter((car) => {
   // Make filter
   if (filters.make && filters.make !== "all") {
-    if (car.make?.id !== Number(filters.make)) return false;
-  }
+      if (car.make?.id !== Number(filters.make)) return false;
+    }
 
-  // Model filter
-  if (filters.model && filters.model !== "all") {
-    if (car.model?.id !== Number(filters.model)) return false;
-  }
+    // Model filter
+    if (filters.model && filters.model !== "all") {
+      if (car.model?.id !== Number(filters.model)) return false;
+    }
 
   // Status filter
   if (filters.status && filters.status !== "all") {
@@ -352,12 +364,13 @@ const filteredCars = cars.filter((car) => {
 
   // Category filter
   if (filters.category && filters.category !== "all") {
-    if (car.category_id !== filters.category) return false;
+    if (car.category_id !== Number(filters.category)) return false;
   }
+
 
   return true;
 });
-
+}, [cars, filters]);
 
   const statistics: CarStatistic = {
     publishedCars: cars.filter((car) => car.status === "active").length,
@@ -418,7 +431,7 @@ const filteredCars = cars.filter((car) => {
           1 - {cars.length} of {cars.length} cars
         </div>
 
-        <CarGrid cars={cars} isLoading={isLoading} />
+        <CarGrid cars={filteredCars} isLoading={isLoading} />
       </main>
     </div>
   );

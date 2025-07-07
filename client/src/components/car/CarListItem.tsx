@@ -142,9 +142,14 @@ const CarListItem = ({
     }
 
     apiRequest("POST", "/api/messages", {
-      receiverId: car!.sellerId,
-      carId: parseInt(id),
+      receiver_id: car!.seller.id,
+      sender_id: user?.id,
+      listing_id: parseInt(car?.id),
       content: values.message,
+      type:"web",
+      title: "Message From Website",
+      status: "sent",
+      sent_at: new Date().toISOString(),
     })
       .then(() => {
         toast({
@@ -219,7 +224,7 @@ const CarListItem = ({
   const { data: models = [] } = useQuery<CarModel[]>({
     queryKey: ["car-models", car?.make_id],
     queryFn: () => fetchModelsByMake(car?.make_id),
-    enabled: !!car.make_id,
+    enabled: !!car?.make_id,
   });
 
   const carModel = models.find((m) => m.id === car.model_id)?.name || "";
@@ -243,7 +248,7 @@ const CarListItem = ({
         });
       } else {
         await apiRequest("POST", "/api/favorites", {
-          listingId: parseInt(id),
+          listingId: parseInt(car?.id),
           userId: user?.id,
         });
         setIsFavorited(true);
@@ -263,30 +268,30 @@ const CarListItem = ({
 
   const warrantyExpiryText = car?.warranty_expiry
     ? `Warranty expired on ${format(
-        new Date(car.warranty_expiry),
+        new Date(car?.warranty_expiry),
         "dd MMM yyyy"
       )}`
     : "Warranty expired";
 
   console.log("Car data", car);
 
-  const imageUrl = car.images?.[0]?.trim() || null;
+  const imageUrl = car?.images?.[0]?.trim() || null;
 
     
   return (
     <>
       <Card
         className={`flex flex-col md:flex-row w-full max-w-full overflow-hidden rounded-2xl shadow-sm border ${
-          car.is_featured ? "border-2 border-orange-500 border-solid" : ""
+          car?.is_featured ? "border-2 border-orange-500 border-solid" : ""
         }`}
       >
         <Link href={`/cars/${car.id}`}>
           <div className="relative w-full md:w-[400px] h-[294px] md:h-auto max-h-[300px] flex-shrink-0 bg-slate-200 flex items-center justify-center">
-            {car.images && car.images.length > 0 ? (
+            {car?.images && car?.images?.length > 0 ? (
               <>
                 <div 
                   className={`h-[294px] w-[400px] bg-center bg-cover group-hover:scale-105 transition-transform duration-300 ${
-                    car.status === "sold" ? "opacity-50" : ""
+                    car?.status === "sold" ? "opacity-50" : ""
                   }`}
                   style={{
                     backgroundImage: imageUrl ? `url("${imageUrl}")` : undefined,
@@ -315,10 +320,10 @@ const CarListItem = ({
                 {/* LOW MILEAGE RIBBON */}
                 {(() => {
                   const currentYear = new Date().getFullYear();
-                  const carYear = parseInt(car.year);
+                  const carYear = parseInt(car?.year);
                   const yearsOwned = Math.max(currentYear - carYear + 1, 1); // Prevent division by zero
-                  const avgMileagePerYear = car.mileage / yearsOwned;
-                  const condition = car.condition?.toLowerCase();
+                  const avgMileagePerYear = car?.mileage / yearsOwned;
+                  const condition = car?.condition.toLowerCase();
 
                   if (condition === "used" && avgMileagePerYear < 25000) {
                     return (
@@ -331,7 +336,7 @@ const CarListItem = ({
                 })()}
 
                 {/* 360 Overlay */}
-                {car.image360 && (
+                {car?.image360 && (
                   <div className="absolute bottom-2 left-2 z-10">
                     <img
                       src="/src/assets/360-listing.png"
@@ -410,14 +415,14 @@ const CarListItem = ({
               <div className="flex justify-between mt-4 text-xs max-w-[250px] text-slate-700">
                 <div className="flex items-center gap-1">
                   <img src="/src/assets/car-calendar.png" className="w-4 h-4" />
-                  <span>{car.year || "2021"}</span>
+                  <span>{car?.year || "2021"}</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <img
                     src="/src/assets/car-cylinders.png"
                     className="w-4 h-4"
                   />
-                  <span>{car.cylinder_count || "4 Cylinder"}</span>
+                  <span>{car?.cylinder_count || "4 Cylinder"}</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <img src="/src/assets/car-mileage.png" className="w-4 h-4" />
@@ -533,11 +538,11 @@ const CarListItem = ({
 
               <div className="flex items-center gap-2 mt-2">
                 <div className="text-neutral-600 font-medium text-sm">
-                  {car?.created_at ? formatTimeAgo(car.created_at) : "Just now"}
+                  {car?.created_at ? formatTimeAgo(car?.created_at) : "Just now"}
                 </div>
 
                 {car?.showroom_name && car?.showroom_logo && (
-                  <Link href={`/showrooms/${car.showroom_id}`}>
+                  <Link href={`/showrooms/${car?.showroom_id}`}>
                     <img
                       src={car.showroom_logo}
                       alt={car.showroom_name}
@@ -569,7 +574,7 @@ const CarListItem = ({
                   {t("car.regarding")}: {title}
                 </p>
                 <p className="text-primary font-medium mt-1">
-                  {car.currency || "QR"} {car.price.toLocaleString()}
+                  {car?.currency || "QR"} {car?.price.toLocaleString()}
                 </p>
               </div>
 

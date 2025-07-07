@@ -14,7 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  Heart,
+  Bookmark,
   Share,
   Flag,
   MapPin,
@@ -26,6 +26,9 @@ import {
   MessageCircle,
   Navigation,
   Clock,
+  Star,
+  Info,
+  BookmarkCheck,
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -56,13 +59,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ServiceBookingForm } from "@/components/services/ServiceBookingForm";
 import { formatAvailability, isOpenNow } from "@/lib/utils";
 import { CarImages } from "@/components/car/CarImages";
 import { CarListingDetail } from "@/components/car/CarListingDetail";
 import { SimilarShowrooms } from "@/components/car/SimilarShowrooms";
 import { Card, CardContent } from "@/components/ui/card";
 import CarCard from "@/components/car/CarCard";
+import StarRating from "@/components/ui/star-rating";
 
 // Message form schema
 const messageSchema = z.object({
@@ -95,22 +98,13 @@ const ShowroomDetails = () => {
   const language = i18n.language;
   const { isAuthenticated, user } = useAuth();
   const { toast } = useToast();
-  const [isFavorited, setIsFavorited] = useState(false);
   const [authModal, setAuthModal] = useState<
     "login" | "register" | "forget-password" | null
   >(null);
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
   const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
-  const [selectedServiceIds, setSelectedServiceIds] = useState<number[]>([]);
-  const [selectedServices, setSelectedServices] = useState<[]>([]);
-  const [selectedTab, setSelectedTab] = useState("description");
-
-  const toggleService = (id: number) => {
-    setSelectedServiceIds((prev) =>
-      prev.includes(id) ? prev.filter((sid) => sid !== id) : [...prev, id]
-    );
-  };
+  const [activeTab, setActiveTab] = useState<"about" | "reviews">("about");
 
   // Message form
   const messageForm = useForm<MessageValues>({
@@ -166,38 +160,6 @@ const ShowroomDetails = () => {
       }
     }, [favoriteData]);
   
-    const handleFavoriteToggle = async () => {
-      if (!isAuthenticated) {
-        setAuthModal("login");
-        return;
-      }
-  
-      try {
-        if (isFavorited) {
-          await apiRequest("DELETE", `/api/favorites/showrooms/${id}`, {});
-          setIsFavorited(false);
-          toast({
-            title: t("showroom.removedFromFavorites"),
-            description: t("showroom.removedFromFavoritesDesc"),
-          });
-        } else {
-          await apiRequest("POST", "/api/favorites/showrooms", {
-            showroomId: parseInt(id),
-          });
-          setIsFavorited(true);
-          toast({
-            title: t("showroom.addedToFavorites"),
-            description: t("showroom.addedToFavoritesDesc"),
-          });
-        }
-      } catch (error) {
-        toast({
-          title: t("common.error"),
-          description: t("showroom.favoriteError"),
-          variant: "destructive",
-        });
-      }
-    };
 
   const {
     data: sellerData,
@@ -229,6 +191,10 @@ const ShowroomDetails = () => {
     sellerData,
   });
 
+  const { data: showroomReviews = [], isLoading: isLoadingReviews } = useQuery<any[]>({
+    queryKey: [`/api/reviews/showroom/${id}`],
+    enabled: !!id,
+  });
 
   const handleContactSeller = (values: MessageValues) => {
     if (!isAuthenticated) {
@@ -238,8 +204,13 @@ const ShowroomDetails = () => {
     }
 
     apiRequest("POST", "/api/messages", {
-      receiverId: showroom!.user_id,
+      receiver_id: showroom!.user_id,
+      sender_id: user?.id,
       content: values.message,
+      type:"web",
+      title: "Message From Website",
+      status: "sent",
+      sent_at: new Date().toISOString(),
     })
       .then(() => {
         toast({
@@ -258,7 +229,7 @@ const ShowroomDetails = () => {
         });
       });
   };
-
+  
   const handleReportListing = (values: ReportValues) => {
     if (!isAuthenticated) {
       setReportDialogOpen(false);
@@ -290,15 +261,6 @@ const ShowroomDetails = () => {
       });
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString(language === "ar" ? "ar-EG" : "en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  };
-
   const handleLocationMap = (showroomAddress: string) => {
     const encodedAddress = encodeURIComponent(showroomAddress);
     window.open(`https://maps.google.com/?q=${encodedAddress}`, "_blank");
@@ -313,6 +275,10 @@ const ShowroomDetails = () => {
   };
 
   const handleCall = (phone: string) => {
+    if (!phone) {
+    console.warn("Phone number is missing");
+    return;
+  }
     window.open(`tel:${phone}`);
   };
 
@@ -321,6 +287,37 @@ const ShowroomDetails = () => {
       `Hi, I'm interested in the ${carTitle}`
     );
     window.open(`https://wa.me/${phone}?text=${encodedMessage}`);
+  };
+
+  const [isBookmarked, setIsBookmarked] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (!showroom?.id) return; // wait until showroom is loaded
+
+    const bookmarks = JSON.parse(localStorage.getItem("bookmarkedGarages") || "[]");
+    setIsBookmarked(bookmarks.includes(showroom.id));
+  }, [showroom?.id]);
+
+    const handleBookmark = () => {
+    const bookmarks = JSON.parse(localStorage.getItem("bookmarkedGarages") || "[]");
+    let updatedBookmarks;
+
+    if (isBookmarked) {
+      updatedBookmarks = bookmarks.filter((id: number) => id !== showroom.id);
+      toast({
+        title: t("common.removedBookmark"),
+        description: t("common.removedBookmarkDesc"),
+      });
+    } else {
+      updatedBookmarks = [...bookmarks, showroom.id];
+      toast({
+        title: t("common.addedBookmark"),
+        description: t("common.addedBookmarkDesc"),
+      });
+    }
+
+    localStorage.setItem("bookmarkedGarages", JSON.stringify(updatedBookmarks));
+    setIsBookmarked(!isBookmarked);
   };
 
   if (isLoadingShowroom) {
@@ -378,9 +375,17 @@ const ShowroomDetails = () => {
               </Button>
             </Link>
 
-            {/* Action Buttons */}
-            <div className="flex items-center space-x-2">
-              <Button
+
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* Images (3/4 width on md and above) */}
+            <div className="md:col-span-3">
+              <CarImages images={showroom.images} title={showroom.name} is_garage={true}  />
+
+              {/* Action Buttons */}
+              <div className="flex items-center justify-center space-x-2 mb-4">
+                <Button
                 variant="outline"
                 size="sm"
                 className="rounded-full text-blue-900 border-blue-500 hover:bg-blue-900 hover:text-white hover:border-blue-900"
@@ -388,16 +393,42 @@ const ShowroomDetails = () => {
                   if (navigator.share) {
                     navigator
                       .share({
-                        title: showroom.name,
+                        title: car.title,
                         url: window.location.href,
                       })
                       .catch((err) => console.error("Error sharing:", err));
-                  } else {
+                  } else if (navigator.clipboard && navigator.clipboard.writeText) {
                     navigator.clipboard.writeText(window.location.href);
                     toast({
                       title: t("common.linkCopied"),
                       description: t("common.linkCopiedDesc"),
                     });
+                  } else {
+                    // Fallback for older browsers
+                    const textArea = document.createElement("textarea");
+                    textArea.value = window.location.href;
+                    textArea.style.position = "fixed"; // Prevent scrolling
+                    textArea.style.opacity = "0";
+                    document.body.appendChild(textArea);
+                    textArea.focus();
+                    textArea.select();
+
+                    try {
+                      document.execCommand("copy");
+                      toast({
+                        title: t("common.linkCopied"),
+                        description: t("common.linkCopiedDesc"),
+                      });
+                    } catch (err) {
+                      console.error("Fallback copy failed:", err);
+                      toast({
+                        title: t("common.copyFailed"),
+                        description: t("common.copyFailedDesc"),
+                        variant: "destructive",
+                      });
+                    }
+
+                    document.body.removeChild(textArea);
                   }
                 }}
               >
@@ -405,51 +436,117 @@ const ShowroomDetails = () => {
                 {t("common.share")}
               </Button>
 
-              <Button
-                variant="default"
-                size="sm"
-                className="rounded-full bg-red-500 hover:bg-black"
-                onClick={() => setReportDialogOpen(true)}
-              >
-                <Flag size={16} className="mr-1" />
-                {t("common.report")}
-              </Button>
-            </div>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {/* Images (3/4 width on md and above) */}
-            <div className="md:col-span-3">
-              <CarImages images={showroom.images} title={showroom.name} is_garage={true}  />
-              <CarListingDetail
-                vehicleDescription={
-                  showroom?.description ?? "No Description Available"
-                }
-                vehicleDescriptionAr={
-                  showroom?.descriptionAr ?? "لا يوجد وصف متاح"
-                }
-              />
+                <Button
+                  size="sm"
+                  className="rounded-full bg-blue-600 text-white"
+                  onClick={handleBookmark}
+                >
+                  {isBookmarked ? (
+                    <BookmarkCheck size={16} className="mr-1" />
+                  ) : (
+                    <Bookmark size={16} className="mr-1" />
+                  )}
+                  {isBookmarked ? t("common.bookmarked") : t("common.bookmark")}
+                </Button>
 
-              {/* Showroom listings */}
-            <Card className="border-transparent shadow-none mb-4">
-              <CardContent className="p-0">
-                {isLoadingCarListings ? (
-                  <div className="flex justify-center py-8">
-                    <Loader2 className="h-8 w-8 text-primary animate-spin" />
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="rounded-full bg-red-500 hover:bg-black"
+                  onClick={() => setReportDialogOpen(true)}
+                >
+                  <Flag size={16} className="mr-1" />
+                  {t("common.report")}
+                </Button>
+              </div>
+              
+               {/* Tabs Section */}
+              <div className="w-full mx-auto">
+                {/* Tabs */}
+                <div className="flex space-x-2 mb-4">
+                  <button
+                    onClick={() => setActiveTab("about")}
+                    className={`flex items-center px-4 py-2 rounded-full transition-all bg-neutral-100
+                      ${activeTab === "about" ? "text-orange-500" : "text-black"}
+                    `}
+                  >
+                    <Info size={16} className="mr-2" />
+                    About
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("reviews")}
+                    className={`flex items-center px-4 py-2 rounded-full transition-all bg-neutral-100
+                      ${activeTab === "reviews" ? "text-orange-500" : "text-black"}
+                    `}
+                  >
+                    <Star size={16} className="mr-2" />
+                    Reviews
+                  </button>
+                </div>
+
+                {/* Tab Content */}
+                <div className="bg-white rounded-lg shadow p-4">
+                  {activeTab === "about" && (
+                    <CarListingDetail
+                      is_showroom={true}
+                      vehicleDescription={showroom?.description ?? "No Description Available"}
+                      vehicleDescriptionAr={showroom?.descriptionAr ?? "لا يوجد وصف متاح"}
+                    />
+                  )}
+
+                  {activeTab === "reviews" && (
+                   <div className="space-y-4">
+                    {(!showroomReviews || showroomReviews.length === 0) ? (
+                      <p className="text-center text-gray-500 py-6">
+                        No reviews available for this showroom yet.
+                      </p>
+                    ) : (
+                      showroomReviews.map((review) => (
+                        <div
+                          key={review.id}
+                          className="bg-white rounded-lg shadow-sm p-4 border border-gray-200"
+                        >
+                          {/* Example review content */}
+                          <div className="flex items-center space-x-2 mb-2">
+                            {review.user_avatar ? (
+                              <img
+                                src={review.user_avatar}
+                                alt="User Avatar"
+                                className="w-10 h-10 rounded-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center text-gray-600 font-bold">
+                                {review.user_first_name?.charAt(0)}
+                              </div>
+                            )}
+                            <div>
+                              <div className="font-semibold text-gray-900">
+                                {review.user_first_name} {review.user_last_name}
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                {new Date(review.created_at).toLocaleDateString()}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Stars */}
+                          <StarRating rating={review.rating} />
+
+                          {/* Comment */}
+                          {review.comment && (
+                            <p className="text-gray-800 mt-2 whitespace-pre-line">
+                              {review.comment}
+                            </p>
+                          )}
+                        </div>
+                      ))
+                    )}
                   </div>
-                ) : carListings.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {carListings.map((car) => (
-                      <CarCard key={car.id} car={car} />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-neutral-500">
-                    {t("showroom.noInventory")}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+
+                  )}
+                </div>
+              </div>
 
               {/* Map */}
               <div className="mb-4">
@@ -466,6 +563,29 @@ const ShowroomDetails = () => {
                   ></iframe>
                 </div>
               </div>
+
+              {/* Showroom listings */}
+              <Card className="border-transparent shadow-none mb-4">
+              <CardContent className="p-0">
+                {isLoadingCarListings ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="h-8 w-8 text-primary animate-spin" />
+                  </div>
+                ) : carListings.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {carListings.map((car) => (
+                      <CarCard key={car.id} isFavorited={car.is_favourite} car={car} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-neutral-500">
+                    {t("showroom.noInventory")}
+                  </div>
+                )}
+              </CardContent>
+              </Card>
+
+             
             </div>
 
             {/* Car Summary (1/4 width on md and above) */}
@@ -513,8 +633,8 @@ const ShowroomDetails = () => {
               {!!sellerData && (
                 <div className="bg-white rounded-lg p-4 mt-4 shadow-sm border mb-4">
                   <div className="text-center mb-4">
-                    <div className="text-orange-500 hover:underline cursor-pointer text-sm">
-                      {showroom.name}
+                    <div className="flex justify-center cursor-pointer text-center">
+                      <img src={showroom?.logo} width={75} />
                     </div>
                   </div>
 
@@ -710,17 +830,26 @@ const ShowroomDetails = () => {
                         <SelectValue placeholder={t("common.selectReason")} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="fraud">
-                          {t("common.reportReasonFraud")}
+                        <SelectItem value="wrongprice">
+                          Listing price different from showroom
                         </SelectItem>
-                        <SelectItem value="inappropriate">
-                          {t("common.reportReasonInappropriate")}
+                        <SelectItem value="wronglocation">
+                          Location is different
                         </SelectItem>
-                        <SelectItem value="duplicate">
-                          {t("common.reportReasonDuplicate")}
+                        <SelectItem value="wrongphone">
+                          Different contact no.
                         </SelectItem>
-                        <SelectItem value="misrepresentation">
-                          {t("common.reportReasonMisrepresentation")}
+                        <SelectItem value="unreachable">
+                          Showroom is unreachable
+                        </SelectItem>
+                        <SelectItem value="wongimages">
+                          Showroom images do not match
+                        </SelectItem>
+                        <SelectItem value="wongservices">
+                          Inaccurate Showroom Listings
+                        </SelectItem>
+                        <SelectItem value="misleading">
+                          Misleading Listings
                         </SelectItem>
                         <SelectItem value="other">
                           {t("common.reportReasonOther")}
@@ -763,6 +892,7 @@ const ShowroomDetails = () => {
           </Form>
         </DialogContent>
       </Dialog>
+
 
       {/* Auth Modal */}
       {authModal && (

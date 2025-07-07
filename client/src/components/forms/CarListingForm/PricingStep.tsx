@@ -49,6 +49,7 @@ export function PricingStep({ data, updateData, nextStep }: StepProps) {
       packageName: pkg.name,
       packagePrice: pkg.price.toString(),
       durationDays: pkg.duration_days,
+      photoLimit: pkg.photo_limit,
     });
   };
 

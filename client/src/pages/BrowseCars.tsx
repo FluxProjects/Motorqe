@@ -60,7 +60,6 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import CompareTool from "@/components/car/CompareTool";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 // Search form schema
 const searchFormSchema = z.object({
@@ -95,13 +94,16 @@ const BrowseCars = () => {
   const handleClearComparison = () => {
     setComparisonList([]);
   };
+
   const [searchParams, setSearchParams] = useState<URLSearchParams>(
     () => new URLSearchParams(window.location.search)
   );
+
   const form = useForm<SearchFormValues>({
     resolver: zodResolver(searchFormSchema),
     defaultValues: {},
   });
+
   const [filters, setFilters] = useState<CarListingFilters>({
     search: searchParams?.get("search") || "",
     minPrice: "all",
@@ -144,6 +146,7 @@ const BrowseCars = () => {
     page: 1,
     limit: 9,
   });
+
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   // Extract query params on initial load
@@ -396,7 +399,7 @@ const BrowseCars = () => {
     },
   });
 
-  const { data: bannerAds = [], isLoadingBannerAds, refetch } = useBannerAds();
+  const { data: bannerAds = [] } = useBannerAds();
 
   // Filter banners
   const activeTopBanners = bannerAds.find(
@@ -898,6 +901,79 @@ const BrowseCars = () => {
     setSearchParams(new URLSearchParams());
   };
 
+  const sortCars = (cars: CarListing[], sortBy: string) => {
+    console.log(`Sorting cars by: ${sortBy}`);
+    
+    return [...cars].sort((a, b) => {
+      // First sort by featured status (featured first)
+      if (a.is_featured !== b.is_featured) {
+        return a.is_featured ? -1 : 1;
+      }
+
+      // Then apply the selected sort
+      switch (sortBy) {
+        case 'newest':
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        case 'year_high':
+          return b.year - a.year;
+        case 'year_low':
+          return a.year - b.year;
+        case 'price_high':
+          return b.price - a.price;
+        case 'price_low':
+          return a.price - b.price;
+        case 'mileage_high':
+          return b.mileage - a.mileage;
+        case 'mileage_low':
+          return a.mileage - b.mileage;
+        default:
+          // Default sort (newest first)
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      }
+    });
+  };
+
+  
+
+  const cars = carsData || [];
+  const filteredCars = filterCars(cars, filters);
+  const totalCars = filteredCars.length;
+  const totalPages = Math.ceil(totalCars / filters.limit);
+
+  console.log("Creating sellerMap from:", sellersData);
+  const sellerMap = new Map<number, UserWithStats>();
+  sellersData.forEach((seller) => {
+    console.log(`Mapping ${seller.id} -> ${seller.username}`);
+    sellerMap.set(seller.id, seller);
+  });
+  console.log("Resulting map:", Object.fromEntries(sellerMap));
+
+  const sortedCars = sortCars(filteredCars, filters.sort);
+
+  const carsWithSeller = (() => {
+    console.log("filteredCars:", sortedCars);
+    
+    // Separate featured and non-featured cars
+    const featuredCars = sortedCars.filter(car => car.is_featured);
+    const regularCars = sortedCars.filter(car => !car.is_featured);
+    
+    // Combine them with featured first
+    const combinedCars = [...featuredCars, ...regularCars];
+    
+    const result = combinedCars.map((car) => {
+      const seller = sellerMap.get(car.user_id);
+      console.log(`Car ID ${car.id} maps to seller ID ${car.user_id}:`, seller);
+      return {
+        ...car,
+        seller: seller || null,
+      };
+    });
+    
+    console.log("carsWithSeller:", result);
+    return result;
+  })();
+
+
   const handlePageChange = (page: number) => {
     setFilters((prev) => ({ ...prev, page }));
 
@@ -914,33 +990,6 @@ const BrowseCars = () => {
     // Scroll to top
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
-
-  const cars = carsData || [];
-  const filteredCars = filterCars(cars, filters);
-  const totalCars = filteredCars.length;
-  const totalPages = Math.ceil(totalCars / filters.limit);
-
-  console.log("Creating sellerMap from:", sellersData);
-  const sellerMap = new Map<number, UserWithStats>();
-  sellersData.forEach((seller) => {
-    console.log(`Mapping ${seller.id} -> ${seller.username}`);
-    sellerMap.set(seller.id, seller);
-  });
-  console.log("Resulting map:", Object.fromEntries(sellerMap));
-
-  const carsWithSeller = (() => {
-    console.log("filteredCars:", filteredCars);
-    const result = filteredCars.map((car) => {
-      const seller = sellerMap.get(car.user_id);
-      console.log(`Car ID ${car.id} maps to seller ID ${car.user_id}:`, seller);
-      return {
-        ...car,
-        seller: seller || null,
-      };
-    });
-    console.log("carsWithSeller:", result);
-    return result;
-  })();
   // Get only the current page's cars
   const paginatedCars = carsWithSeller.slice(
     (filters.page - 1) * filters.limit,
@@ -979,7 +1028,7 @@ const BrowseCars = () => {
         </div>
 
         <div className="">
-          {/* Filters sidebar - desktop */}
+          {/* Filters Topbar - desktop */}
           <div className="hidden md:block md:flex-1">
             <div className="bg-neutral-50 border-2 border-orange-500 border-solid rounded-lg shadow p-4 sticky top-24">
               <div className="flex justify-between items-center mb-4">
@@ -1052,6 +1101,7 @@ const BrowseCars = () => {
                         }
                         placeholder={t("car.allYears")}
                         options={yearSteps}
+                        useCommas={false}
                       />
                     </div>
                   </div>
@@ -1291,8 +1341,8 @@ const BrowseCars = () => {
                       );
                     }
 
-                    // After every 2 items (not rows, unless you control row count)
-                    if ((index + 1) % 3 === 0) {
+                    // After every 2 rows
+                    if ((index + 1) % 6 === 0) {
                       const bannerIndex =
                         Math.floor(index / 2) % activeMiddleBanners.length;
                       const banner = activeMiddleBanners[bannerIndex];
@@ -1332,12 +1382,17 @@ const BrowseCars = () => {
                         <CarListItem
                           key={`car-${car.id}`}
                           car={carWithSeller}
+                          onAddToCompare={handleAddToCompare}
+                          onRemoveFromCompare={handleRemoveFromCompare}
+                          isCompared={comparisonList.some(
+                            (c) => c.id === car.id
+                          )}
                         />
                       );
                     }
 
-                    // After every 3 items
-                    if ((index + 1) % 3 === 0) {
+                    // After every 6 items
+                    if ((index + 1) % 6 === 0) {
                       const bannerIndex =
                         Math.floor(index / 3) % activeMiddleBanners.length;
                       const banner = activeMiddleBanners[bannerIndex];

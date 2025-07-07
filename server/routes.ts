@@ -1192,7 +1192,7 @@ app.get('/api/cars/count', async (req, res) => {
   app.put("/api/car-listings/:id/actions", async (req, res) => {
     try {
       const id = Number(req.params.id);
-      const { action, reason, featured, package_id } = req.body;
+      const { action, reason, featured, package_id, refresh_left } = req.body;
 
       console.log("Action Recieved in route:", action);
       // Validate action
@@ -1239,7 +1239,11 @@ app.get('/api/cars/count', async (req, res) => {
         if (!package_id) {
           return res.status(400).json({ message: "package_id is required for upgrade action" });
         }
+        
         updates.upgradePackageId = package_id;
+        if (refresh_left) {
+          updates.refresh_left = Number(refresh_left); // ensure it's an integer
+        }
         break;
       }
 

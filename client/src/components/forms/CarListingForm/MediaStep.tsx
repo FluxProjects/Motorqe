@@ -32,10 +32,10 @@ export function MediaStep({ data, updateData, nextStep, prevStep }: StepProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <Label>Upload Images (Max 10)*</Label>
+        <Label>Upload Images (Max {data.package?.photoLimit})*</Label>
         <MultiImageUpload
           currentImages={previewUrls}
-          maxImages={10}
+          maxImages={data.package?.photoLimit}
           onUploadComplete={handleUploadComplete}
         />
       </div>

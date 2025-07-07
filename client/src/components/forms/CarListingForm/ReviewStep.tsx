@@ -103,42 +103,34 @@ export function ReviewStep({
             </p>
           </div>
 
+           <div className="md:col-span-2">
+            <Label>{t("listing.description")}</Label>
+            <p className="whitespace-pre-line">
+              {formData.basicInfo?.description || t("listing.noDescription")}
+            </p>
+          </div>
+        </div>
+         
+        <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
           <div>
             <Label>{t("listing.location")}</Label>
             <p className="font-medium">
               {formData.basicInfo?.location && (
-              <GoogleMaps
-      center={{
-        lat: parseFloat(formData.basicInfo?.location.split(",")[0]),
-        lng: parseFloat(formData.basicInfo?.location.split(",")[1])
-      }}
-      zoom={14}
-      markers={[
-        {
-          lat: parseFloat(formData.basicInfo.location.split(",")[0]),
-          lng: parseFloat(formData.basicInfo.location.split(",")[1]),
-        },
-      ]}
-      className="rounded-md border mt-2 h-64 w-full"
-    />)}
-            </p>
-          </div>
-
-          <div>
-            <Label>{t("listing.origin")}</Label>
-            <p className="font-medium">
-              {formData.specifications?.isImported === "true"
-                ? t("listing.imported")
-                : formData.specifications?.isImported === "false"
-                ? t("listing.local")
-                : t("listing.notSpecified")}
-            </p>
-          </div>
-
-          <div className="md:col-span-2">
-            <Label>{t("listing.description")}</Label>
-            <p className="whitespace-pre-line">
-              {formData.basicInfo?.description || t("listing.noDescription")}
+             <GoogleMaps
+              center={{
+                lat: parseFloat(formData.basicInfo?.location.split(",")[0]),
+                lng: parseFloat(formData.basicInfo?.location.split(",")[1])
+              }}
+              zoom={17}
+              markers={[
+                {
+                  lat: parseFloat(formData.basicInfo.location.split(",")[0]),
+                  lng: parseFloat(formData.basicInfo.location.split(",")[1]),
+                },
+              ]}
+              className="rounded-md border mt-2 h-8 w-full" // 👈 reduced from h-12
+            />
+            )}
             </p>
           </div>
         </div>
@@ -218,6 +210,17 @@ export function ReviewStep({
           </div>
 
           <div>
+            <Label>{t("listing.isImported")}</Label>
+            <p>
+              {formData.specifications?.isImported === "true"
+                ? t("listing.yes")
+                : formData.specifications?.isImported === "false"
+                ? t("listing.no")
+                : t("listing.notSpecified")}
+            </p>
+          </div>
+
+          <div>
             <Label>{t("listing.isInspected")}</Label>
             <p>
               {formData.specifications?.isInspected === "true"
@@ -228,16 +231,49 @@ export function ReviewStep({
             </p>
           </div>
 
+          {formData.specifications?.inspectionReport && (
           <div>
-            <Label>{t("listing.isImported")}</Label>
+            <Label>{t("listing.inspectionReport")}</Label>
             <p>
-              {formData.specifications?.isImported === "true"
-                ? t("listing.yes")
-                : formData.specifications?.isImported === "false"
-                ? t("listing.no")
-                : t("listing.notSpecified")}
+              {formData.specifications.inspectionReport.split("/").pop() ||
+                t("listing.notSpecified")}
             </p>
           </div>
+        )}
+
+        {formData.specifications?.hasInsurance === "true" && (
+  <>
+    <div>
+      <Label>{t("listing.hasInsurance")}</Label>
+      <p>{t("listing.yes")}</p>
+    </div>
+    <div>
+      <Label>{t("listing.insuranceExpiry")}</Label>
+      <p>
+        {formData.specifications?.insuranceExpiry
+          ? formData.specifications.insuranceExpiry
+          : t("listing.notSpecified")}
+      </p>
+    </div>
+  </>
+)}
+
+{formData.specifications?.hasWarranty === "true" && (
+  <>
+    <div>
+      <Label>{t("listing.hasWarranty")}</Label>
+      <p>{t("listing.yes")}</p>
+    </div>
+    <div>
+      <Label>{t("listing.warrantyExpiry")}</Label>
+      <p>
+        {formData.specifications?.warrantyExpiry
+          ? formData.specifications.warrantyExpiry
+          : t("listing.notSpecified")}
+      </p>
+    </div>
+  </>
+)}
         </div>
       </div>
 

@@ -75,9 +75,9 @@ const ImageUpload = ({ currentImage, onUploadComplete, isFile = false }: ImageUp
           <div className="relative group">
             <div className="rounded-md overflow-hidden border">
               {isFile && currentImage.endsWith('.pdf') ? (
-                <div className="flex flex-col items-center justify-center h-64 bg-gray-100">
-                  <FileText className="w-16 h-16 text-gray-400" />
-                  <span className="text-sm text-gray-600 mt-2">PDF Uploaded</span>
+                <div className="flex flex-col items-center justify-center bg-gray-100 aspect-square">
+                  <FileText className="w-12 h-12 text-red-500" />
+                  <span className="text-sm text-red-500 mt-2">PDF Uploaded</span>
                 </div>
               ) : (
                 <img

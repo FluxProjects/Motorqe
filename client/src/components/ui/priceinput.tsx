@@ -6,6 +6,7 @@ interface PriceInputComboboxProps {
   onChange: (value: number) => void;
   placeholder: string;
   options: number[];
+  useCommas?: boolean; 
 }
 
 export const PriceInputCombobox = ({
@@ -13,6 +14,7 @@ export const PriceInputCombobox = ({
   onChange,
   placeholder,
   options,
+  useCommas = true,
 }: PriceInputComboboxProps) => {
   const [inputValue, setInputValue] = useState(value ? String(value) : "");
 
@@ -31,10 +33,13 @@ export const PriceInputCombobox = ({
       placeholder={placeholder}
       options={[
         ...options.map((price) => ({
-          label: price.toLocaleString(),
+          label: useCommas ? price.toLocaleString() : String(price),
           value: String(price),
         })),
-        { label: "1,000,000+ ", value: "1000001" },
+        {
+          label: useCommas ? "1,000,000+" : "1000000+",
+          value: "1000001",
+        },
       ]}
       allowCustom
     />

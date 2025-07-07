@@ -7,7 +7,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Heart, MapPin, Fuel, Gauge, Cog, CalendarIcon, Phone, MessageCircle } from "lucide-react";
+import { Heart, MapPin, Fuel, Gauge, Cog, CalendarIcon, Phone, MessageCircle, Loader2, MessageSquare } from "lucide-react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { CarListing, User } from "@shared/schema";
@@ -16,6 +16,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { calculateMonthlyPayment, formatTimeAgo } from "@/lib/utils";
 import { format } from "date-fns";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormMessage } from "../ui/form";
+import { Textarea } from "../ui/textarea";
 
 // Message form schema
 const messageSchema = z.object({
@@ -111,9 +114,14 @@ const FeaturedCarCard = ({
       }
   
       apiRequest("POST", "/api/messages", {
-        receiverId: car!.sellerId,
-        carId: parseInt(id),
+        receiver_id: car!.seller.id,
+        sender_id: user?.id,
+        listing_id: parseInt(car?.id),
         content: values.message,
+        type:"web",
+        title: "Message From Website",
+        status: "sent",
+        sent_at: new Date().toISOString(),
       })
         .then(() => {
           toast({
@@ -262,9 +270,9 @@ const warrantyExpiryText = car?.warranty_expiry
                     </div>
         
                     <div className="text-green-500 font-bold text-lg">
+                      {car?.currency || "QR"}{" "}
                       {car?.price != null ? (
                         <>
-                          {car?.currency || "QR"}{" "}
                           {calculateMonthlyPayment(car.price).toLocaleString("en-US", {
                             maximumFractionDigits: 0,
                           })}
@@ -287,7 +295,11 @@ const warrantyExpiryText = car?.warranty_expiry
                     </div>
                     <div className="flex items-center gap-1">
                       <img src="/src/assets/car-mileage.png" className="w-4 h-4" />
-                      <span>{car?.mileage?.toLocaleString()} KM</span>
+                      <span>{car?.mileage != null
+                        ? Number(car.mileage).toLocaleString("en-US", {
+                            maximumFractionDigits: 0,
+                          })
+                        : "N/A"} KM</span>
                     </div>
                   </div>
         
@@ -368,6 +380,59 @@ const warrantyExpiryText = car?.warranty_expiry
                     </Button>
                 </CardFooter>
       </Card>
+       {/* Contact Seller Dialog */}
+            <Dialog open={contactDialogOpen} onOpenChange={setContactDialogOpen}>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>{t("car.contactSeller")}</DialogTitle>
+                  <DialogDescription>{t("car.contactSellerDesc")}</DialogDescription>
+                </DialogHeader>
+      
+                <Form {...messageForm}>
+                  <form
+                    onSubmit={messageForm.handleSubmit(handleContactSeller)}
+                    className="space-y-4"
+                  >
+                    <div className="bg-neutral-50 p-3 rounded-md text-sm mb-4">
+                      <p className="font-medium">
+                        {t("car.regarding")}: {title}
+                      </p>
+                      <p className="text-primary font-medium mt-1">
+                        {car?.currency || "QR"} {car?.price.toLocaleString()}
+                      </p>
+                    </div>
+      
+                    <FormField
+                      control={messageForm.control}
+                      name="message"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <Textarea
+                              placeholder={t("car.writeYourMessage")}
+                              className="min-h-[120px]"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+      
+                    <DialogFooter>
+                      <Button type="submit" className="w-full">
+                        {messageForm.formState.isSubmitting ? (
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        ) : (
+                          <MessageSquare size={16} className="mr-1" />
+                        )}
+                        {t("car.sendMessage")}
+                      </Button>
+                    </DialogFooter>
+                  </form>
+                </Form>
+              </DialogContent>
+            </Dialog>
     </Link>
   );
 };

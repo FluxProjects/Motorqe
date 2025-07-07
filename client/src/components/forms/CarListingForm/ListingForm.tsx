@@ -62,6 +62,7 @@ export function ListingForm({ listing, onSuccess }: Props) {
           transmission: listing.transmission,
           engineCapacityId: listing.engine_capacity_id?.toString(),
           cylinderCount: listing.cylinder_count?.toString(),
+          wheelDrive: listing.wheel_drive,
 
           color: listing.color,
           interiorColor: listing.interior_color,
@@ -70,6 +71,10 @@ export function ListingForm({ listing, onSuccess }: Props) {
           ownerType: listing.owner_type,
           condition: listing.condition,
           isImported: listing.is_imported?.toString(),
+          hasInsurance: listing.has_insurance?.toString(),
+          insuranceExpiry: listing.insurance_expiry,
+          hasWarranty: listing.has_warranty?.toString(),
+          warrantyExpiry: listing.warranty_expiry, 
           isInspected: listing.is_inspected?.toString(),
           inspectionReport: listing.inspection_report || undefined,
         },
@@ -88,6 +93,7 @@ export function ListingForm({ listing, onSuccess }: Props) {
           packageName: listing.package_name || undefined,
           packagePrice: listing.package_price?.toString(),
           durationDays: calculateDurationDays(listing.start_date?.toString(), listing.end_date?.toString()),
+          photoLimit: listing.photo_limit || 3,
         } : undefined,
         status: listing.status,
       };

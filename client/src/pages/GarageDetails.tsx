@@ -151,18 +151,9 @@ const GarageDetails = () => {
   });
 
   const { data: showroomReviews = [], isLoading: isLoadingReviews } = useQuery<any[]>({
-  queryKey: [`/api/reviews/showroom/${id}`],
-  enabled: !!id,
-});
-
-
- 
-
-  console.log("showroom data", showroom);
-
-   console.log("showroom makes", garageMakes);
-
-   console.log("showroom services", showroomServices);
+    queryKey: [`/api/reviews/showroom/${id}`],
+    enabled: !!id,
+  });
 
   const {
     data: sellerData,
@@ -210,15 +201,20 @@ const GarageDetails = () => {
 };
 
   const handleContactSeller = (values: MessageValues) => {
-    if (user?.id === null || user?.id === undefined) {
+   if (!isAuthenticated) {
       setContactDialogOpen(false);
       setAuthModal("login");
       return;
     }
 
     apiRequest("POST", "/api/messages", {
-      receiverId: showroom!.user_id,
+      receiver_id: showroom!.user_id,
+      sender_id: user?.id,
       content: values.message,
+      type:"web",
+      title: "Message From Website",
+      status: "sent",
+      sent_at: new Date().toISOString(),
     })
       .then(() => {
         toast({
@@ -269,7 +265,6 @@ const GarageDetails = () => {
       });
   };
 
-
   const handleLocationMap = (showroomAddress: string) => {
     const encodedAddress = encodeURIComponent(showroomAddress);
     window.open(`https://maps.google.com/?q=${encodedAddress}`, "_blank");
@@ -300,34 +295,34 @@ const GarageDetails = () => {
 
   const [isBookmarked, setIsBookmarked] = useState<boolean>(false);
 
-useEffect(() => {
-  if (!showroom?.id) return; // wait until showroom is loaded
+  useEffect(() => {
+    if (!showroom?.id) return; // wait until showroom is loaded
 
-  const bookmarks = JSON.parse(localStorage.getItem("bookmarkedGarages") || "[]");
-  setIsBookmarked(bookmarks.includes(showroom.id));
-}, [showroom?.id]);
+    const bookmarks = JSON.parse(localStorage.getItem("bookmarkedGarages") || "[]");
+    setIsBookmarked(bookmarks.includes(showroom.id));
+  }, [showroom?.id]);
 
-  const handleBookmark = () => {
-  const bookmarks = JSON.parse(localStorage.getItem("bookmarkedGarages") || "[]");
-  let updatedBookmarks;
+    const handleBookmark = () => {
+    const bookmarks = JSON.parse(localStorage.getItem("bookmarkedGarages") || "[]");
+    let updatedBookmarks;
 
-  if (isBookmarked) {
-    updatedBookmarks = bookmarks.filter((id: number) => id !== showroom.id);
-    toast({
-      title: t("common.removedBookmark"),
-      description: t("common.removedBookmarkDesc"),
-    });
-  } else {
-    updatedBookmarks = [...bookmarks, showroom.id];
-    toast({
-      title: t("common.addedBookmark"),
-      description: t("common.addedBookmarkDesc"),
-    });
-  }
+    if (isBookmarked) {
+      updatedBookmarks = bookmarks.filter((id: number) => id !== showroom.id);
+      toast({
+        title: t("common.removedBookmark"),
+        description: t("common.removedBookmarkDesc"),
+      });
+    } else {
+      updatedBookmarks = [...bookmarks, showroom.id];
+      toast({
+        title: t("common.addedBookmark"),
+        description: t("common.addedBookmarkDesc"),
+      });
+    }
 
-  localStorage.setItem("bookmarkedGarages", JSON.stringify(updatedBookmarks));
-  setIsBookmarked(!isBookmarked);
-};
+    localStorage.setItem("bookmarkedGarages", JSON.stringify(updatedBookmarks));
+    setIsBookmarked(!isBookmarked);
+  };
 
   if (isLoadingShowroom) {
     return (
@@ -392,55 +387,55 @@ useEffect(() => {
                {/* Action Buttons */}
               <div className="flex items-center justify-center space-x-2 mb-4">
                 <Button
-  variant="outline"
-  size="sm"
-  className="rounded-full text-blue-900 border-blue-500 hover:bg-blue-900 hover:text-white hover:border-blue-900"
-  onClick={() => {
-    if (navigator.share) {
-      navigator
-        .share({
-          title: car.title,
-          url: window.location.href,
-        })
-        .catch((err) => console.error("Error sharing:", err));
-    } else if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(window.location.href);
-      toast({
-        title: t("common.linkCopied"),
-        description: t("common.linkCopiedDesc"),
-      });
-    } else {
-      // Fallback for older browsers
-      const textArea = document.createElement("textarea");
-      textArea.value = window.location.href;
-      textArea.style.position = "fixed"; // Prevent scrolling
-      textArea.style.opacity = "0";
-      document.body.appendChild(textArea);
-      textArea.focus();
-      textArea.select();
+                variant="outline"
+                size="sm"
+                className="rounded-full text-blue-900 border-blue-500 hover:bg-blue-900 hover:text-white hover:border-blue-900"
+                onClick={() => {
+                  if (navigator.share) {
+                    navigator
+                      .share({
+                        title: car.title,
+                        url: window.location.href,
+                      })
+                      .catch((err) => console.error("Error sharing:", err));
+                  } else if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(window.location.href);
+                    toast({
+                      title: t("common.linkCopied"),
+                      description: t("common.linkCopiedDesc"),
+                    });
+                  } else {
+                    // Fallback for older browsers
+                    const textArea = document.createElement("textarea");
+                    textArea.value = window.location.href;
+                    textArea.style.position = "fixed"; // Prevent scrolling
+                    textArea.style.opacity = "0";
+                    document.body.appendChild(textArea);
+                    textArea.focus();
+                    textArea.select();
 
-      try {
-        document.execCommand("copy");
-        toast({
-          title: t("common.linkCopied"),
-          description: t("common.linkCopiedDesc"),
-        });
-      } catch (err) {
-        console.error("Fallback copy failed:", err);
-        toast({
-          title: t("common.copyFailed"),
-          description: t("common.copyFailedDesc"),
-          variant: "destructive",
-        });
-      }
+                    try {
+                      document.execCommand("copy");
+                      toast({
+                        title: t("common.linkCopied"),
+                        description: t("common.linkCopiedDesc"),
+                      });
+                    } catch (err) {
+                      console.error("Fallback copy failed:", err);
+                      toast({
+                        title: t("common.copyFailed"),
+                        description: t("common.copyFailedDesc"),
+                        variant: "destructive",
+                      });
+                    }
 
-      document.body.removeChild(textArea);
-    }
-  }}
->
-  <Share size={16} className="mr-1" />
-  {t("common.share")}
-</Button>
+                    document.body.removeChild(textArea);
+                  }
+                }}
+              >
+                <Share size={16} className="mr-1" />
+                {t("common.share")}
+              </Button>
 
 
                 <Button
@@ -675,8 +670,9 @@ useEffect(() => {
               {!!sellerData && (
                 <div className="bg-white rounded-lg p-4 mt-4 shadow-sm border mb-4">
                   <div className="text-center mb-4">
-                    <div className="text-orange-500 hover:underline cursor-pointer text-sm">
-                      {showroom.name}
+                    
+                    <div className="flex justify-center cursor-pointer text-center">
+                      <img src={showroom.logo} width={75} />
                     </div>
                   </div>
 
@@ -797,7 +793,7 @@ useEffect(() => {
         <div className="flex items-center justify-between mb-8">
         <h2 className="text-2xl font-bold text-gray-900">Similar Garages</h2>
       </div>
-        <SimilarShowrooms showroomId={showroom.id} limit={4} />
+        <SimilarShowrooms showroomId={showroom.id} limit={4} is_garage={true} />
         </div>
       </div>
 

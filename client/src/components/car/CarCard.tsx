@@ -128,9 +128,14 @@ const CarCard = ({ car, isFavorited = false, isCompared = false, onAddToCompare,
     }
 
     apiRequest("POST", "/api/messages", {
-      receiverId: car!.sellerId,
-      carId: parseInt(id),
+      receiver_id: car!.seller.id,
+      sender_id: user?.id,
+      listing_id: parseInt(car?.id),
       content: values.message,
+      type:"web",
+      title: "Message From Website",
+      status: "sent",
+      sent_at: new Date().toISOString(),
     })
       .then(() => {
         toast({

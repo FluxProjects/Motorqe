@@ -58,6 +58,7 @@ export const useListingFormHandler = (onSuccess?: () => void) => {
         transmission: formData.specifications?.transmission,
         engine_capacity_id: formData.specifications?.engineCapacityId,
         cylinder_count: formData.specifications?.cylinderCount,
+        wheel_drive: formData.specifications?.wheelDrive,
         
         color: formData.specifications?.color,
         interior_color: formData.specifications?.interiorColor,
@@ -71,6 +72,19 @@ export const useListingFormHandler = (onSuccess?: () => void) => {
         owner_type:  formData.specifications?.ownerType,
         featureIds: formData.features?.map((id: string) => Number(id)) ?? [],
         is_imported: formData.specifications?.isImported,
+        has_insurance: formData.specifications?.hasInsurance,
+        insurance_expiry: formData.specifications?.insuranceExpiry
+          ? new Date(
+  listing?.insurance_expiry ? listing.insurance_expiry : new Date()
+).toISOString()
+          : new Date().toISOString(),
+        has_warranty: formData.specifications?.hasWarranty,
+        warranty_expiry: formData.specifications?.warrantyExpiry
+          ? new Date(
+  listing?.warranty_expiry ? listing.warranty_expiry : new Date()
+).toISOString()
+
+          : new Date().toISOString(),
         is_inspected: formData.specifications?.isInspected,
         inspection_report: formData.specifications?.inspectionReport,
         

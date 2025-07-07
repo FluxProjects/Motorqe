@@ -348,7 +348,7 @@ export const carListings = pgTable("car_listings", {
   transmission: text("transmission").notNull(),
   engineCapacityId: integer("engine_capacity_id"),
   cylinerCount: integer("cylinder_count").default(0),
-
+  wheelDrive: text("wheel_drive").notNull(),
   // Appearance
   color: text("color").notNull(),
   interiorColor: text("interior_color"),
@@ -1295,7 +1295,7 @@ export type ListingFormData = {
   basicInfo?: {
     listingType?: string;
     title: string;
-    titleAr: string;
+    titleAr?: string;
     description?: string;
     descriptionAr?: string;
     price?: string;
@@ -1315,6 +1315,7 @@ export type ListingFormData = {
     transmission?: string;
     engineCapacityId?: string;
     cylinderCount?: string;
+    wheelDrive?: 'AWD' | 'FWD' | 'RWD';
 
     color?: string;
     interiorColor?: string;
@@ -1324,6 +1325,10 @@ export type ListingFormData = {
 
     ownerType?: string;
     isImported?: string;
+    hasInsurance?: string;
+    insuranceExpiry?: string;
+    hasWarranty?: string;
+    warrantyExpiry?: string;
     isInspected?: string;
     inspectionReport?: string | undefined;
   };
@@ -1372,6 +1377,7 @@ export interface AdminCarListingFilters {
   transmission?: string[];
   engineCapacity?: string[];
   cylinderCount?: string;
+  wheelDrive?: string;
   // Appearance
   color?: string;
   interiorColor?: string;
@@ -1421,6 +1427,7 @@ export interface CarListingFilters {
   transmission?: string[];
   engineCapacity?: string[];
   cylinderCount?: string[];
+  wheelDrive?: string[];
   // Appearance
   color?: string[];
   interiorColor?: string[];
@@ -1467,6 +1474,7 @@ export interface AdminCarListing {
   transmission?: string;
   engine_capacity_id?: number;
   cylinder_count?: number;
+  wheel_drive?: 'AWD' | 'FWD' | 'RWD';
   
   color?: string;
   interior_color?: string;
@@ -1483,15 +1491,16 @@ export interface AdminCarListing {
   is_active?: string;
   is_featured?: string;
   is_imported?: string;
-  is_inspected?: string;
+  
   
   owner_type?: 'first' | 'second' |'third' | 'fourth' | 'fifth';
   has_warranty?: string;
-  warranty_expirty?: string;
+  warranty_expiry?: Date;
   has_insurance?: string;
   insurance_type?: 'comprehensive' | 'third-party' | 'none';
-  insurance_expirty?: string;
+  insurance_expiry?: Date;
   is_business?: string;
+  is_inspected?: string;
   inspection_report?: string;
 
   views?: number;
