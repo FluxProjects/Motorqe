@@ -149,6 +149,7 @@ export function BasicInfoStep({ data, updateData, nextStep }: StepProps) {
           zoom={11}
           onMapClick={handleMapClick}
           markers={marker}
+          containerStyle={{ width: "100%", height: "256px" }} 
         />
       </div>
 

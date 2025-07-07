@@ -1,14 +1,7 @@
 import React from "react";
-import {
-  GoogleMap,
-  Marker,
-  useJsApiLoader,
-} from "@react-google-maps/api";
+import { GoogleMap, Marker, useJsApiLoader } from "@react-google-maps/api";
 
-const containerStyle = {
-  width: "100%",
-  height: "400px",
-};
+type ContainerStyle = React.CSSProperties;
 
 const defaultCenter = {
   lat: 25.276987, // Dubai
@@ -22,11 +15,17 @@ type GoogleMapProps = {
   onMapClick?: ({ lat, lng }: { lat: number; lng: number }) => void;
 };
 
-const GoogleMaps: React.FC<GoogleMapProps> = ({
+const GoogleMaps: React.FC<
+  GoogleMapProps & { containerStyle?: ContainerStyle }
+> = ({
   center = defaultCenter,
   zoom = 12,
   markers = [],
   onMapClick,
+  containerStyle = {
+    width: "100%",
+    height: "400px",
+  },
 }) => {
   const { isLoaded, loadError } = useJsApiLoader({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string,

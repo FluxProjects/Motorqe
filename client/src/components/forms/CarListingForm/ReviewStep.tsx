@@ -88,9 +88,16 @@ export function ReviewStep({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <Label>{t("listing.title")}</Label>
+            <Label>Title (English)</Label>
             <p className="font-medium">
               {formData.basicInfo?.title || t("listing.notSpecified")}
+            </p>
+          </div>
+
+           <div>
+            <Label>Title (Arabic)</Label>
+            <p className="font-medium">
+              {formData.basicInfo?.titleAr || t("listing.notSpecified")}
             </p>
           </div>
 
@@ -104,9 +111,16 @@ export function ReviewStep({
           </div>
 
            <div className="md:col-span-2">
-            <Label>{t("listing.description")}</Label>
+            <Label>Description (English)</Label>
             <p className="whitespace-pre-line">
               {formData.basicInfo?.description || t("listing.noDescription")}
+            </p>
+          </div>
+
+          <div className="md:col-span-2">
+            <Label>Description (Arabic)</Label>
+            <p className="whitespace-pre-line">
+              {formData.basicInfo?.descriptionAr || t("listing.noDescription")}
             </p>
           </div>
         </div>
@@ -115,23 +129,24 @@ export function ReviewStep({
           <div>
             <Label>{t("listing.location")}</Label>
             <p className="font-medium">
-              {formData.basicInfo?.location && (
-             <GoogleMaps
-              center={{
-                lat: parseFloat(formData.basicInfo?.location.split(",")[0]),
-                lng: parseFloat(formData.basicInfo?.location.split(",")[1])
-              }}
-              zoom={17}
-              markers={[
-                {
-                  lat: parseFloat(formData.basicInfo.location.split(",")[0]),
-                  lng: parseFloat(formData.basicInfo.location.split(",")[1]),
-                },
-              ]}
-              className="rounded-md border mt-2 h-8 w-full" // 👈 reduced from h-12
-            />
-            )}
-            </p>
+  {formData.basicInfo?.location && (
+    <GoogleMaps
+      center={{
+        lat: parseFloat(formData.basicInfo.location.split(",")[0]),
+        lng: parseFloat(formData.basicInfo.location.split(",")[1])
+      }}
+      zoom={17}
+      markers={[
+        {
+          lat: parseFloat(formData.basicInfo.location.split(",")[0]),
+          lng: parseFloat(formData.basicInfo.location.split(",")[1]),
+        },
+      ]}
+      containerStyle={{ width: "100%", height: "256px" }} // increased height
+    />
+  )}
+</p>
+
           </div>
         </div>
       </div>

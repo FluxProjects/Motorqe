@@ -28,6 +28,16 @@ export const useListingFormHandler = (onSuccess?: () => void) => {
       console.log("📦 Received formData:", formData);
       console.log("🆔 Listing:", listing);
 
+      // Set default package if no packageId is found
+      if (!formData.package?.packageId && !listing?.package_id) {
+        formData.package = {
+          packageId: "2",
+          durationDays: 45,
+          packagePrice: "150",
+          noOfRefresh: 1,
+        };
+      }
+
       let endDate = new Date();
       if (formData.package?.durationDays) {
         const durationDays = Number(formData.package?.durationDays);
