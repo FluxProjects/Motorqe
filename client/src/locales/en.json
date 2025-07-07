@@ -1,5 +1,7 @@
 {
   "common": {
+    "linkCopied": "Link Copied",
+    "linkCopiedDesc": "You can now share this link with others.",
     "clearAll": "Clear All",
     "bookmark": "Bookmark",
     "viewLess": "View Less",
