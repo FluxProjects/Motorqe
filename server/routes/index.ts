@@ -1,5 +1,5 @@
 import { Express } from "express";
-import { authRoutes } from "./authroutes";
+import { authRoutes } from "./authRoutes";
 import { userRoutes } from "./userRoutes";
 import { carPartsRoutes } from "./carPartsRoutes";
 import { carTyresRoutes } from "./carTyresRoutes";
