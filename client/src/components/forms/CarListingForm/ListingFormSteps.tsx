@@ -1,6 +1,8 @@
 import { BasicInfoStep } from "./BasicInfoStep";
 import { SpecsStep } from "./SpecsStep";
 import { FeaturesStep } from "./FeaturesStep";
+import { CarPartsStep } from "./CarPartsStep";
+import { CarTyresStep } from "./CarTyresStep";
 import { MediaStep } from "./MediaStep";
 import { PricingStep } from "./PricingStep";
 import { ReviewStep } from "./ReviewStep";
@@ -27,14 +29,13 @@ export const ListingFormSteps = ({
   listing,
   user,
 }: Props) => {
-
   const isPricingSkipped = user?.roleId === 3;
 
   const adjustedStep = isPricingSkipped
-    ? step + (step >= 0 ? 1 : 0) // shift mapping if pricing is skipped
+    ? step + (step >= 0 ? 1 : 0)
     : step;
 
-  switch (step) {
+  switch (adjustedStep) {
     case 0:
       return isPricingSkipped ? (
         <BasicInfoStep data={data} updateData={updateData} nextStep={nextStep} prevStep={prevStep} />
@@ -48,8 +49,12 @@ export const ListingFormSteps = ({
     case 3:
       return <FeaturesStep listingId={listing?.id} data={data} updateData={updateData} nextStep={nextStep} prevStep={prevStep} />;
     case 4:
-      return <MediaStep data={data} updateData={updateData} nextStep={nextStep} prevStep={prevStep} />;
+      return <CarPartsStep data={data} updateData={updateData} nextStep={nextStep} prevStep={prevStep} />;
     case 5:
+      return <CarTyresStep data={data} updateData={updateData} nextStep={nextStep} prevStep={prevStep} />;
+    case 6:
+      return <MediaStep data={data} updateData={updateData} nextStep={nextStep} prevStep={prevStep} />;
+    case 7:
       return <ReviewStep data={data} updateData={updateData} prevStep={prevStep} nextStep={nextStep} handleSubmit={handleSubmit} />;
     default:
       return null;

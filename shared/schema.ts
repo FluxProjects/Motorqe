@@ -471,6 +471,80 @@ export type InsertCarFeature = z.infer<typeof insertCarFeatureSchema>;
 export type CarFeature = typeof carFeatures.$inferSelect;
 
 // =============================================
+// CAR_PARTS TABLE
+// Stores car parts linked to car listings
+// =============================================
+export const carParts = pgTable("car_parts", {
+  id: serial("id").primaryKey(),
+
+  listingId: integer("listing_id").notNull().references(() => carListings.id, { onDelete: "cascade" }),
+
+  engineOil: integer("engine_oil"),
+  engineOilFilter: integer("engine_oil_filter"),
+  gearboxOil: integer("gearbox_oil"),
+  acFilter: integer("ac_filter"),
+  airFilter: integer("air_filter"),
+  fuelFilter: integer("fuel_filter"),
+  sparkPlugs: integer("spark_plugs"),
+  frontBrakePads: integer("front_brake_pads"),
+  rearBrakePads: integer("rear_brake_pads"),
+  frontBrakeDiscs: integer("front_brake_discs"),
+  rearBrakeDiscs: integer("rear_brake_discs"),
+  battery: integer("battery"),
+
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdateFn(() => new Date()),
+});
+
+export const insertCarPartSchema = createInsertSchema(carParts).pick({
+  listingId: true,
+  engineOil: true,
+  engineOilFilter: true,
+  gearboxOil: true,
+  acFilter: true,
+  airFilter: true,
+  fuelFilter: true,
+  sparkPlugs: true,
+  frontBrakePads: true,
+  rearBrakePads: true,
+  frontBrakeDiscs: true,
+  rearBrakeDiscs: true,
+  battery: true,
+});
+
+export type InsertCarPart = z.infer<typeof insertCarPartSchema>;
+export type CarPart = typeof carParts.$inferSelect;
+
+// =============================================
+// CAR_TYRES TABLE
+// Stores tyre size and price linked to listings
+// =============================================
+export const carTyres = pgTable("car_tyres", {
+  id: serial("id").primaryKey(),
+
+  listingId: integer("listing_id").notNull().references(() => carListings.id, { onDelete: "cascade" }),
+
+  frontTyreSize: text("front_tyre_size"),
+  frontTyrePrice: integer("front_tyre_price"),
+  rearTyreSize: text("rear_tyre_size"),
+  rearTyrePrice: integer("rear_tyre_price"),
+
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdateFn(() => new Date()),
+});
+
+export const insertCarTyreSchema = createInsertSchema(carTyres).pick({
+  listingId: true,
+  frontTyreSize: true,
+  frontTyrePrice: true,
+  rearTyreSize: true,
+  rearTyrePrice: true,
+});
+
+export type InsertCarTyre = z.infer<typeof insertCarTyreSchema>;
+export type CarTyre = typeof carTyres.$inferSelect;
+
+// =============================================
 // SHOWROOM SERVICES TABLE
 // Stores services offered by showrooms
 // =============================================
@@ -1301,28 +1375,22 @@ export type ListingFormData = {
     price?: string;
     currency?: string;
     location?: string;
-    
   };
   specifications?: {
     year?: string;
-
     makeId?: string;
     modelId?: string;
     categoryId?: string;
-    
     mileage?: string;
     fuelType?: string;
     transmission?: string;
     engineCapacityId?: string;
     cylinderCount?: string;
-    wheelDrive?: 'AWD' | 'FWD' | 'RWD';
-
+    wheelDrive?: "AWD" | "FWD" | "RWD";
     color?: string;
     interiorColor?: string;
     tinted?: string;
-
     condition?: string;
-
     ownerType?: string;
     isImported?: string;
     hasInsurance?: string;
@@ -1334,7 +1402,7 @@ export type ListingFormData = {
   };
   features?: string[];
   media?: File[] | string[]; // Files before upload or URLs after upload
-  status: 'draft' | 'active' | 'pending' | 'reject' | 'sold';
+  status: "draft" | "active" | "pending" | "reject" | "sold";
   refreshLeft?: number;
   package?: {
     packageId?: string;
@@ -1344,6 +1412,28 @@ export type ListingFormData = {
     photoLimit?: number;
     featureDuration?: number;
     noOfRefresh?: number;
+  };
+
+  carParts?: {
+    engineOil?: number;
+    engineOilFilter?: number;
+    gearboxOil?: number;
+    acFilter?: number;
+    airFilter?: number;
+    fuelFilter?: number;
+    sparkPlugs?: number;
+    frontBrakePads?: number;
+    rearBrakePads?: number;
+    frontBrakeDiscs?: number;
+    rearBrakeDiscs?: number;
+    battery?: number;
+  };
+
+  carTyres?: {
+    frontTyreSize?: string;
+    frontTyrePrice?: number;
+    rearTyreSize?: string;
+    rearTyrePrice?: number;
   };
 };
 
@@ -1475,7 +1565,7 @@ export interface AdminCarListing {
   engine_capacity_id?: number;
   cylinder_count?: number;
   wheel_drive?: 'AWD' | 'FWD' | 'RWD';
-  
+
   color?: string;
   interior_color?: string;
   tinted?: boolean;
@@ -1491,9 +1581,8 @@ export interface AdminCarListing {
   is_active?: string;
   is_featured?: string;
   is_imported?: string;
-  
-  
-  owner_type?: 'first' | 'second' |'third' | 'fourth' | 'fifth';
+
+  owner_type?: 'first' | 'second' | 'third' | 'fourth' | 'fifth';
   has_warranty?: string;
   warranty_expiry?: Date;
   has_insurance?: string;
@@ -1507,40 +1596,47 @@ export interface AdminCarListing {
   refresh_left?: number;
   created_at: string;
   updated_at?: string;
-  
+
   user_id: number;
   contact_number?: string;
+
   seller?: {
     id: number;
     username: string;
     avatar?: string;
     created_at?: string;
   };
+
   showroom?: {
     id?: number;
-    name?: string;                   // Showroom name in English
-    nameAr?: string;                        // Showroom name in Arabic
-    isMainBranch?: boolean; // Is this the main branch?
-    address?: string;                       // Physical address
-    addressAr?: string;                  // Physical address in Arabic
-    location?: string;                     // Geographic location
-    phone?: string;                            // Contact phone number
+    name?: string;
+    nameAr?: string;
+    isMainBranch?: boolean;
+    address?: string;
+    addressAr?: string;
+    location?: string;
+    phone?: string;
     logo?: string;
     isFeatured?: boolean;
   };
+
   make?: {
     id: number;
     name: string;
   };
+
   model?: {
     id: number;
     name: string;
   };
+
   category?: {
     id: number;
     name: string;
   };
+
   features?: string[];
+
   package_id?: number;
   package_name?: string;
   package_price?: string;
@@ -1550,7 +1646,40 @@ export interface AdminCarListing {
   no_of_refresh?: number;
   start_date?: Date;
   end_date?: Date;
+
+  // Car Parts
+  carParts?: {
+    id: number;
+    listingId: number;
+    engineOil?: number;
+    engineOilFilter?: number;
+    gearboxOil?: number;
+    acFilter?: number;
+    airFilter?: number;
+    fuelFilter?: number;
+    sparkPlugs?: number;
+    frontBrakePads?: number;
+    rearBrakePads?: number;
+    frontBrakeDiscs?: number;
+    rearBrakeDiscs?: number;
+    battery?: number;
+    createdAt?: string;
+    updatedAt?: string;
+  };
+
+  // Car Tyres
+  carTyres?: {
+    id: number;
+    listingId: number;
+    frontTyreSize?: string;
+    frontTyrePrice?: number;
+    rearTyreSize?: string;
+    rearTyrePrice?: number;
+    createdAt?: string;
+    updatedAt?: string;
+  };
 }
+
 
 export type AdminCarListingAction = 'publish' | 'edit' | 'approve' | 'reject' | 'feature' | 'unfeature' | 'delete' | 'sold';
 

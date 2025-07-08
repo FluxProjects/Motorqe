@@ -3,8 +3,6 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { notificationService } from "./services/notification";
 import { paymentService } from "./services/payment";
-import { generateOTP, generateToken, hashPassword, loginUser, registerUser, verifyPassword } from "./services/auth";
-import { verifyToken } from "./services/auth";
 import { InsertBannerAd, InsertBlogPost, InsertHeroSlider, InsertPromotionPackage, InsertReview, InsertServicePromotionPackage, InsertShowroom, InsertStaticContent, ShowroomService } from "@shared/schema";
 import { Role, roleIdMapping } from "@shared/permissions";
 import multer from "multer";
@@ -12,428 +10,53 @@ import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
 import { extractFiltersFromQuery } from "./services/carFilter";
 
 
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize database with dummy data
+ 
 
-  /**
-   * AUTHENTICATION ROUTES
-   */
-  app.get("/api/auth/me", async (req: Request, res: Response) => {
+  app.get("/api/get-users", async (req, res) => {
     try {
-      const token = req.cookies?.token || req.headers.authorization?.split(' ')[1];
+      const { search, role, status, isEmailVerified, sortBy } = req.query;
 
-      if (!token) {
-        return res.status(200).json(null);
+      console.log("Incoming request with filters:");
+      console.log("Search:", search);
+      console.log("Role:", role);
+      console.log("Status:", status);
+      console.log("Email Verified:", isEmailVerified);
+      console.log("SortBy:", sortBy);
+
+      // Convert role string to roleId
+      let finalRole: string | undefined = undefined;
+      if (typeof role === "string" && role !== "all") {
+        const id = roleIdMapping[role as Role];
+        if (id) finalRole = String(id);
       }
 
-      const decoded = verifyToken(token);
-      if (!decoded || !decoded.id) {
-        return res.status(200).json(null);
+      // Convert email verification filter to boolean
+      let emailVerified: boolean | undefined = undefined;
+      if (typeof isEmailVerified === "string" && isEmailVerified !== "all") {
+        emailVerified = isEmailVerified === "true" || isEmailVerified === "verified";
       }
 
-      const user = await storage.getUser(decoded.id); // Assuming this returns user details
-      if (!user) {
-        return res.status(200).json(null);
-      }
-
-      res.status(200).json(user);
-    } catch (error) {
-      console.error("Authentication error:", error);
-      res.status(500).json({ message: "Failed to authenticate", error });
-    }
-  });
-
-  app.post("/api/auth/login", async (req, res) => {
-    const { email, password } = req.body;
-    console.log("Login request recieved from", email);
-    try {
-      const { token, user } = await loginUser(email, password);
-      res.cookie('token', token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      const users = await storage.getFilteredUsers({
+        search: typeof search === "string" ? search : undefined,
+        role: finalRole,
+        status: typeof status === "string" && status !== "all" ? status : undefined,
+        isEmailVerified: emailVerified,
+        sortBy: typeof sortBy === "string" ? sortBy : undefined,
       });
 
-      res.json({ token, user });
-    } catch (err: any) {
-      res.status(409).json({ message: err.message });
-    }
-  })
-
-  app.post("/api/auth/register", async (req, res) => {
-    const { firstName, lastName, username, email, phone, password, confirmPassword, role, termsAgreement } = req.body;
-    console.log("Registration request received from", email);
-
-    // Basic validation (you can add more as needed)
-    if (!email || !password || !confirmPassword || !termsAgreement) {
-      return res.status(400).json({ message: "Please provide all required fields" });
-    }
-
-    if (password !== confirmPassword) {
-      return res.status(400).json({ message: "Passwords do not match" });
-    }
-
-    try {
-      // You should add your own user validation logic here (e.g., check if email or username already exists)
-      const { token, user } = await registerUser({
-        firstName,
-        lastName,
-        username,
-        email,
-        password,
-        phone,
-        role,
-      });
-      res.cookie('token', token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      });
-
-      res.status(201).json({ token, user });
-    } catch (err: any) {
-      console.error("Registration error:", err);
-      if (err.message === "Email or username already in use") {
-        return res.status(409).json({ message: err.message });
-      }
-      res.status(500).json({ message: err.message || "An unexpected error occurred" });
-    }
-  });
-
-
-  app.post("/api/auth/logout", async (_req: Request, res: Response) => {
-    try {
-      // Clear auth cookie
-      res.clearCookie('token');
-      res.status(200).json({ message: "Logged out successfully" });
+      console.log(`Found ${users.length} users matching filters`);
+      res.json(users);
     } catch (error) {
-      res.status(500).json({ message: "Logout failed", error });
-    }
-  });
-
-  app.put("/api/users/:id/password", async (req, res) => {
-    try {
-      const { currentPassword, newPassword } = req.body;
-      const userId = Number(req.params.id);
-
-      // Verify current password first
-      const user = await storage.getUserWithPassword(userId);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
-      const isPasswordValid = await verifyPassword(currentPassword, user.password);
-      if (!isPasswordValid) {
-        return res.status(401).json({ message: "Current password is incorrect" });
-      }
-
-      // Update password
-      const hashedPassword = await hashPassword(newPassword);
-      const updated = await storage.updateUserPassword(userId, hashedPassword);
-
-      if (updated) {
-        res.json({ success: true });
-      } else {
-        res.status(404).json({ message: "User not found" });
-      }
-    } catch (error) {
-      console.error("Password change error:", error);
+      console.error("Error fetching users:", error);
       res.status(500).json({
-        message: "Failed to update password",
+        message: "Failed to fetch users",
         error: error instanceof Error ? error.message : "Unknown error"
       });
     }
   });
-
-  app.post("/api/auth/forgot-password", async (req: Request, res: Response) => {
-    try {
-      const { email } = req.body;
-
-      if (!email) {
-        return res.status(400).json({ message: "Email is required" });
-      }
-
-      // Security: Don't reveal if email exists
-      const user = await storage.getUserByEmail(email);
-      if (!user) {
-        return res.json({
-          success: true,
-          message: "If this email exists, we've sent an OTP",
-          token: generateToken() // Return a token anyway for security
-        });
-      }
-
-      const otp = generateOTP();
-      const token = generateToken();
-
-      await storage.createPasswordResetToken(email, otp, token);
-      await notificationService.sendOTP(email, otp);
-
-      res.json({
-        success: true,
-        message: "OTP sent to email",
-        token
-      });
-    } catch (error) {
-      console.error("Forgot password error:", error);
-      res.status(500).json({ message: "Failed to process request" });
-    }
-  });
-
-  // Verify OTP
-  app.post("/api/auth/verify-otp", async (req: Request, res: Response) => {
-    try {
-      const { email, otp, token } = req.body;
-
-      if (!email || !otp || !token) {
-        return res.status(400).json({ message: "All fields are required" });
-      }
-
-      const isValid = await storage.verifyPasswordResetToken(email, otp, token);
-      if (!isValid) {
-        return res.status(401).json({ message: "Invalid OTP" });
-      }
-
-      const verificationToken = generateToken();
-      await storage.createPasswordResetToken(email, otp, verificationToken);
-
-      res.json({
-        success: true,
-        message: "OTP verified",
-        verificationToken
-      });
-    } catch (error) {
-      console.error("OTP verification error:", error);
-      res.status(500).json({ message: "Failed to verify OTP" });
-    }
-  });
-
-  // Reset password
-  app.post("/api/auth/reset-password", async (req: Request, res: Response) => {
-    try {
-      const { email, newPassword, token } = req.body;
-
-      if (!email || !newPassword || !token) {
-        return res.status(400).json({ message: "All fields are required" });
-      }
-
-      // Verify token exists and is valid
-      const result = await verifyToken(token);
-
-      if (result.length === 0) {
-        return res.status(401).json({ message: "Invalid or expired token" });
-      }
-
-      // Update password
-      const hashedPassword = await hashPassword(newPassword);
-      await storage.updateUserPasswordByEmail(email, hashedPassword)
-
-      // Invalidate the token
-      await storage.invalidateResetToken(token);
-
-      res.json({
-        success: true,
-        message: "Password reset successfully"
-      });
-    } catch (error) {
-      console.error("Password reset error:", error);
-      res.status(500).json({ message: "Failed to reset password" });
-    }
-  });
-
-  // Resend OTP
-  app.post("/api/auth/resend-otp", async (req: Request, res: Response) => {
-    try {
-      const { email } = req.body;
-
-      if (!email) {
-        return res.status(400).json({ message: "Email is required" });
-      }
-
-      const otp = generateOTP();
-      const token = generateToken();
-
-      await storage.createPasswordResetToken(email, otp, token);
-      await notificationService.sendOTP(email, otp);
-
-      res.json({
-        success: true,
-        message: "New OTP sent to email",
-        token
-      });
-    } catch (error) {
-      console.error("Resend OTP error:", error);
-      res.status(500).json({ message: "Failed to resend OTP" });
-    }
-  });
-
-  /**
-   * USER ROUTES
-   */
-  app.get("/api/users/:id", async (req, res) => {
-  try {
-    const idParam = req.params.id;
-
-    // Check if it's a comma-separated list of IDs
-    const idList = idParam.split(",").map(id => Number(id.trim())).filter(Boolean);
-
-    if (idList.length > 1) {
-      // Batch fetch
-      const users = await Promise.all(idList.map(id => storage.getUser(id)));
-      const filteredUsers = users.filter(Boolean); // Remove nulls (not found)
-      res.json(filteredUsers);
-    } else {
-      // Single user fetch (original behavior)
-      const id = Number(idParam);
-      const user = await storage.getUser(id);
-      user ? res.json(user) : res.status(404).json({ message: "User not found" });
-    }
-
-  } catch (error) {
-    res.status(500).json({ message: "Failed to fetch user(s)", error });
-  }
-});
-
-
-  app.get("/api/get-users", async (req, res) => {
-  try {
-    const { search, role, status, isEmailVerified, sortBy } = req.query;
-
-    console.log("Incoming request with filters:");
-    console.log("Search:", search);
-    console.log("Role:", role);
-    console.log("Status:", status);
-    console.log("Email Verified:", isEmailVerified);
-    console.log("SortBy:", sortBy);
-
-    // Convert role string to roleId
-    let finalRole: string | undefined = undefined;
-    if (typeof role === "string" && role !== "all") {
-      const id = roleIdMapping[role as Role];
-      if (id) finalRole = String(id);
-    }
-
-    // Convert email verification filter to boolean
-    let emailVerified: boolean | undefined = undefined;
-    if (typeof isEmailVerified === "string" && isEmailVerified !== "all") {
-      emailVerified = isEmailVerified === "true" || isEmailVerified === "verified";
-    }
-
-    const users = await storage.getFilteredUsers({
-      search: typeof search === "string" ? search : undefined,
-      role: finalRole,
-      status: typeof status === "string" && status !== "all" ? status : undefined,
-      isEmailVerified: emailVerified,
-      sortBy: typeof sortBy === "string" ? sortBy : undefined,
-    });
-
-    console.log(`Found ${users.length} users matching filters`);
-    res.json(users);
-  } catch (error) {
-    console.error("Error fetching users:", error);
-    res.status(500).json({ 
-      message: "Failed to fetch users",
-      error: error instanceof Error ? error.message : "Unknown error"
-    });
-  }
-});
-
-
-  app.get("/api/users/username/:username", async (req, res) => {
-    try {
-      const user = await storage.getUserByUsername(req.params.username);
-      user ? res.json(user) : res.status(404).json({ message: "User not found" });
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch user", error });
-    }
-  });
-
-  app.post("/api/users", async (req, res) => {
-    try {
-      const newUser = await storage.createUser(req.body);
-      res.status(201).json(newUser);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to create user", error });
-    }
-  });
-
-  app.put("/api/users/:id", async (req, res) => {
-    try {
-      const updated = await storage.updateUser(Number(req.params.id), req.body);
-      updated ? res.json(updated) : res.status(404).json({ message: "User not found" });
-    } catch (error) {
-      res.status(500).json({ message: "Failed to update user", error });
-    }
-  });
-
-  app.delete("/api/users/:id", async (req, res) => {
-    try {
-      await storage.deleteUser(Number(req.params.id));
-      res.status(204).end();
-    } catch (error) {
-      res.status(500).json({ message: "Failed to delete user", error });
-    }
-  });
-
-  app.put("/api/users/:id/actions", async (req, res) => {
-  try {
-    const id = Number(req.params.id);
-    const { action, reason, role } = req.body;
-
-    console.log("Action received:", action);
-
-    // Define valid actions
-    const validActions = ['ban', 'delete', 'promote'];
-    if (!validActions.includes(action)) {
-      return res.status(400).json({ message: "Invalid action" });
-    }
-
-    // Fetch user
-    const user = await storage.getUser(id);
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    // Prepare updates
-    const updates: any = {};
-
-    switch (action) {
-      case 'ban':
-        updates.status = 'suspended';
-        updates.suspension_reason = reason || null;
-        break;
-
-      case 'delete':
-        updates.status = 'removed';
-        updates.deleted_at = new Date();
-        break;
-
-      case 'promote':
-        if (!role) {
-          return res.status(400).json({ message: "Role required for promotion" });
-        }
-        updates.role = role;
-        updates.status = 'active';
-        break;
-    }
-
-    // Apply updates
-    const updated = await storage.updateUser(id, updates);
-
-    res.json({
-      success: true,
-      user: updated,
-    });
-
-  } catch (error: any) {
-    res.status(500).json({
-      message: error.message || "Failed to perform action",
-    });
-  }
-});
-
 
   /**
    * ROLES
@@ -511,15 +134,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.get("/api/showroomsgarages", async (req, res) => {
-  const isMainOnly = req.query.main === "true";
+    const isMainOnly = req.query.main === "true";
 
-  try {
-    const showrooms = await storage.getAllShowroomsGarages(isMainOnly);
-    res.json(showrooms);
-  } catch (error) {
-    res.status(500).json({ message: "Failed to fetch showrooms", error });
-  }
-});
+    try {
+      const showrooms = await storage.getAllShowroomsGarages(isMainOnly);
+      res.json(showrooms);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch showrooms", error });
+    }
+  });
 
 
   app.get("/api/garages", async (_req, res) => {
@@ -613,7 +236,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const makes = await storage.getGarageMakes(garageId);
       console.log(`Retrieved ${makes.length} makes for garages ID ${garageId}`);
-      
+
       if (!makes || makes.length === 0) {
         return res.status(404).json({ message: "No makes found for this garage" });
       }
@@ -816,6 +439,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+
   // GET all engine capacities
   app.get("/api/engine-capacities", async (_req, res) => {
     try {
@@ -875,56 +499,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-const filterKeys = [
-  "user_id",
-  "price_from",
-  "price_to",
-  "year_from",
-  "year_to",
-  "make_id",
-  "model_id",
-  "category_id",
-  "miles_from",
-  "miles_to",
-  "fuel_type",
-  "transmission",
-  "car_engine_capacities",
-  "cylinder_count",
-  "condition",
-  "location",
-  "color",
-  "interior_color",
-  "tinted",
-  "status",
-  "is_featured",
-  "is_imported",
-  "is_inspected",
-  "owner_type",
-  "has_warranty",
-  "has_insurance",
-  "is_business",
-  "updated_from",
-  "updated_to",
-  "is_active",
-];
+  const filterKeys = [
+    "user_id",
+    "price_from",
+    "price_to",
+    "year_from",
+    "year_to",
+    "make_id",
+    "model_id",
+    "category_id",
+    "miles_from",
+    "miles_to",
+    "fuel_type",
+    "transmission",
+    "car_engine_capacities",
+    "cylinder_count",
+    "condition",
+    "location",
+    "color",
+    "interior_color",
+    "tinted",
+    "status",
+    "is_featured",
+    "is_imported",
+    "is_inspected",
+    "owner_type",
+    "has_warranty",
+    "has_insurance",
+    "is_business",
+    "updated_from",
+    "updated_to",
+    "is_active",
+  ];
 
   // Car Listings
- app.get("/api/car-listings", async (req, res) => {
-  console.log("Received request to /api/car-listings with query:", req.query);
-  try {
-    const filters = extractFiltersFromQuery(req.query);
+  app.get("/api/car-listings", async (req, res) => {
+    console.log("Received request to /api/car-listings with query:", req.query);
+    try {
+      const filters = extractFiltersFromQuery(req.query);
 
-    console.log("Extracted filters:", filters);
+      console.log("Extracted filters:", filters);
 
-    const listings = await storage.getAllCarListings(filters);
-    console.log("Retrieved listings count:", listings.length);
+      const listings = await storage.getAllCarListings(filters);
+      console.log("Retrieved listings count:", listings.length);
 
-    res.json(listings);
-  } catch (error) {
-    console.error("Failed to fetch listings:", error);
-    res.status(500).json({ message: "Failed to fetch listings", error });
-  }
-});
+      res.json(listings);
+    } catch (error) {
+      console.error("Failed to fetch listings:", error);
+      res.status(500).json({ message: "Failed to fetch listings", error });
+    }
+  });
 
 
 
@@ -979,26 +603,26 @@ const filterKeys = [
   });
 
   // Express.js route for getting car count based on filters
-app.get('/api/cars/count', async (req, res) => {
-  try {
-    // Get all query parameters
-    const filters = req.query;
-    
-    console.log('Inside getCarCount route');
-    console.log('Filters:', filters);
+  app.get('/api/cars/count', async (req, res) => {
+    try {
+      // Get all query parameters
+      const filters = req.query;
 
-    // Get count from storage
-    const count = await storage.searchCarsCount(filters);
+      console.log('Inside getCarCount route');
+      console.log('Filters:', filters);
 
-    console.log('Car count result:', count);
-    res.json({ count });
-  } catch (error) {
-    console.error('Failed to fetch car count:', error);
-    res
-      .status(500)
-      .json({ message: 'Failed to fetch car count', error });
-  }
-});
+      // Get count from storage
+      const count = await storage.searchCarsCount(filters);
+
+      console.log('Car count result:', count);
+      res.json({ count });
+    } catch (error) {
+      console.error('Failed to fetch car count:', error);
+      res
+        .status(500)
+        .json({ message: 'Failed to fetch car count', error });
+    }
+  });
 
 
   app.post("/api/car-listings", async (req, res) => {
@@ -1028,31 +652,31 @@ app.get('/api/cars/count', async (req, res) => {
         console.log("📣 Fetching promotion package details for package_id:", package_id);
         const pkg = await storage.getPromotionPackage(package_id);
         if (!pkg) {
-            throw new Error("Promotion package not found");
+          throw new Error("Promotion package not found");
         }
 
         // Update listing with refresh_left and last_refresh
         await storage.updateCarListing(created.id, {
-            refresh_left: pkg.no_of_refresh ?? 0,
+          refresh_left: pkg.no_of_refresh ?? 0,
         });
         console.log("✅ Listing updated with package refresh_left and last_refresh");
 
         console.log("📣 Creating promotion with:", {
-            listingId: created.id,
-            packageId: package_id,
-            startDate: start_date,
-            endDate: end_date,
+          listingId: created.id,
+          packageId: package_id,
+          startDate: start_date,
+          endDate: end_date,
         });
         await storage.createListingPromotion({
-            listingId: created.id,
-            packageId: package_id,
-            startDate: start_date,
-            endDate: end_date,
-            transactionId: null,
-            isActive: true,
+          listingId: created.id,
+          packageId: package_id,
+          startDate: start_date,
+          endDate: end_date,
+          transactionId: null,
+          isActive: true,
         });
         console.log("✅ Promotion created");
-    }
+      }
 
 
       const fullListing = await storage.getCarListingById(created.id);
@@ -1111,43 +735,43 @@ app.get('/api/cars/count', async (req, res) => {
         console.log("📣 Fetching promotion package details for package_id:", package_id);
         const pkg = await storage.getPromotionPackage(package_id);
         if (!pkg) {
-            throw new Error("Promotion package not found");
+          throw new Error("Promotion package not found");
         }
 
         // Update listing with refresh_left and last_refresh
         await storage.updateCarListing(id, {
-            refresh_left: pkg.no_of_refresh ?? 0,
+          refresh_left: pkg.no_of_refresh ?? 0,
         });
         console.log("✅ Listing updated with package refresh_left and last_refresh");
 
         console.log("🔍 Checking for existing active promotions");
         const activePromotions = await storage.getActiveListingPromotions(id);
         if (activePromotions.length > 0) {
-            console.log("🔄 Updating existing promotion instead of creating new one");
-            const promotionToUpdate = activePromotions[0];
-            await storage.updateListingPromotion(promotionToUpdate.id, {
-                packageId: package_id,
-                startDate: start_date,
-                endDate: end_date,
-            });
+          console.log("🔄 Updating existing promotion instead of creating new one");
+          const promotionToUpdate = activePromotions[0];
+          await storage.updateListingPromotion(promotionToUpdate.id, {
+            packageId: package_id,
+            startDate: start_date,
+            endDate: end_date,
+          });
         } else {
-            console.log("📣 Creating new promotion with:", {
-                listingId: id,
-                packageId: package_id,
-                startDate: start_date,
-                endDate: end_date,
-            });
-            await storage.createListingPromotion({
-                listingId: id,
-                packageId: package_id,
-                startDate: start_date,
-                endDate: end_date,
-                transactionId: null,
-                isActive: true,
-            });
+          console.log("📣 Creating new promotion with:", {
+            listingId: id,
+            packageId: package_id,
+            startDate: start_date,
+            endDate: end_date,
+          });
+          await storage.createListingPromotion({
+            listingId: id,
+            packageId: package_id,
+            startDate: start_date,
+            endDate: end_date,
+            transactionId: null,
+            isActive: true,
+          });
         }
         console.log("✅ Promotion updated");
-    }
+      }
 
       const fullListing = await storage.getCarListingById(id);
       console.log("📤 Returning updated full listing");
@@ -1167,7 +791,7 @@ app.get('/api/cars/count', async (req, res) => {
     try {
       const carId = parseInt(req.params.id);
       const car = await storage.getCarListingById(carId);
-      
+
       if (!car) {
         return res.status(404).json({ error: 'Car listing not found' });
       }
@@ -1235,16 +859,16 @@ app.get('/api/cars/count', async (req, res) => {
           // Soft delete implementation
           updates.deleted_at = new Date();
           break;
-       case 'upgrade':
-        if (!package_id) {
-          return res.status(400).json({ message: "package_id is required for upgrade action" });
-        }
-        
-        updates.upgradePackageId = package_id;
-        if (refresh_left) {
-          updates.refresh_left = Number(refresh_left); // ensure it's an integer
-        }
-        break;
+        case 'upgrade':
+          if (!package_id) {
+            return res.status(400).json({ message: "package_id is required for upgrade action" });
+          }
+
+          updates.upgradePackageId = package_id;
+          if (refresh_left) {
+            updates.refresh_left = Number(refresh_left); // ensure it's an integer
+          }
+          break;
       }
 
       // Apply updates
@@ -1379,7 +1003,7 @@ app.get('/api/cars/count', async (req, res) => {
     }
   });
 
-  
+
 
   // Get all services for a specific make
   app.get("/api/services/makes/:id", async (req, res) => {
@@ -1697,7 +1321,7 @@ app.get('/api/cars/count', async (req, res) => {
 
       if (packageId) {
         startDate = start_date ? new Date(start_date) : new Date(); // ✅ Default to now
-         endDate = end_date ? new Date(end_date) : new Date(startDate.getTime() + 3 * 24 * 60 * 60 * 1000);
+        endDate = end_date ? new Date(end_date) : new Date(startDate.getTime() + 3 * 24 * 60 * 60 * 1000);
 
         if (!endDate) {
           console.log("❌ End date is required when package_id is provided");
@@ -1764,9 +1388,9 @@ app.get('/api/cars/count', async (req, res) => {
       res.status(201).json(fullService);
     } catch (error) {
       console.error("❌ Failed to create showroom service:", error);
-      res.status(500).json({ 
-        message: "Failed to create showroom service", 
-        error: process.env.NODE_ENV === 'development' ? error : undefined 
+      res.status(500).json({
+        message: "Failed to create showroom service",
+        error: process.env.NODE_ENV === 'development' ? error : undefined
       });
     }
   });
@@ -1953,55 +1577,55 @@ app.get('/api/cars/count', async (req, res) => {
 
 
   app.get("/api/showroom/:id/booking-stats", async (req, res) => {
-  try {
-    const showroomId = Number(req.params.id);
-    if (isNaN(showroomId)) return res.status(400).json({ message: "Invalid showroom ID" });
+    try {
+      const showroomId = Number(req.params.id);
+      if (isNaN(showroomId)) return res.status(400).json({ message: "Invalid showroom ID" });
 
-    const stats = await storage.getShowroomBookingStats(showroomId);
-    res.json(stats);
-  } catch (error) {
-    console.error("❌ Error fetching booking stats:", error);
-    res.status(500).json({ message: "Failed to fetch booking stats" });
-  }
-});
-
-app.get("/api/showroom/:id/service-interactions", async (req, res) => {
-  try {
-    const id = Number(req.params.id);
-    if (isNaN(id)) return res.status(400).json({ message: "Invalid showroom ID" });
-
-    const stats = await storage.getShowroomServiceInteractionStats(id);
-    res.json(stats);
-  } catch (error) {
-    console.error("❌ Error fetching stats:", error);
-    res.status(500).json({ message: "Failed to fetch service interactions" });
-  }
-});
-
-app.post("/api/showroom-makes", async (req, res) => {
-  try {
-    const { showroom_id, make_id } = req.body;
-
-    if (!showroom_id || !make_id) {
-      return res.status(400).json({ message: "Missing showroom_id or make_id" });
+      const stats = await storage.getShowroomBookingStats(showroomId);
+      res.json(stats);
+    } catch (error) {
+      console.error("❌ Error fetching booking stats:", error);
+      res.status(500).json({ message: "Failed to fetch booking stats" });
     }
+  });
 
-    const numericShowroomId = Number(showroom_id);
-    const numericMakeId = Number(make_id);
+  app.get("/api/showroom/:id/service-interactions", async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid showroom ID" });
 
-    if (isNaN(numericShowroomId) || isNaN(numericMakeId)) {
-      return res.status(400).json({ message: "Invalid showroom_id or make_id" });
+      const stats = await storage.getShowroomServiceInteractionStats(id);
+      res.json(stats);
+    } catch (error) {
+      console.error("❌ Error fetching stats:", error);
+      res.status(500).json({ message: "Failed to fetch service interactions" });
     }
+  });
 
-    const result = await storage.addShowroomMake(numericShowroomId, numericMakeId);
+  app.post("/api/showroom-makes", async (req, res) => {
+    try {
+      const { showroom_id, make_id } = req.body;
+
+      if (!showroom_id || !make_id) {
+        return res.status(400).json({ message: "Missing showroom_id or make_id" });
+      }
+
+      const numericShowroomId = Number(showroom_id);
+      const numericMakeId = Number(make_id);
+
+      if (isNaN(numericShowroomId) || isNaN(numericMakeId)) {
+        return res.status(400).json({ message: "Invalid showroom_id or make_id" });
+      }
+
+      const result = await storage.addShowroomMake(numericShowroomId, numericMakeId);
 
 
-    res.status(201).json(result);
-  } catch (error) {
-    console.error("❌ Error creating showroom-make entry:", error);
-    res.status(500).json({ message: "Failed to create showroom-make entry" });
-  }
-});
+      res.status(201).json(result);
+    } catch (error) {
+      console.error("❌ Error creating showroom-make entry:", error);
+      res.status(500).json({ message: "Failed to create showroom-make entry" });
+    }
+  });
 
 
 
@@ -2109,209 +1733,209 @@ app.post("/api/showroom-makes", async (req, res) => {
   });
 
   app.get("/api/service-booking/:id", async (req, res) => {
-  try {
-    const id = parseInt(req.params.id);
-    if (isNaN(id)) {
-      return res.status(400).json({ message: "Invalid booking ID" });
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid booking ID" });
+      }
+
+      const booking = await storage.getServiceBooking(id);
+
+      if (!booking) {
+        return res.status(404).json({ message: "Booking not found" });
+      }
+
+      console.log("booking", booking);
+
+      const service = await storage.getShowroomService(booking.service_id);
+
+      if (!service) {
+        return res.status(404).json({ message: "service not found" });
+      }
+
+      console.log("service", service);
+      const showroom = await storage.getGarage(service.showroom_id);
+
+      if (!showroom) {
+        return res.status(404).json({ message: "Garage not found" });
+      }
+
+      const customer = await storage.getUser(booking.user_id);
+
+      const user = await storage.getUser(showroom.user_id);
+
+      res.json({ ...booking, service, showroom, customer, user });
+    } catch (error) {
+      console.error("Failed to fetch booking by ID:", error);
+      res.status(500).json({ message: "Failed to fetch booking", error });
     }
-
-    const booking = await storage.getServiceBooking(id);
-
-    if (!booking) {
-      return res.status(404).json({ message: "Booking not found" });
-    }
-
-    console.log("booking", booking);
-
-    const service = await storage.getShowroomService(booking.service_id);
-
-    if (!service) {
-      return res.status(404).json({ message: "service not found" });
-    }
-
-    console.log("service", service);
-    const showroom = await storage.getGarage(service.showroom_id);
-
-     if (!showroom) {
-      return res.status(404).json({ message: "Garage not found" });
-    }
-
-    const customer = await storage.getUser(booking.user_id);
-   
-    const user = await storage.getUser(showroom.user_id);
-
-    res.json({ ...booking, service, showroom, customer, user });
-  } catch (error) {
-    console.error("Failed to fetch booking by ID:", error);
-    res.status(500).json({ message: "Failed to fetch booking", error });
-  }
-});
+  });
 
 
 
   app.post("/api/service-bookings", async (req, res) => {
-  try {
-    const {
-      userId,
-      showroomId,
-      showroomServiceIds, // Array of service IDs
-      servicePrices,      // Array of { serviceId, price, currency }
-      scheduledAt,
-      notes,
-      totalPrice,         // Optional total for backward compatibility
-      // Legacy fields (for backward compatibility)
-      serviceId: legacyServiceId,
-      showroomServiceId: legacyShowroomServiceId,
-      price: legacyPrice,
-      status: legacyStatus,
-    } = req.body;
+    try {
+      const {
+        userId,
+        showroomId,
+        showroomServiceIds, // Array of service IDs
+        servicePrices,      // Array of { serviceId, price, currency }
+        scheduledAt,
+        notes,
+        totalPrice,         // Optional total for backward compatibility
+        // Legacy fields (for backward compatibility)
+        serviceId: legacyServiceId,
+        showroomServiceId: legacyShowroomServiceId,
+        price: legacyPrice,
+        status: legacyStatus,
+      } = req.body;
 
-    console.log("Received service booking request:", req.body);
+      console.log("Received service booking request:", req.body);
 
-    // Handle multiple services booking (new format)
-    if (Array.isArray(showroomServiceIds) && showroomServiceIds.length > 0) {
-      // Validate that servicePrices matches showroomServiceIds
-      if (!Array.isArray(servicePrices) || servicePrices.length !== showroomServiceIds.length) {
-        return res.status(400).json({ 
-          message: "servicePrices array must match showroomServiceIds length" 
+      // Handle multiple services booking (new format)
+      if (Array.isArray(showroomServiceIds) && showroomServiceIds.length > 0) {
+        // Validate that servicePrices matches showroomServiceIds
+        if (!Array.isArray(servicePrices) || servicePrices.length !== showroomServiceIds.length) {
+          return res.status(400).json({
+            message: "servicePrices array must match showroomServiceIds length"
+          });
+        }
+
+        // Create bookings for each service
+        const createdBookings = await Promise.all(
+          showroomServiceIds.map((serviceId, index) => {
+            const servicePrice = servicePrices.find(
+              sp => String(sp.serviceId) === String(serviceId)
+            ) || { price: legacyPrice ?? 0, currency: '' };
+
+
+            return storage.createServiceBooking({
+              userId,
+              serviceId,
+              showroomId,
+              price: servicePrice.price,
+              currency: servicePrice.currency,
+              scheduledAt,
+              status: "pending", // Default status
+              notes,
+            });
+          })
+        );
+
+        console.log("Created multiple service bookings:", createdBookings);
+        return res.status(201).json({
+          bookings: createdBookings,
+          totalPrice: totalPrice || createdBookings.reduce((sum, b) => sum + b.price, 0)
         });
       }
 
-      // Create bookings for each service
-      const createdBookings = await Promise.all(
-        showroomServiceIds.map((serviceId, index) => {
-          const servicePrice = servicePrices.find(
-  sp => String(sp.serviceId) === String(serviceId)
-) || { price: legacyPrice ?? 0, currency: '' };
+      // Fallback to single booking (backward compatibility)
+      const serviceId = legacyServiceId || legacyShowroomServiceId;
+      if (!serviceId) {
+        return res.status(400).json({
+          message: "Either showroomServiceIds or serviceId is required"
+        });
+      }
 
+      const booking = await storage.createServiceBooking({
+        userId,
+        serviceId,
+        showroomId,
+        price: legacyPrice || (servicePrices?.[0]?.price ?? 0),
+        currency: servicePrices?.[0]?.currency || '',
+        scheduledAt,
+        status: legacyStatus || "pending",
+        notes,
+      });
 
-          return storage.createServiceBooking({
-            userId,
-            serviceId,
-            showroomId,
-            price: servicePrice.price,
-            currency: servicePrice.currency,
-            scheduledAt,
-            status: "pending", // Default status
-            notes,
-          });
-        })
-      );
-
-      console.log("Created multiple service bookings:", createdBookings);
-      return res.status(201).json({
-        bookings: createdBookings,
-        totalPrice: totalPrice || createdBookings.reduce((sum, b) => sum + b.price, 0)
+      console.log("Created single service booking:", booking);
+      return res.status(201).json(booking);
+    } catch (error) {
+      console.error("Failed to create service booking:", error);
+      return res.status(500).json({
+        message: "Failed to create service booking",
+        error: error instanceof Error ? error.message : String(error)
       });
     }
+  });
 
-    // Fallback to single booking (backward compatibility)
-    const serviceId = legacyServiceId || legacyShowroomServiceId;
-    if (!serviceId) {
-      return res.status(400).json({ 
-        message: "Either showroomServiceIds or serviceId is required" 
+  app.put("/api/service-bookings/:id/actions", async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const { action, reason, scheduledAt } = req.body;
+
+      console.log(`[STEP 1] Received ${action} request for booking ID: ${id}`);
+      console.log(`[STEP 2] Request body:`, { action, reason, scheduledAt });
+
+      const validActions = [
+        "confirm", "reschedule", "complete", "cancel", "reject", "expire"
+      ];
+
+      if (!validActions.includes(action)) {
+        console.warn(`[STEP 3] Invalid action: ${action}`);
+        return res.status(400).json({ message: "Invalid action" });
+      }
+
+      console.log(`[STEP 4] Fetching booking ${id}...`);
+      const booking = await storage.getServiceBooking(id);
+
+      if (!booking) {
+        console.warn(`[STEP 5] Booking ${id} not found.`);
+        return res.status(404).json({ message: "Booking not found" });
+      }
+
+      console.log(`[STEP 6] Current booking data:`, booking);
+
+      let updates: any = {};
+
+      switch (action) {
+        case "confirm":
+          updates.status = "confirmed";
+          break;
+        case "reschedule":
+          if (!scheduledAt) {
+            console.warn(`[STEP 7] Missing scheduledAt for reschedule.`);
+            return res.status(400).json({ message: "scheduledAt is required for rescheduling" });
+          }
+          updates.scheduled_at = new Date(scheduledAt);
+          updates.status = "rescheduled";
+          break;
+        case "complete":
+          updates.status = "completed";
+          updates.completed_at = new Date();
+          break;
+        case "cancel":
+          updates.status = "canceled";
+          updates.cancellation_reason = reason || null;
+          updates.canceled_at = new Date();
+          break;
+        case "reject":
+          updates.status = "rejected";
+          updates.rejection_reason = reason || null;
+          break;
+        case "expire":
+          updates.status = "expired";
+          updates.expired_at = new Date();
+          break;
+      }
+
+      console.log(`[STEP 8] Update payload to apply:`, updates);
+
+      const updatedBooking = await storage.updateServiceBooking(id, updates);
+
+      console.log(`[STEP 9] Successfully updated booking:`, updatedBooking);
+
+      res.json({
+        success: true,
+        booking: updatedBooking,
+      });
+    } catch (error: any) {
+      console.error(`[ERROR] Failed to perform booking action:`, error);
+      res.status(500).json({
+        message: error.message || "Failed to perform booking action",
       });
     }
-
-    const booking = await storage.createServiceBooking({
-      userId,
-      serviceId,
-      showroomId,
-      price: legacyPrice || (servicePrices?.[0]?.price ?? 0),
-      currency: servicePrices?.[0]?.currency || '',
-      scheduledAt,
-      status: legacyStatus || "pending",
-      notes,
-    });
-
-    console.log("Created single service booking:", booking);
-    return res.status(201).json(booking);
-  } catch (error) {
-    console.error("Failed to create service booking:", error);
-    return res.status(500).json({ 
-      message: "Failed to create service booking", 
-      error: error instanceof Error ? error.message : String(error)
-    });
-  }
-});
-
-app.put("/api/service-bookings/:id/actions", async (req, res) => {
-  try {
-    const id = Number(req.params.id);
-    const { action, reason, scheduledAt } = req.body;
-
-    console.log(`[STEP 1] Received ${action} request for booking ID: ${id}`);
-    console.log(`[STEP 2] Request body:`, { action, reason, scheduledAt });
-
-    const validActions = [
-      "confirm", "reschedule", "complete", "cancel", "reject", "expire"
-    ];
-
-    if (!validActions.includes(action)) {
-      console.warn(`[STEP 3] Invalid action: ${action}`);
-      return res.status(400).json({ message: "Invalid action" });
-    }
-
-    console.log(`[STEP 4] Fetching booking ${id}...`);
-    const booking = await storage.getServiceBooking(id);
-
-    if (!booking) {
-      console.warn(`[STEP 5] Booking ${id} not found.`);
-      return res.status(404).json({ message: "Booking not found" });
-    }
-
-    console.log(`[STEP 6] Current booking data:`, booking);
-
-    let updates: any = {};
-
-    switch (action) {
-      case "confirm":
-        updates.status = "confirmed";
-        break;
-      case "reschedule":
-        if (!scheduledAt) {
-          console.warn(`[STEP 7] Missing scheduledAt for reschedule.`);
-          return res.status(400).json({ message: "scheduledAt is required for rescheduling" });
-        }
-        updates.scheduled_at = new Date(scheduledAt);
-        updates.status = "rescheduled";
-        break;
-      case "complete":
-        updates.status = "completed";
-        updates.completed_at = new Date();
-        break;
-      case "cancel":
-        updates.status = "canceled";
-        updates.cancellation_reason = reason || null;
-        updates.canceled_at = new Date();
-        break;
-      case "reject":
-        updates.status = "rejected";
-        updates.rejection_reason = reason || null;
-        break;
-      case "expire":
-        updates.status = "expired";
-        updates.expired_at = new Date();
-        break;
-    }
-
-    console.log(`[STEP 8] Update payload to apply:`, updates);
-
-    const updatedBooking = await storage.updateServiceBooking(id, updates);
-
-    console.log(`[STEP 9] Successfully updated booking:`, updatedBooking);
-
-    res.json({
-      success: true,
-      booking: updatedBooking,
-    });
-  } catch (error: any) {
-    console.error(`[ERROR] Failed to perform booking action:`, error);
-    res.status(500).json({
-      message: error.message || "Failed to perform booking action",
-    });
-  }
-});
+  });
 
 
 
@@ -2553,26 +2177,26 @@ app.put("/api/service-bookings/:id/actions", async (req, res) => {
   });
 
   app.patch("/api/messages/:id/status", async (req, res) => {
-  const { id } = req.params;
-  const { status } = req.body;
+    const { id } = req.params;
+    const { status } = req.body;
 
-  if (!status) {
-    return res.status(400).json({ message: "Status is required" });
-  }
-
-  try {
-    const updatedMessage = await storage.updateMessageStatus(Number(id), status);
-
-    if (!updatedMessage) {
-      return res.status(404).json({ message: "Message not found or status unchanged" });
+    if (!status) {
+      return res.status(400).json({ message: "Status is required" });
     }
 
-    res.status(200).json({ message: "Message status updated", data: updatedMessage });
-  } catch (error) {
-    console.error("❌ Failed to update message status:", error);
-    res.status(500).json({ message: "Failed to update message status", error });
-  }
-});
+    try {
+      const updatedMessage = await storage.updateMessageStatus(Number(id), status);
+
+      if (!updatedMessage) {
+        return res.status(404).json({ message: "Message not found or status unchanged" });
+      }
+
+      res.status(200).json({ message: "Message status updated", data: updatedMessage });
+    } catch (error) {
+      console.error("❌ Failed to update message status:", error);
+      res.status(500).json({ message: "Failed to update message status", error });
+    }
+  });
 
 
   // Search History
@@ -3471,14 +3095,14 @@ app.put("/api/service-bookings/:id/actions", async (req, res) => {
     try {
 
       const bannerData = req.body;
-  console.log("bannerData", bannerData);
+      console.log("bannerData", bannerData);
       const imageFile = req.body.imageUrl;
       console.log("imageFile", imageFile);
 
       if (!imageFile) {
         return res.status(400).json({ message: "Image file is required" });
       }
-      
+
       const newBanner = await storage.createBannerAd({
         title: bannerData.title,
         titleAr: bannerData.titleAr,
@@ -3489,7 +3113,7 @@ app.put("/api/service-bookings/:id/actions", async (req, res) => {
         startDate: new Date(bannerData.startDate),
         endDate: new Date(bannerData.endDate),
       });
-      
+
       res.status(201).json(newBanner);
     } catch (error) {
       res.status(500).json({ message: "Failed to create banner ad", error });
@@ -3524,145 +3148,142 @@ app.put("/api/service-bookings/:id/actions", async (req, res) => {
     }
   });
 
- app.delete("/api/banner-ads/:id", async (req, res) => {
+  app.delete("/api/banner-ads/:id", async (req, res) => {
     try {
-        const id = parseInt(req.params.id);
-        
-        // Validate ID
-        if (isNaN(id)) {
-            return res.status(400).json({ message: "Invalid banner ID" });
-        }
+      const id = parseInt(req.params.id);
 
-        // Check if banner exists
-        const banner = await storage.getBannerAdById(id);
-        if (!banner) {
-            return res.status(404).json({ message: "Banner not found" });
-        }
+      // Validate ID
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid banner ID" });
+      }
 
-        // Delete banner from database
-        await storage.deleteBannerAd(id);
+      // Check if banner exists
+      const banner = await storage.getBannerAdById(id);
+      if (!banner) {
+        return res.status(404).json({ message: "Banner not found" });
+      }
 
-        // Attempt to delete image (failure shouldn't block response)
-        try {
-            await storage.deleteBannerImage(banner.image_url);
-        } catch (imageError) {
-            console.warn("Banner record deleted, but image deletion failed:", imageError);
-            // Consider adding to error tracking system
-        }
+      // Delete banner from database
+      await storage.deleteBannerAd(id);
 
-        return res.status(204).send();
+      // Attempt to delete image (failure shouldn't block response)
+      try {
+        await storage.deleteBannerImage(banner.image_url);
+      } catch (imageError) {
+        console.warn("Banner record deleted, but image deletion failed:", imageError);
+        // Consider adding to error tracking system
+      }
+
+      return res.status(204).send();
     } catch (error: any) {
-        console.error("Error deleting banner ad:", error);
-        return res.status(500).json({ 
-            message: "Failed to delete banner ad",
-            error: process.env.NODE_ENV === 'development' ? error.message : undefined
-        });
+      console.error("Error deleting banner ad:", error);
+      return res.status(500).json({
+        message: "Failed to delete banner ad",
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
     }
-});
-  
+  });
 
-// Set up multer for memory storage (buffer access)
-const upload = multer({ storage: multer.memoryStorage() });
 
-app.post("/api/upload", upload.single("file"), async (req, res) => {
-  try {
-    const file = req.file;
+  // Set up multer for memory storage (buffer access)
+  const upload = multer({ storage: multer.memoryStorage() });
 
-    if (!file) {
-      return res.status(400).json({ message: "No image uploaded" });
+  app.post("/api/upload", upload.single("file"), async (req, res) => {
+    try {
+      const file = req.file;
+
+      if (!file) {
+        return res.status(400).json({ message: "No image uploaded" });
+      }
+
+      // Upload the file using your storage method
+      const url = await storage.uploadSingleFile(file);
+
+      res.status(200).json({ url });
+    } catch (error) {
+      console.error("Failed to upload image:", error);
+      res.status(500).json({
+        message: "Failed to upload image",
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
-
-    // Upload the file using your storage method
-    const url = await storage.uploadSingleFile(file);
-
-    res.status(200).json({ url });
-  } catch (error) {
-    console.error("Failed to upload image:", error);
-    res.status(500).json({
-      message: "Failed to upload image",
-      error: error instanceof Error ? error.message : String(error),
-    });
-  }
-});
+  });
 
 
-// Reviews
+  // Reviews
 
-// Assuming you already have your Express app and storage instance initialized
+  // Assuming you already have your Express app and storage instance initialized
 
-app.get("/api/reviews", async (_req, res) => {
-  try {
-    const reviews = await storage.getAllReviews();
-    res.json(reviews);
-  } catch (error) {
-    res.status(500).json({ message: "Failed to fetch reviews", error });
-  }
-});
-
-app.get("/api/reviews/:id", async (req, res) => {
-  try {
-    const id = parseInt(req.params.id);
-    const review = await storage.getReviewById(id);
-    review
-      ? res.json(review)
-      : res.status(404).json({ message: "Review not found" });
-  } catch (error) {
-    res.status(500).json({ message: "Failed to fetch review", error });
-  }
-});
-
-app.get("/api/reviews/showroom/:id", async (req, res) => {
-  try {
-    const id = parseInt(req.params.id);
-    const reviews = await storage.getReviewsByShowroomId(id);
-
-    if (reviews) {
+  app.get("/api/reviews", async (_req, res) => {
+    try {
+      const reviews = await storage.getAllReviews();
       res.json(reviews);
-    } else {
-      res.status(404).json({ message: "Reviews not found for this showroom" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch reviews", error });
     }
-  } catch (error) {
-    res.status(500).json({ message: "Failed to fetch reviews", error });
-  }
-});
+  });
+
+  app.get("/api/reviews/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const review = await storage.getReviewById(id);
+      review
+        ? res.json(review)
+        : res.status(404).json({ message: "Review not found" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch review", error });
+    }
+  });
+
+  app.get("/api/reviews/showroom/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const reviews = await storage.getReviewsByShowroomId(id);
+
+      if (reviews) {
+        res.json(reviews);
+      } else {
+        res.status(404).json({ message: "Reviews not found for this showroom" });
+      }
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch reviews", error });
+    }
+  });
 
 
-app.post("/api/reviews", async (req, res) => {
-  try {
-    const reviewData: InsertReview = req.body;// Optional: set author if available
-    const newReview = await storage.createReview(reviewData);
-    res.status(201).json(newReview);
-  } catch (error) {
-    res.status(500).json({ message: "Failed to create review", error });
-  }
-});
+  app.post("/api/reviews", async (req, res) => {
+    try {
+      const reviewData: InsertReview = req.body;// Optional: set author if available
+      const newReview = await storage.createReview(reviewData);
+      res.status(201).json(newReview);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to create review", error });
+    }
+  });
 
-app.patch("/api/reviews/:id", async (req, res) => {
-  try {
-    const id = parseInt(req.params.id);
-    const updates: Partial<InsertReview> = req.body;
-    updates.updatedAt = new Date();
-    const updatedReview = await storage.updateReview(id, updates);
-    updatedReview
-      ? res.json(updatedReview)
-      : res.status(404).json({ message: "Review not found" });
-  } catch (error) {
-    res.status(500).json({ message: "Failed to update review", error });
-  }
-});
+  app.patch("/api/reviews/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const updates: Partial<InsertReview> = req.body;
+      updates.updatedAt = new Date();
+      const updatedReview = await storage.updateReview(id, updates);
+      updatedReview
+        ? res.json(updatedReview)
+        : res.status(404).json({ message: "Review not found" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update review", error });
+    }
+  });
 
-app.delete("/api/reviews/:id", async (req, res) => {
-  try {
-    const id = parseInt(req.params.id);
-    await storage.deleteReview(id);
-    res.status(204).send();
-  } catch (error) {
-    res.status(500).json({ message: "Failed to delete review", error });
-  }
-});
-
-
-
+  app.delete("/api/reviews/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteReview(id);
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete review", error });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;

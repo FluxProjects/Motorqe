@@ -50,6 +50,8 @@ import {
   CarFeature,
   CarEngineCapacity,
   Showroom,
+  CarTyre,
+  CarPart,
 } from "@shared/schema";
 import {
   Select,
@@ -88,6 +90,8 @@ const reportSchema = z.object({
 type ReportValues = z.infer<typeof reportSchema>;
 
 type CarListingWithShowroom = CarListing & {
+  carTyres?: CarTyre;
+  carParts?: CarPart;
   showroom?: Showroom; // optional if it’s not always present
 };
 
@@ -541,10 +545,10 @@ const CarDetails = () => {
 
               <CarListingDetail
                 vehicleDescription={car?.description ?? "No Description Available"}
-                vehicleDescriptionAr={car?.descriptionAr ?? "لا يوجد وصف متاح"}
-                inspectionReportUrl={
-                  car?.is_inspected ? car?.inspectionReport ?? undefined : undefined
-                }
+                vehicleDescriptionAr={car?.description_ar ?? "لا يوجد وصف متاح"}
+                inspectionReportUrl={car?.inspection_report ?? ""}
+                carPartsData={car?.carParts}
+                carTyresData={car?.carTyres}
               />
 
               {/* Safety Features */}

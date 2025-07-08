@@ -1,9 +1,11 @@
 import express, { type Request, Response, NextFunction } from "express";
-import { registerRoutes } from "./routes";
+import { registerRoutes } from "./oldroutes";
+import { registerAppRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
 import cors from "cors";
 import cookieParser from 'cookie-parser';
+
 
 const app = express();
 
@@ -54,6 +56,8 @@ app.use((req, res, next) => {
 
 (async () => {
   const server = await registerRoutes(app);
+
+  registerAppRoutes(app);
 
   // Error handler
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

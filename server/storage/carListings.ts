@@ -1,11 +1,11 @@
 import { db } from "../db";
-import { CarListing, CarListingWithFeatures, InsertCarListing, ListingPromotion, PromotionPackage, Showroom } from "@shared/schema";
+import { CarListing, CarListingWithFeatures, CarPart, CarTyre, InsertCarListing, ListingPromotion, PromotionPackage, Showroom } from "@shared/schema";
 
 export interface ICarListingStorage {
 
     getAllCarListings(filter?: Partial<CarListing>, sortBy?: keyof CarListing, sortOrder?: 'asc' | 'desc'): Promise<CarListing[]>;
     searchCarsCount(filter?: Partial<CarListing>): Promise<number>;
-    getCarListingById(id: number): Promise<CarListingWithFeatures | undefined>;
+    getCarListingById(id: number): Promise<(CarListingWithFeatures & { currentPackage?: ListingPromotion; showroom?: Showroom; carParts?: CarPart; carTyres?: CarTyre; }) | undefined>;
     getListingsBySeller(sellerId: number): Promise<CarListing[]>;
     getFeaturedListings(): Promise<CarListing[]>;
     getCarFeaturedListings(filter?: Partial<CarListing>, sortBy?: keyof CarListing, sortOrder?: 'asc' | 'desc'): Promise<CarListing[]>;
@@ -92,41 +92,49 @@ export const CarListingStorage = {
 
         let baseQuery = `
             SELECT 
-            cl.*, 
-            lp.id AS promotion_id,
-            lp.package_id, 
-            lp.start_date, 
-            lp.end_date, 
-            lp.is_active,
-            lp.transaction_id,
-            p.name AS package_name,
-            p.name_ar AS package_name_ar,
-            p.description AS package_description,
-            p.description_ar AS package_description_ar,
-            p.plan AS package_plan,
-            p.price AS package_price,
-            p.currency AS package_currency,
-            p.duration_days AS package_duration_days,
-            p.is_featured AS package_is_featured,
-            p.feature_duration AS package_feature_duration,
-            p.photo_limit AS package_photo_limit,
-            p.no_of_refresh AS package_no_of_refresh,
-            s.id AS showroom_id,
-            s.user_id AS showroom_user_id,
-            s.name AS showroom_name,
-            s.name_ar AS showroom_name_ar,
-            s.description AS showroom_description,
-            s.description_ar AS showroom_description_ar,
-            s.logo AS showroom_logo,
-            s.phone AS showroom_phone,
-            s.location AS showroom_location,
-            s.timing AS showroom_timing
+                cl.*, 
+
+                -- Promotion details
+                lp.id AS promotion_id,
+                lp.package_id, 
+                lp.start_date, 
+                lp.end_date, 
+                lp.is_active,
+                lp.transaction_id,
+
+                -- Package details
+                p.name AS package_name,
+                p.name_ar AS package_name_ar,
+                p.description AS package_description,
+                p.description_ar AS package_description_ar,
+                p.plan AS package_plan,
+                p.price AS package_price,
+                p.currency AS package_currency,
+                p.duration_days AS package_duration_days,
+                p.is_featured AS package_is_featured,
+                p.feature_duration AS package_feature_duration,
+                p.photo_limit AS package_photo_limit,
+                p.no_of_refresh AS package_no_of_refresh,
+
+                -- Showroom details
+                s.id AS showroom_id,
+                s.user_id AS showroom_user_id,
+                s.name AS showroom_name,
+                s.name_ar AS showroom_name_ar,
+                s.description AS showroom_description,
+                s.description_ar AS showroom_description_ar,
+                s.logo AS showroom_logo,
+                s.phone AS showroom_phone,
+                s.location AS showroom_location,
+                s.timing AS showroom_timing
+
             FROM car_listings cl
-            LEFT JOIN listing_promotions lp ON cl.id = lp.listing_id
-            AND lp.end_date > NOW()
+
+            LEFT JOIN listing_promotions lp ON cl.id = lp.listing_id AND lp.end_date > NOW()
             LEFT JOIN promotion_packages p ON lp.package_id = p.id
             LEFT JOIN showrooms s ON cl.is_business = true AND cl.showroom_id = s.id
         `;
+
 
         const whereClauses: string[] = [];
         const values: any[] = [];
@@ -297,7 +305,7 @@ export const CarListingStorage = {
                             console.log(`Added Status filter: status = ${value}`);
                             paramIndex++;
                             break;
-                         case 'refresh_left':
+                        case 'refresh_left':
                             whereClauses.push(`cl.refresh_left = $${paramIndex}`);
                             values.push(value);
                             console.log(`Added imported filter: refresh_left = ${value}`);
@@ -437,14 +445,12 @@ export const CarListingStorage = {
         console.log('--- START: getCarListingsCount ---');
         console.log('Incoming filter parameters:', JSON.stringify(filter, null, 2));
 
-        
-
         let baseQuery = `
             SELECT COUNT(cl.id) as count
             FROM car_listings cl
             LEFT JOIN listing_promotions lp ON cl.id = lp.listing_id
                 AND lp.end_date > NOW()
-             LEFT JOIN car_makes cm ON cl.make_id = cm.id
+            LEFT JOIN car_makes cm ON cl.make_id = cm.id
             LEFT JOIN car_models cmd ON cl.model_id = cmd.id
         `;
 
@@ -606,14 +612,14 @@ export const CarListingStorage = {
                             values.push(value);
                             paramIndex++;
                             break;
-                       case 'status':
-                        if (value !== 'all') { // 🚩 SKIP if "all"
-                            whereClauses.push(`cl.status = $${paramIndex}`);
-                            values.push(value);
-                        } else {
-                            paramIndex--; // Do not increment for "all"
-                        }
-                        break;
+                        case 'status':
+                            if (value !== 'all') { // 🚩 SKIP if "all"
+                                whereClauses.push(`cl.status = $${paramIndex}`);
+                                values.push(value);
+                            } else {
+                                paramIndex--; // Do not increment for "all"
+                            }
+                            break;
                         case 'is_active':
                             whereClauses.push(`cl.is_active = $${paramIndex}`);
                             values.push(value === 'true');
@@ -635,9 +641,9 @@ export const CarListingStorage = {
             }
         }
 
-         if (!('status' in filter)) {
-        whereClauses.push(`cl.status NOT IN ('pending', 'draft', 'rejected')`);
-    }
+        if (!('status' in filter)) {
+            whereClauses.push(`cl.status NOT IN ('pending', 'draft', 'rejected', 'expired')`);
+        }
 
         // Build WHERE clause
         if (whereClauses.length > 0) {
@@ -651,7 +657,7 @@ export const CarListingStorage = {
         try {
             const result = await db.query(baseQuery, values);
             const count = parseInt(result[0]?.count || '0');
-            
+
             console.log('Count result:', count);
             console.log('--- END: getCarListingsCount ---');
             return count;
@@ -662,65 +668,84 @@ export const CarListingStorage = {
         }
     },
 
-    async getCarListingById(id: number): Promise<(CarListingWithFeatures & { currentPackage?: ListingPromotion; showroom?: Showroom }) | undefined> {
+    async getCarListingById(id: number): Promise<(CarListingWithFeatures & { currentPackage?: ListingPromotion; showroom?: Showroom; carParts?: CarPart; carTyres?: CarTyre; }) | undefined> {
+        // Fetch base listing
         const listingResult = await db.query(`SELECT * FROM car_listings WHERE id = $1`, [id]);
         const listing = listingResult[0];
         if (!listing) return undefined;
 
+        // Fetch features
         const features = await db.query(
             `
-        SELECT f.* FROM car_features f
-        JOIN car_listing_features clf ON clf.feature_id = f.id
-        WHERE clf.listing_id = $1
-        `,
+            SELECT f.* FROM car_features f
+            JOIN car_listing_features clf ON clf.feature_id = f.id
+            WHERE clf.listing_id = $1
+            `,
             [id]
         );
 
+        // Fetch current active package if any
         const promotionResult = await db.query(
             `
-        SELECT 
-          lp.*, 
-          p.name AS package_name, 
-          p.description AS package_description, 
-          p.price AS package_price
-        FROM listing_promotions lp
-        JOIN promotion_packages p ON lp.package_id = p.id
-        WHERE lp.listing_id = $1 
-          AND lp.is_active = true 
-          AND lp.start_date <= NOW() 
-          AND lp.end_date > NOW()
-        ORDER BY lp.start_date DESC
-        LIMIT 1
-        `,
+            SELECT 
+            lp.*, 
+            p.name AS package_name, 
+            p.description AS package_description, 
+            p.price AS package_price
+            FROM listing_promotions lp
+            JOIN promotion_packages p ON lp.package_id = p.id
+            WHERE lp.listing_id = $1 
+            AND lp.is_active = true 
+            AND lp.start_date <= NOW() 
+            AND lp.end_date > NOW()
+            ORDER BY lp.start_date DESC
+            LIMIT 1
+            `,
             [id]
         );
-
         const currentPackage = promotionResult[0];
 
+        // Fetch showroom if linked
         let showroom = undefined;
         if (listing.showroom_id) {
             const showroomResult = await db.query(`SELECT * FROM showrooms WHERE id = $1`, [listing.showroom_id]);
             showroom = showroomResult[0];
         }
 
+        // Fetch car parts if available
+        const carPartsResult = await db.query(
+            `SELECT * FROM car_parts WHERE listing_id = $1 LIMIT 1`,
+            [id]
+        );
+        const carParts = carPartsResult[0];
+
+        // Fetch car tyres if available
+        const carTyresResult = await db.query(
+            `SELECT * FROM car_tyres WHERE listing_id = $1 LIMIT 1`,
+            [id]
+        );
+        const carTyres = carTyresResult[0];
+
         return {
             ...listing,
             features,
             currentPackage,
             showroom,
+            carParts,
+            carTyres,
         };
     },
 
     async getFeaturedListings(): Promise<CarListing[]> {
         return await db.query(`
-      SELECT cl.* FROM car_listings cl
-      JOIN listing_promotions lp ON cl.id = lp.listing_id
-      JOIN promotion_packages pp ON lp.package_id = pp.id
-      WHERE lp.is_active = true 
-        AND lp.end_date > NOW()
-        AND pp.is_featured = true
-      ORDER BY pp.priority DESC, lp.start_date DESC
-    `);
+            SELECT cl.* FROM car_listings cl
+            JOIN listing_promotions lp ON cl.id = lp.listing_id
+            JOIN promotion_packages pp ON lp.package_id = pp.id
+            WHERE lp.is_active = true 
+                AND lp.end_date > NOW()
+                AND pp.is_featured = true
+            ORDER BY pp.priority DESC, lp.start_date DESC
+        `);
     },
 
     async getCarFeaturedListings(filter: Partial<CarListing> = {}, sortBy?: keyof CarListing, sortOrder: 'asc' | 'desc' = 'asc'): Promise<CarListing[]> {
@@ -777,7 +802,7 @@ export const CarListingStorage = {
         }
     },
 
-   async updateCarListing(
+    async updateCarListing(
         id: number,
         updates: Partial<InsertCarListing> & {
             upgradePackageId?: number;
@@ -943,9 +968,9 @@ export const CarListingStorage = {
         // Step 1: Get the target listing's make_id and category_id
         const [base] = await db.query(
             `SELECT category_id
-       FROM car_listings
-       WHERE id = $1
-       LIMIT 1`,
+            FROM car_listings
+            WHERE id = $1
+            LIMIT 1`,
             [listingId]
         );
 
@@ -958,17 +983,16 @@ export const CarListingStorage = {
         // Step 2: Query for similar listings
         const similar = await db.query(
             `SELECT *
-       FROM car_listings
-       WHERE category_id = $1
-         AND id != $2
-       ORDER BY created_at DESC
-       LIMIT $3`,
+            FROM car_listings
+            WHERE category_id = $1
+                AND id != $2
+            ORDER BY created_at DESC
+            LIMIT $3`,
             [base.category_id, listingId, limit]
         );
 
         console.log(`✅ Found ${similar.length} similar listings.`);
         return similar as CarListing[];
     },
-
 
 };

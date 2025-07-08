@@ -1,10 +1,9 @@
-import { UseMutateFunction, useMutation } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation } from "wouter";
 import { ListingFormData, AdminCarListing } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { roleMapping } from "@shared/permissions";
-import { Cylinder } from "lucide-react";
 
 interface MutationVariables {
   formData: ListingFormData;
@@ -41,7 +40,7 @@ export const useListingFormHandler = (onSuccess?: () => void) => {
       let endDate = new Date();
       if (formData.package?.durationDays) {
         const durationDays = Number(formData.package?.durationDays);
-         console.log("Duration Days", durationDays);
+        console.log("Duration Days", durationDays);
         if (!isNaN(durationDays)) {
           endDate.setDate(endDate.getDate() + durationDays);
         }
@@ -69,7 +68,7 @@ export const useListingFormHandler = (onSuccess?: () => void) => {
         engine_capacity_id: formData.specifications?.engineCapacityId,
         cylinder_count: formData.specifications?.cylinderCount,
         wheel_drive: formData.specifications?.wheelDrive,
-        
+
         color: formData.specifications?.color,
         interior_color: formData.specifications?.interiorColor,
         tinted: formData.specifications?.tinted,
@@ -79,25 +78,25 @@ export const useListingFormHandler = (onSuccess?: () => void) => {
 
         images: formData.media ?? [],
 
-        owner_type:  formData.specifications?.ownerType,
+        owner_type: formData.specifications?.ownerType,
         featureIds: formData.features?.map((id: string) => Number(id)) ?? [],
         is_imported: formData.specifications?.isImported,
         has_insurance: formData.specifications?.hasInsurance,
         insurance_expiry: formData.specifications?.insuranceExpiry
           ? new Date(
-  listing?.insurance_expiry ? listing.insurance_expiry : new Date()
-).toISOString()
+            listing?.insurance_expiry ? listing.insurance_expiry : new Date()
+          ).toISOString()
           : new Date().toISOString(),
         has_warranty: formData.specifications?.hasWarranty,
         warranty_expiry: formData.specifications?.warrantyExpiry
           ? new Date(
-  listing?.warranty_expiry ? listing.warranty_expiry : new Date()
-).toISOString()
+            listing?.warranty_expiry ? listing.warranty_expiry : new Date()
+          ).toISOString()
 
           : new Date().toISOString(),
         is_inspected: formData.specifications?.isInspected,
         inspection_report: formData.specifications?.inspectionReport,
-        
+
         user_id: user?.id,
         package_id: formData.package?.packageId
           ? Number(formData.package.packageId)
@@ -130,8 +129,86 @@ export const useListingFormHandler = (onSuccess?: () => void) => {
         throw new Error(errorData.message || "Failed to save listing");
       }
 
-      console.log("✅ Mutation successful");
+      const savedListing = await res.json();
+      const listingId = savedListing.id;
+
+      console.log("✅ Listing saved, ID:", listingId);
+
+      // =============================
+      // Save Car Parts if provided
+      // =============================
+      if (formData.carParts) {
+        try {
+          const partsPayload = { ...formData.carParts, listingId };
+
+          const partsMethod = listing?.carParts?.id ? "PUT" : "POST";
+          const partsUrl = listing?.carParts?.id
+            ? `/api/car-parts/${listing.carParts?.id}`
+            : `/api/car-parts`;
+
+          console.log(`🛠 Sending ${partsMethod} request to ${partsUrl} with payload:`, partsPayload);
+
+          const partsRes = await fetch(partsUrl, {
+            method: partsMethod,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(partsPayload),
+          });
+
+          if (!partsRes.ok) {
+            const partsError = await partsRes.json().catch(() => ({}));
+            console.error("❌ Failed to save car parts:", partsError);
+            toast({
+              title: "Warning",
+              description: "Listing saved, but failed to save car parts",
+              variant: "destructive",
+            });
+          } else {
+            console.log("✅ Car parts saved successfully");
+          }
+        } catch (error) {
+          console.error("🔥 Error saving car parts:", error);
+        }
+      }
+
+      // =============================
+      // Save Car Tyres if provided
+      // =============================
+      if (formData.carTyres) {
+        try {
+          const tyresPayload = { ...formData.carTyres, listingId };
+
+          const tyresMethod = listing?.carTyres?.id ? "PUT" : "POST";
+          const tyresUrl = listing?.carTyres?.id
+            ? `/api/car-tyres/${listing?.carTyres?.id}`
+            : `/api/car-tyres`;
+
+          console.log(`🛠 Sending ${tyresMethod} request to ${tyresUrl} with payload:`, tyresPayload);
+
+          const tyresRes = await fetch(tyresUrl, {
+            method: tyresMethod,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(tyresPayload),
+          });
+
+          if (!tyresRes.ok) {
+            const tyresError = await tyresRes.json().catch(() => ({}));
+            console.error("❌ Failed to save car tyres:", tyresError);
+            toast({
+              title: "Warning",
+              description: "Listing saved, but failed to save car tyres",
+              variant: "destructive",
+            });
+          } else {
+            console.log("✅ Car tyres saved successfully");
+          }
+        } catch (error) {
+          console.error("🔥 Error saving car tyres:", error);
+        }
+      }
+
+      console.log("✅ All processes complete");
       return res;
+
     },
 
     onSuccess: (variables) => {
@@ -152,7 +229,7 @@ export const useListingFormHandler = (onSuccess?: () => void) => {
       console.log("✅ Redirect complete");
       toast({
         title: "Success",
-        description: variables.listing ? "Listing updated" : "Listing created",
+        description: variables ? "Listing updated" : "Listing created",
       });
       onSuccess?.();
     },

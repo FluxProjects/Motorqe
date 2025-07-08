@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { CarPart, CarTyre } from "@shared/schema";
+import { QRCodeSVG } from "qrcode.react"; 
 
 interface CarListingDetailProps {
   vehicleDescription: string;
@@ -7,6 +9,8 @@ interface CarListingDetailProps {
   inspectionReportUrl?: string; // Pass the PDF file URL here if available
   is_showroom?: boolean;
   is_garage?: boolean;
+   carPartsData?: CarPart;
+  carTyresData?: CarTyre;
 }
 
 export function CarListingDetail({
@@ -15,8 +19,12 @@ export function CarListingDetail({
   inspectionReportUrl,
   is_showroom,
   is_garage,
+  carPartsData,
+  carTyresData,
 }: CarListingDetailProps) {
   const [activeTab, setActiveTab] = useState("car-details");
+
+  console.log("inspectionReportUrl", inspectionReportUrl);
 
   if (is_showroom || is_garage) {
     return (
@@ -109,32 +117,74 @@ export function CarListingDetail({
         {activeTab === "spare-parts" && (
           <div>
             <h2 className="text-xl font-semibold mb-4">Spare Parts:</h2>
-            <div className="text-gray-700">
-              <p className="mb-4">Available spare parts and accessories for this vehicle:</p>
-              <ul className="list-disc list-inside space-y-2 text-gray-600">
-                <li>Original BMW parts</li>
-                <li>Engine components</li>
-                <li>Body panels</li>
-                <li>Interior accessories</li>
-                <li>Performance upgrades</li>
+            {carPartsData ? (
+              <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-gray-600">
+                {Object.entries(carPartsData).map(([key, value]) => {
+                  if (
+                    value !== undefined &&
+                    value > 0 &&
+                    key !== "id" &&
+                    key !== "listing_id"
+                  ) {
+                    const displayKey = key
+                      .replace(/_/g, " ")
+                      .replace(/\b\w/g, (c) => c.toUpperCase());
+
+                    return (
+                      <li
+                        key={key}
+                        className="border rounded-xl p-4 flex flex-col items-center justify-center text-center shadow-sm"
+                      >
+                        <div className="text-sm font-medium">{displayKey}</div>
+                        <div className="text-lg font-semibold text-gray-800">QR {value}</div>
+                      
+                      </li>
+                    );
+                  }
+                  return null;
+                })}
               </ul>
-            </div>
+            ) : (
+              <p className="text-gray-500">No spare parts data available for this vehicle.</p>
+            )}
           </div>
         )}
 
         {activeTab === "tyres" && (
           <div>
-            <h2 className="text-xl font-semibold mb-4">Tyres:</h2>
-            <div className="text-gray-700">
-              <p className="mb-4">Tyre information and recommendations:</p>
-              <ul className="list-disc list-inside space-y-2 text-gray-600">
-                <li>Front: 245/35R20</li>
-                <li>Rear: 275/30R20</li>
-                <li>Brand: Michelin Pilot Sport 4S</li>
-                <li>Condition: Excellent (90% tread remaining)</li>
-                <li>Recommended replacement interval: 40,000 km</li>
-              </ul>
-            </div>
+            
+           {carTyresData ? (
+            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-gray-600">
+              {carTyresData.front_tyre_size && carTyresData.front_tyre_price !== undefined && (
+                <li className="border rounded-xl p-4 flex flex-col items-center justify-center text-center shadow-sm">
+                  <div className="text-sm font-medium">Front Tyre Size</div>
+                  <div className="text-lg font-semibold text-gray-800">
+                    {carTyresData.front_tyre_size}
+                  </div>
+                  <div className="text-sm font-medium mt-2">Price</div>
+                  <div className="text-lg font-semibold text-gray-800">
+                   QR {carTyresData.front_tyre_price}
+                  </div>
+                </li>
+              )}
+
+              {carTyresData.rear_tyre_size && carTyresData.rear_tyre_price !== undefined && (
+                <li className="border rounded-xl p-4 flex flex-col items-center justify-center text-center shadow-sm">
+                  <div className="text-sm font-medium">Rear Tyre Size</div>
+                  <div className="text-lg font-semibold text-gray-800">
+                    {carTyresData.rear_tyre_size}
+                  </div>
+                  <div className="text-sm font-medium mt-2">Price</div>
+                  <div className="text-lg font-semibold text-gray-800">
+                   QR {carTyresData.rear_tyre_price}
+                  </div>
+                </li>
+              )}
+            </ul>
+            ) : (
+              <p className="text-gray-500">No tyre data available for this vehicle.</p>
+            )}
+
           </div>
         )}
       </div>
