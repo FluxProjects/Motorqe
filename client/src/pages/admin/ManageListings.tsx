@@ -55,7 +55,6 @@ const ManageListings = () => {
     refetch,
   } = useCarListingManage();
 
-
   return (
     <div className="min-h-screen bg-white py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -70,42 +69,43 @@ const ManageListings = () => {
             <div className="flex-1 p-6 overflow-auto">
               <div className="max-w-7xl mx-auto">
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-8 gap-4">
-  <div>
-    <h1 className="text-3xl font-bold">
-      {t("admin.manageListings")}
-    </h1>
-    <p className="text-slate-400 mt-1">
-      {t("admin.listingDesc")}
-    </p>
-  </div>
+                  <div>
+                    <h1 className="text-3xl font-bold">
+                      {t("admin.manageListings")}
+                    </h1>
+                    <p className="text-slate-400 mt-1">
+                      {t("admin.listingDesc")}
+                    </p>
+                  </div>
 
-  {/* Buttons container */}
-  <div className="flex flex-col sm:flex-row gap-2">
-    <Button
-      variant="default"
-      className="bg-orange-500 hover:bg-orange-500/50"
-      onClick={() => refetch()}
-      disabled={isLoading}
-    >
-      <RefreshCw
-        className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`}
-      />
-      {t("common.refresh")}
-    </Button>
+                  {/* Buttons container */}
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <Button
+                      variant="default"
+                      className="bg-orange-500 hover:bg-orange-500/50"
+                      onClick={() => refetch()}
+                      disabled={isLoading}
+                    >
+                      <RefreshCw
+                        className={`h-4 w-4 mr-2 ${
+                          isLoading ? "animate-spin" : ""
+                        }`}
+                      />
+                      {t("common.refresh")}
+                    </Button>
 
-    <PermissionGuard permission={Permission.CREATE_LISTINGS}>
-      <Button
-        variant="default"
-        className="bg-green-600 hover:bg-green-700"
-        onClick={handleCreateListing}
-      >
-        <Plus className="h-4 w-4 mr-2" />
-        {t("admin.createListing")}
-      </Button>
-    </PermissionGuard>
-  </div>
-</div>
-
+                    <PermissionGuard permission={Permission.CREATE_LISTINGS}>
+                      <Button
+                        variant="default"
+                        className="bg-green-600 hover:bg-green-700"
+                        onClick={handleCreateListing}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        {t("admin.createListing")}
+                      </Button>
+                    </PermissionGuard>
+                  </div>
+                </div>
 
                 <CarListingFilters
                   currentTab={currentTab}

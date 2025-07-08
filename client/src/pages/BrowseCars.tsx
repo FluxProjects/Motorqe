@@ -131,7 +131,7 @@ const BrowseCars = () => {
     condition: "all",
     location: [],
 
-    status: "active",
+    status: "",
     isActive: true,
     isFeatured: "all",
     isImported: "all",
@@ -154,7 +154,7 @@ const BrowseCars = () => {
     const params = new URLSearchParams(window.location.search);
     setSearchParams(params);
 
-    setFilters((prev) => ({ ...prev, status: "active" }));
+    setFilters((prev) => ({ ...prev, status: "" }));
 
     // Set initial filters from URL params
     // In your useEffect for handling initial params:
@@ -880,7 +880,7 @@ const BrowseCars = () => {
       condition: "all",
       location: [],
 
-      status: "active",
+      status: "",
       isFeatured: "all",
       isImported: "all",
       isInspected: "all",

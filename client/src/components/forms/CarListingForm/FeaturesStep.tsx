@@ -95,7 +95,7 @@ export function FeaturesStep({ listingId, data, updateData, nextStep, prevStep }
         </Button>
         <Button 
         className="bg-orange-500 flex items-center gap-2"
-        type="submit">Next: Media
+        type="submit">Next: Spare Parts
         <ArrowRight className="w-4 h-4" />
         </Button>
       </div>

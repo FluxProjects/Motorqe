@@ -300,10 +300,11 @@ export const CarListingStorage = {
                             paramIndex++;
                             break;
                         case 'status':
-                            whereClauses.push(`cl.status = $${paramIndex}`);
-                            values.push(value);
-                            console.log(`Added Status filter: status = ${value}`);
-                            paramIndex++;
+                            if (value && value !== 'all') {
+                                whereClauses.push(`cl.status = $${paramIndex}`);
+                                values.push(value);
+                                paramIndex++;
+                            }
                             break;
                         case 'refresh_left':
                             whereClauses.push(`cl.refresh_left = $${paramIndex}`);
@@ -353,6 +354,12 @@ export const CarListingStorage = {
                 } else {
                     console.log(`Skipping filter ${key} - value is undefined or null`);
                 }
+            }
+        }
+
+        if (!filter.user_id) {
+            if (!filter.status || filter.status === 'all') {
+                whereClauses.push(`cl.status NOT IN ('pending', 'draft', 'reject', 'expired')`);
             }
         }
 
@@ -448,10 +455,9 @@ export const CarListingStorage = {
         let baseQuery = `
             SELECT COUNT(cl.id) as count
             FROM car_listings cl
-            LEFT JOIN listing_promotions lp ON cl.id = lp.listing_id
-                AND lp.end_date > NOW()
-            LEFT JOIN car_makes cm ON cl.make_id = cm.id
-            LEFT JOIN car_models cmd ON cl.model_id = cmd.id
+            LEFT JOIN listing_promotions lp ON cl.id = lp.listing_id AND lp.end_date > NOW()
+            LEFT JOIN promotion_packages p ON lp.package_id = p.id
+            LEFT JOIN showrooms s ON cl.is_business = true AND cl.showroom_id = s.id
         `;
 
         const whereClauses: string[] = [];
@@ -613,11 +619,10 @@ export const CarListingStorage = {
                             paramIndex++;
                             break;
                         case 'status':
-                            if (value !== 'all') { // 🚩 SKIP if "all"
+                            if (value && value !== 'all') {
                                 whereClauses.push(`cl.status = $${paramIndex}`);
                                 values.push(value);
-                            } else {
-                                paramIndex--; // Do not increment for "all"
+                                paramIndex++;
                             }
                             break;
                         case 'is_active':
@@ -641,9 +646,10 @@ export const CarListingStorage = {
             }
         }
 
-        if (!('status' in filter)) {
-            whereClauses.push(`cl.status NOT IN ('pending', 'draft', 'rejected', 'expired')`);
+        if (!filter.status || filter.status === 'all') {
+            whereClauses.push(`cl.status NOT IN ('pending', 'draft', 'reject', 'expired')`);
         }
+
 
         // Build WHERE clause
         if (whereClauses.length > 0) {

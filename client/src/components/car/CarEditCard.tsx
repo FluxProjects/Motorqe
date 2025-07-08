@@ -18,9 +18,9 @@ import { roleMapping, hasPermission, Permission } from "@shared/permissions";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { navigate } from "wouter/use-browser-location";
 import ListingPlanCards from "../forms/CarListingForm/ListingPlanTable";
 import { DialogTitle } from "@radix-ui/react-dialog";
+import { useLocation } from "wouter";
 
 interface CarEditCardProps {
   car: AdminCarListing;
@@ -31,6 +31,7 @@ export default function CarEditCard({ car }: CarEditCardProps) {
   const { toast } = useToast();
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const [, navigate] = useLocation();
 
   const [editOpen, setEditOpen] = useState(false);
   const [showUpgradePlans, setShowUpgradePlans] = useState(false);
@@ -394,12 +395,13 @@ console.log("car", car);
           <div className="flex gap-2 mb-4">
             <button
               className="flex-1 bg-blue-900 text-white py-3 px-2 rounded-xl text-xs hover:opacity-90 flex flex-col items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-              onClick={() => window.open(`/sell-car/${car.id}`, '_blank')}
+              onClick={() => navigate(`/sell-car/${car.id}`)}
               disabled={car.status === "sold" || car.status === "pending"}
             >
               <Edit className="h-5 w-5 mb-1" />
               <span>Edit</span>
             </button>
+
 
             <button
               className="flex-1 bg-red-500 text-white py-3 px-2 rounded-xl text-xs hover:bg-red-600 flex flex-col items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"

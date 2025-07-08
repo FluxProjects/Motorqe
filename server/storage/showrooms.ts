@@ -56,6 +56,7 @@ export const ShowroomStorage = {
             if (value !== undefined) {
             const column =
                 key === "nameAr" ? "name_ar" :
+                key === "descriptionAr" ? "description_ar" :
                 key === "userId" ? "user_id" :
                 key === "isMainBranch" ? "is_main_branch" :
                 key === "parentId" ? "parent_id" :
@@ -108,6 +109,16 @@ export const ShowroomStorage = {
             values.push(updates.nameAr);
             paramIndex++;
         }
+         if (updates.description !== undefined) {
+            fields.push(`description = $${paramIndex}`);
+            values.push(updates.description);
+            paramIndex++;
+        }
+        if (updates.descriptionAr !== undefined) {
+            fields.push(`description_ar = $${paramIndex}`);
+            values.push(updates.descriptionAr);
+            paramIndex++;
+        }
         if (updates.isMainBranch !== undefined) {
             fields.push(`is_main_branch = $${paramIndex}`);
             values.push(updates.isMainBranch);
@@ -131,6 +142,11 @@ export const ShowroomStorage = {
         if (updates.location !== undefined) {
             fields.push(`location = $${paramIndex}`);
             values.push(updates.location);
+            paramIndex++;
+        }
+        if (updates.logo !== undefined) {
+            fields.push(`logo = $${paramIndex}`);
+            values.push(updates.logo);
             paramIndex++;
         }
          if (updates.tLicense !== undefined) {

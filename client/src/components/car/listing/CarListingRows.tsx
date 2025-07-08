@@ -29,7 +29,7 @@ interface ListingRowProps {
   listing: AdminCarListing;
   handleViewListing: (listing: AdminCarListing) => void;
   handleEditListing: (listing: AdminCarListing) => void;
-  handleAction: (listing: AdminCarListing, action: AdminCarListingAction) => void;
+  handleAction: (listing: AdminCarListing, action: AdminCarListingAction, options?: { unfeature?: boolean }) => void;
   getStatusBadge: (status: string) => React.ReactNode;
 }
 
@@ -80,7 +80,7 @@ export const CarListingRows = ({
       </TableCell>
       <TableCell className="">{listing.year}</TableCell>
       <TableCell className="">
-        {listing.mileage.toLocaleString()} {t("car.miles")}
+        {listing?.mileage.toLocaleString()} {t("car.miles")}
       </TableCell>
       <TableCell>
         <div className="flex items-center">
@@ -180,17 +180,23 @@ export const CarListingRows = ({
 
             {listing.status === "active" && (
               <>
-                <PermissionGuard permission={Permission.MANAGE_PROMOTIONS}>
-                  {!listing.is_featured && (
-                    <DropdownMenuItem
-                      className="hover:bg-slate-700 focus:bg-slate-700"
-                      onClick={() => handleAction(listing, "feature")}
-                    >
-                      <Star className="mr-2 h-4 w-4 text-yellow-500" />
-                      {t("admin.featureListing")}
-                    </DropdownMenuItem>
-                  )}
-                </PermissionGuard>
+               <PermissionGuard permission={Permission.MANAGE_PROMOTIONS}>
+                <DropdownMenuItem
+                  className="hover:bg-slate-700 focus:bg-slate-700"
+                  onClick={() =>
+                    handleAction(listing, "feature", {
+                      unfeature: listing.is_featured === "true",
+                    })
+                  }
+                >
+                  <Star className="mr-2 h-4 w-4 text-yellow-500" />
+                  {listing.is_featured === "true"
+                    ? t("admin.unfeatureListing")
+                    : t("admin.featureListing")}
+                </DropdownMenuItem>
+              </PermissionGuard>
+
+
                 <PermissionGuard permission={Permission.MANAGE_OWN_LISTINGS}>
                   <DropdownMenuItem
                     className="hover:bg-slate-700 focus:bg-slate-700"

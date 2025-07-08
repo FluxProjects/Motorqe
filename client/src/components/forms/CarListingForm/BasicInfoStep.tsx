@@ -1,67 +1,65 @@
-import { useState } from "react";
+import { useFormContext, Controller } from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { StepProps } from "@shared/schema";
+import { StepProps, ListingFormData } from "@shared/schema";
 import { ArrowRight } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select";
 import GoogleMaps from "@/components/ui/google-maps";
 
-export function BasicInfoStep({ data, updateData, nextStep }: StepProps) {
-  const [formData, setFormData] = useState({
-    listingType: data.basicInfo?.listingType || "",
-    title: data.basicInfo?.title || "",
-    titleAr: data.basicInfo?.titleAr || "",
-    description: data.basicInfo?.description || "",
-    descriptionAr: data.basicInfo?.descriptionAr || "",
-    price: data.basicInfo?.price || "",
-    currency: data.basicInfo?.currency || "QR",
-    location: data.basicInfo?.location || "",
-  });
+export function BasicInfoStep({ nextStep }: StepProps) {
+  const { control, register, handleSubmit, getValues, setValue } = useFormContext<ListingFormData>();
 
-   const handleMapClick = ({ lat, lng }: { lat: number; lng: number }) => {
+  const handleMapClick = ({ lat, lng }: { lat: number; lng: number }) => {
     const locationString = `${lat},${lng}`;
-    handleChange("location", locationString);
+    setValue("basicInfo.location", locationString);
   };
 
-    const marker =
-    formData.location && formData.location.includes(",")
-      ? [{
-          lat: parseFloat(formData.location.split(",")[0]),
-          lng: parseFloat(formData.location.split(",")[1]),
-        }]
-      : [];
+  const marker = (() => {
+    const location = getValues("basicInfo.location");
+    if (location && location.includes(",")) {
+      const [lat, lng] = location.split(",");
+      return [{ lat: parseFloat(lat), lng: parseFloat(lng) }];
+    }
+    return [];
+  })();
 
-  const handleChange = (field: keyof typeof formData, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    updateData({ basicInfo: formData });
+  const onSubmit = (data: ListingFormData) => {
     nextStep();
   };
 
   return (
-    <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
       {/* Listing Type */}
       <div>
         <Label>Listing Type*</Label>
-        <Select
-          value={formData.listingType}
-          onValueChange={(value) => handleChange("listingType", value)}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select listing type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="sale">For Sale</SelectItem>
-            <SelectItem value="exchange">For Exchange</SelectItem>
-            <SelectItem value="both">Sale & Exchange</SelectItem>
-          </SelectContent>
-        </Select>
+        <Controller
+          name="basicInfo.listingType"
+          control={control}
+          render={({ field }) => (
+            <Select
+              value={field.value}
+              onValueChange={field.onChange}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select listing type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="sale">For Sale</SelectItem>
+                <SelectItem value="exchange">For Exchange</SelectItem>
+                <SelectItem value="both">Sale & Exchange</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
+        />
       </div>
 
       {/* Title */}
@@ -69,10 +67,8 @@ export function BasicInfoStep({ data, updateData, nextStep }: StepProps) {
         <Label htmlFor="title">Listing Title*</Label>
         <Input
           id="title"
-          value={formData.title}
-          onChange={(e) => handleChange("title", e.target.value)}
+          {...register("basicInfo.title", { required: true })}
           placeholder="e.g. 2020 Toyota Camry XSE"
-          required
         />
       </div>
 
@@ -81,10 +77,8 @@ export function BasicInfoStep({ data, updateData, nextStep }: StepProps) {
         <Label htmlFor="titleAr">Listing Title (Arabic)*</Label>
         <Input
           id="titleAr"
-          value={formData.titleAr}
-          onChange={(e) => handleChange("titleAr", e.target.value)}
+          {...register("basicInfo.titleAr", { required: true })}
           placeholder="مثال: تويوتا كامري 2020"
-          required
         />
       </div>
 
@@ -93,11 +87,9 @@ export function BasicInfoStep({ data, updateData, nextStep }: StepProps) {
         <Label htmlFor="description">Description*</Label>
         <Textarea
           id="description"
-          value={formData.description}
-          onChange={(e) => handleChange("description", e.target.value)}
+          {...register("basicInfo.description", { required: true })}
           rows={4}
           placeholder="Describe your vehicle in detail..."
-          required
         />
       </div>
 
@@ -106,11 +98,9 @@ export function BasicInfoStep({ data, updateData, nextStep }: StepProps) {
         <Label htmlFor="descriptionAr">Description (Arabic)*</Label>
         <Textarea
           id="descriptionAr"
-          value={formData.descriptionAr}
-          onChange={(e) => handleChange("descriptionAr", e.target.value)}
+          {...register("basicInfo.descriptionAr", { required: true })}
           rows={4}
           placeholder="وصف السيارة بالتفصيل..."
-          required
         />
       </div>
 
@@ -120,36 +110,30 @@ export function BasicInfoStep({ data, updateData, nextStep }: StepProps) {
         <Input
           id="price"
           type="number"
-          value={formData.price}
-          onChange={(e) => handleChange("price", e.target.value)}
+          {...register("basicInfo.price", { required: true })}
           placeholder="e.g. 15000"
           min={0}
-          required
         />
       </div>
 
       {/* Location */}
       <div className="md:col-span-2">
-        <Label htmlFor="location">Location*</Label>
+        <Label>Location*</Label>
         <Input
-          id="location"
-          value={formData.location}
-          onChange={(e) => handleChange("location", e.target.value)}
-          placeholder="City, Country"
-          required
           hidden
           disabled
+          {...register("basicInfo.location", { required: true })}
         />
         <GoogleMaps
           center={
             marker.length > 0
               ? marker[0]
-              : { lat: 25.2854, lng: 51.5310 } // fallback center (Karachi)
+              : { lat: 25.2854, lng: 51.5310 } // fallback center (Doha)
           }
           zoom={11}
           onMapClick={handleMapClick}
           markers={marker}
-          containerStyle={{ width: "100%", height: "256px" }} 
+          containerStyle={{ width: "100%", height: "256px" }}
         />
       </div>
 

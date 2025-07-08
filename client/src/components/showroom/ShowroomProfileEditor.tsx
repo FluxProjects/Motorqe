@@ -20,6 +20,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AvailabilityEditor } from "@/components/ui/availability";
 import { toast } from "@/hooks/use-toast";
 import { safeParseJSON } from "@/lib/utils";
+import GoogleMaps from "../ui/google-maps";
 
 type FormValues = {
   name: string;
@@ -42,6 +43,7 @@ export function ShowroomProfileEditor({ user }: { user: User }) {
   const auth = useAuth();
   const roleId = user?.role_id;
   const isGarage = user?.roleId === 3;
+  const [marker, setMarker] = useState<{ lat: number; lng: number }[]>([]);
 
   const { data: showrooms = [], isLoading, refetch } = useQuery<Showroom[]>({
     queryKey: ["user-showrooms", user.id],
@@ -71,6 +73,24 @@ export function ShowroomProfileEditor({ user }: { user: User }) {
   });
 
  
+  const parseLocation = (location: string | null) => {
+    if (!location) return null;
+    const coords = location.split(',');
+    if (coords.length !== 2) return null;
+    
+    const lat = parseFloat(coords[0].trim());
+    const lng = parseFloat(coords[1].trim());
+    return isNaN(lat) || isNaN(lng) ? null : { lat, lng };
+  };
+
+  const handleMapClick = (e: google.maps.MapMouseEvent) => {
+    if (e.latLng) {
+      const lat = e.latLng.lat();
+      const lng = e.latLng.lng();
+      setMarker([{ lat, lng }]);
+      methods.setValue("location", `${lat}, ${lng}`);
+    }
+  };
 
 
   const hasActiveDays = (value: string | Record<string, AvailabilityEntry> | null | undefined): boolean => {
@@ -223,6 +243,17 @@ export function ShowroomProfileEditor({ user }: { user: User }) {
     setValue("logo", url);
   };
 
+   // Initialize map with existing location
+  useEffect(() => {
+    if (showrooms.length > 0 && showrooms[0].location) {
+      const coords = parseLocation(showrooms[0].location);
+      if (coords) {
+        setMarker([coords]);
+      }
+    }
+  }, [showrooms]);
+
+
   if (isLoading) return <p>{t("common.loading")}...</p>;
 
 
@@ -278,9 +309,31 @@ export function ShowroomProfileEditor({ user }: { user: User }) {
                 <div><label>{t("showroom.tLicense")}</label><Input {...register("tLicense")} /></div>
               </div>
 
+              {/* Location Field with Map */}
               <div className="grid grid-cols-1 gap-4">
-                <div><label>{t("showroom.location")}</label><Input {...register("location")} /></div>
+                <div>
+                  <label>{t("showroom.location")}</label>
+                  <Input 
+                    {...register("location")} 
+                    readOnly 
+                    placeholder="Click on the map to set location coordinates" 
+                  />
+                </div>
+                <div className="h-64 w-full rounded-lg overflow-hidden">
+                  <GoogleMaps
+                    center={
+                      marker.length > 0
+                        ? marker[0]
+                        : { lat: 25.2854, lng: 51.5310 } // fallback center (Doha)
+                    }
+                    zoom={marker.length > 0 ? 15 : 11}
+                    onMapClick={handleMapClick}
+                    markers={marker}
+                    containerStyle={{ width: "100%", height: "250px" }}
+                  />
+                </div>
               </div>
+
               <div className="grid grid-cols-1 gap-4">
                 <div><label>{t("showroom.phone")}</label><Input {...register("phone")} /></div>
               </div>

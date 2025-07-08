@@ -46,13 +46,16 @@ export function CarPartsStep({ data, updateData, nextStep, prevStep }: StepProps
     <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4">
       {Object.entries(formData).map(([key, value]) => (
         <div key={key}>
-          <Label htmlFor={key}>{key.replace(/([A-Z])/g, " $1")}</Label>
+          <Label htmlFor={key}>
+  {key.replace(/([A-Z])/g, " $1").replace(/^./, str => str.toUpperCase())}
+</Label>
+
           <Input
             id={key}
             type="number"
             value={value}
             onChange={(e) => handleChange(key as keyof typeof formData, e.target.value)}
-            placeholder="Optional"
+            placeholder="Price"
             min={0}
           />
         </div>

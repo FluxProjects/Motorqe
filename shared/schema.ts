@@ -1401,20 +1401,8 @@ export type ListingFormData = {
     inspectionReport?: string | undefined;
   };
   features?: string[];
-  media?: File[] | string[]; // Files before upload or URLs after upload
-  status: "draft" | "active" | "pending" | "reject" | "sold";
-  refreshLeft?: number;
-  package?: {
-    packageId?: string;
-    packageName?: string;
-    packagePrice?: string;
-    durationDays?: number;
-    photoLimit?: number;
-    featureDuration?: number;
-    noOfRefresh?: number;
-  };
 
-  carParts?: {
+ carParts?: {
     engineOil?: number;
     engineOilFilter?: number;
     gearboxOil?: number;
@@ -1435,6 +1423,21 @@ export type ListingFormData = {
     rearTyreSize?: string;
     rearTyrePrice?: number;
   };
+
+  media?: File[] | string[]; // Files before upload or URLs after upload
+  status: "draft" | "active" | "pending" | "reject" | "sold";
+  refreshLeft?: number;
+  package?: {
+    packageId?: string;
+    packageName?: string;
+    packagePrice?: string;
+    durationDays?: number;
+    photoLimit?: number;
+    featureDuration?: number;
+    noOfRefresh?: number;
+  };
+
+ 
 };
 
 
@@ -1610,14 +1613,14 @@ export interface AdminCarListing {
   showroom?: {
     id?: number;
     name?: string;
-    nameAr?: string;
-    isMainBranch?: boolean;
+    name_ar?: string;
+    is_main_branch?: boolean;
     address?: string;
-    addressAr?: string;
+    address_ar?: string;
     location?: string;
     phone?: string;
     logo?: string;
-    isFeatured?: boolean;
+    is_featured?: boolean;
   };
 
   make?: {
@@ -1650,33 +1653,33 @@ export interface AdminCarListing {
   // Car Parts
   carParts?: {
     id: number;
-    listingId: number;
-    engineOil?: number;
-    engineOilFilter?: number;
-    gearboxOil?: number;
-    acFilter?: number;
-    airFilter?: number;
-    fuelFilter?: number;
-    sparkPlugs?: number;
-    frontBrakePads?: number;
-    rearBrakePads?: number;
-    frontBrakeDiscs?: number;
-    rearBrakeDiscs?: number;
+    listing_id: number;
+    engine_oil?: number;
+    engine_oil_filter?: number;
+    gearbox_oil?: number;
+    ac_filter?: number;
+    air_filter?: number;
+    fuel_filter?: number;
+    spark_plugs?: number;
+    front_brake_pads?: number;
+    rear_brake_pads?: number;
+    front_brake_discs?: number;
+    rear_brake_discs?: number;
     battery?: number;
-    createdAt?: string;
-    updatedAt?: string;
+    created_at?: string;
+    updated_at?: string;
   };
 
   // Car Tyres
   carTyres?: {
     id: number;
-    listingId: number;
-    frontTyreSize?: string;
-    frontTyrePrice?: number;
-    rearTyreSize?: string;
-    rearTyrePrice?: number;
-    createdAt?: string;
-    updatedAt?: string;
+    listing_id: number;
+    front_tyre_size?: string;
+    front_tyre_price?: number;
+    rear_tyre_size?: string;
+    rear_tyre_price?: number;
+    created_at?: string;
+    updated_at?: string;
   };
 }
 

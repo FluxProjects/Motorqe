@@ -165,9 +165,8 @@ function functionStaticPage({ keyParam }: { keyParam: string }) {
           <Route path="/confirmedbooking" component={ServiceBookingConfirmation} />
 
           {/* ---------- Sell Car & Service--------------- */}
-          <Route path="/sell-car">
-            <SellCar />
-          </Route>
+          <Route path="/sell-car" component={SellCar} />
+          <Route path="/sell-car/:id" component={SellCar} />
           <Route path="/sell-service">
             <SellService />
           </Route>

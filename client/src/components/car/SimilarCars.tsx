@@ -2,6 +2,8 @@ import { getEngineSizeLabel } from "@/lib/utils";
 import { CarEngineCapacity, CarListing } from "@shared/schema";
 import { useQuery } from "@tanstack/react-query";
 import { Car, Calendar, Settings, Zap } from "lucide-react";
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Navigation, Pagination } from "swiper/modules";
 import { Link } from "wouter";
 
 interface SimilarCarsProps {
@@ -35,7 +37,22 @@ export function SimilarCars({ vehicleId }: SimilarCarsProps) {
         
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <section className="bg-white relative">
+      <Swiper
+        modules={[Navigation, Pagination]}
+        spaceBetween={20}
+        slidesPerView={4}
+        navigation={{
+          nextEl: ".swiper-button-next-custom",
+          prevEl: ".swiper-button-prev-custom",
+        }}
+        breakpoints={{
+          320: { slidesPerView: 1 },
+          640: { slidesPerView: 2 },
+          768: { slidesPerView: 3 },
+          1280: { slidesPerView: 4 },
+        }}
+      >
         {similarCars.map((car, index) => {
           const engineSizeLabel = getEngineSizeLabel(
             car?.engine_capacity_id,
@@ -43,6 +60,7 @@ export function SimilarCars({ vehicleId }: SimilarCarsProps) {
           );
 
           return (
+            <SwiperSlide key={car?.id}>
             <Link to={`/cars/${car.id}`} key={car.id} className="block">
             <div
               key={car.id}
@@ -52,7 +70,7 @@ export function SimilarCars({ vehicleId }: SimilarCarsProps) {
                 <img
                   src={car?.images[0]}
                   alt={car?.title}
-                  className={`h-full w-full object-cover group-hover:scale-105 transition-transform duration-300 ${
+                  className={`w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300 ${
                     car?.status === "sold" ? "opacity-50" : ""
                   }`}
                 />
@@ -110,26 +128,53 @@ export function SimilarCars({ vehicleId }: SimilarCarsProps) {
                   {car.title}
                 </h3>
 
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div className="flex items-center">
-                    <Calendar className="w-3 h-3 mr-1" />
-                    <span>{car.year}</span>
+                <div className="grid grid-cols-3 gap-2 text-xs text-white">
+                {[
+                  {
+                    icon: <Calendar className="w-4 h-4 text-white" />,
+                    label: car.year,
+                  },
+                  {
+                    icon: <Settings className="w-4 h-4 text-white" />,
+                    label: `${car?.cylinder_count} Cylinders`,
+                  },
+                  {
+                    icon: <Zap className="w-4 h-4 text-white" />,
+                    label: `${car.mileage} km`,
+                  },
+                ].map((item, idx) => (
+                  <div key={idx} className="flex items-center justify-center space-x-1">
+                    {item.icon}
+                    <span>{item.label}</span>
                   </div>
-                  <div className="flex items-center">
-                    <Settings className="w-3 h-3 mr-1" />
-                    <span>{car?.capacity_count} Cylinders</span>
-                  </div>
-                  <div className="flex items-center">
-                    <Zap className="w-3 h-3 mr-1" />
-                    <span>{car.mileage}</span>
-                  </div>
-                </div>
+                ))}
+              </div>
+
               </div>
             </div>
             </Link>
+            </SwiperSlide>
           );
         })}
-      </div>
+      </Swiper>
+
+       {/* Custom Navigation Arrows */}
+        <div className="swiper-button-prev-custom absolute top-1/2 -left-8 transform -translate-y-1/2 z-10">
+          <button className="w-12 h-12 rounded-full bg-blue-200 flex items-center justify-center">
+            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="swiper-button-next-custom absolute top-1/2 -right-8 transform -translate-y-1/2 z-10">
+          <button className="w-12 h-12 rounded-full bg-blue-700 flex items-center justify-center">
+            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+    </section>
     </div>
   );
 }

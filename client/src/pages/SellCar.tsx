@@ -2,21 +2,78 @@ import { ListingForm } from "@/components/forms/CarListingForm/ListingForm";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTranslation } from "react-i18next";
 import { useEffect } from "react";
-import { useLocation } from "wouter";
+import { useLocation, useParams } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+import { AdminCarListing, CarListing, CarPart, CarTyre, Showroom } from "@shared/schema";
+
 
 export default function SellCar() {
   const { t } = useTranslation();
-  const { isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [, navigate] = useLocation();
+  const params = useParams();
+const listingId = params.id;
 
+console.log("editing listingId",listingId);
+
+  // Redirect unauthenticated users
   useEffect(() => {
     if (!isAuthenticated) {
       navigate("/login");
     }
   }, [isAuthenticated, navigate]);
 
+  const {
+    data: listing,
+    isLoading,
+    isError,
+    error,
+  } = useQuery<AdminCarListing>({
+    queryKey: ["car-listing", listingId],
+    queryFn: async () => { 
+      const res = await fetch(`/api/car-listings/${listingId}`);
+      console.log("Response received:", res);
+
+        const data = await res.json();
+        console.log("Fetched seller data:", data);
+        return data;
+    },
+    enabled: !!listingId && isAuthenticated,
+  });
+
+  const isOwner = listing && user?.id === listing.user_id;
+
   if (!isAuthenticated) {
-    return null; // Prevent rendering while redirecting
+    return null; // Prevent flash before redirect
+  }
+
+  if (listingId && isLoading) {
+    return <div className="text-center mt-10">{t("common.loading")}</div>;
+  }
+
+  if (listingId && isError) {
+    return (
+      <div className="text-center mt-10 text-red-500">
+        {t("errors.failedToLoadListing")}
+        <div className="text-sm mt-2">{(error as Error).message}</div>
+      </div>
+    );
+  }
+
+  if (listingId && !listing) {
+    return (
+      <div className="text-center mt-10 text-red-500">
+        {t("errors.listingNotFound")}
+      </div>
+    );
+  }
+
+  if (listingId && listing && !isOwner) {
+    return (
+      <div className="text-center mt-10 text-red-500">
+        {t("errors.unauthorizedEdit")}
+      </div>
+    );
   }
 
   return (
@@ -31,7 +88,9 @@ export default function SellCar() {
 
         <div className="md:flex md:gap-6">
           <div className="w-full">
-            <ListingForm />
+            <ListingForm
+              listing={listingId && listing && isOwner ? listing : undefined}
+            />
           </div>
         </div>
       </div>

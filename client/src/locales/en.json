@@ -552,6 +552,7 @@
     "profile": "Profile"
   },
   "listing": {
+    "status": "Listing Status",
     "hasInsurance": "Insured",
     "insuranceExpiry": "Insurance Expiry",
     "inspectionReport": "Inspection Report",
@@ -662,6 +663,7 @@
     "preferencesPlaceholder": "Enter your preferences..."
   },
   "admin": {
+    "unfeatureListing": "Unfeature Listing",
     "listingDeletd": "Listing Deleted",
     "listingApproved": "Listing Approved",
     "packageUpgraded": "Package Upgraded",

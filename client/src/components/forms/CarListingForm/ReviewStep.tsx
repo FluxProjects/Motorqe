@@ -129,23 +129,23 @@ export function ReviewStep({
           <div>
             <Label>{t("listing.location")}</Label>
             <p className="font-medium">
-  {formData.basicInfo?.location && (
-    <GoogleMaps
-      center={{
-        lat: parseFloat(formData.basicInfo.location.split(",")[0]),
-        lng: parseFloat(formData.basicInfo.location.split(",")[1])
-      }}
-      zoom={17}
-      markers={[
-        {
-          lat: parseFloat(formData.basicInfo.location.split(",")[0]),
-          lng: parseFloat(formData.basicInfo.location.split(",")[1]),
-        },
-      ]}
-      containerStyle={{ width: "100%", height: "256px" }} // increased height
-    />
-  )}
-</p>
+              {formData.basicInfo?.location && (
+                <GoogleMaps
+                  center={{
+                    lat: parseFloat(formData.basicInfo.location.split(",")[0]),
+                    lng: parseFloat(formData.basicInfo.location.split(",")[1])
+                  }}
+                  zoom={17}
+                  markers={[
+                    {
+                      lat: parseFloat(formData.basicInfo.location.split(",")[0]),
+                      lng: parseFloat(formData.basicInfo.location.split(",")[1]),
+                    },
+                  ]}
+                  containerStyle={{ width: "100%", height: "256px" }} // increased height
+                />
+              )}
+            </p>
 
           </div>
         </div>
@@ -313,6 +313,55 @@ export function ReviewStep({
           <p>{t("listing.noFeaturesSelected")}</p>
         )}
       </div>
+
+      {/* Car Parts */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold text-blue-900 border-b pb-1">
+          Car Parts
+        </h3>
+
+        {data.carParts ? (
+          <div className="flex flex-wrap gap-2">
+            {Object.entries(data.carParts).map(([key, value]) => (
+              value ? (
+                <span
+                  key={key}
+                  className="bg-muted px-3 py-1 rounded-full text-sm"
+                >
+                  {`${key.replace(/([A-Z])/g, " $1").replace(/^./, str => str.toUpperCase())}: ${value}`}
+                </span>
+              ) : null
+            ))}
+          </div>
+        ) : (
+          <p>No car parts data provided.</p>
+        )}
+      </div>
+
+      {/* Car Tyres */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold text-blue-900 border-b pb-1">
+          Car Tyres
+        </h3>
+
+        {data.carTyres ? (
+          <div className="flex flex-wrap gap-2">
+            {Object.entries(data.carTyres).map(([key, value]) => (
+              value ? (
+                <span
+                  key={key}
+                  className="bg-muted px-3 py-1 rounded-full text-sm"
+                >
+                  {`${key.replace(/([A-Z])/g, " $1").replace(/^./, str => str.toUpperCase())}: ${value}`}
+                </span>
+              ) : null
+            ))}
+          </div>
+        ) : (
+          <p>No car tyres data provided.</p>
+        )}
+      </div>
+
 
       {/* Promotion Package */}
       {promotionPackage && (
