@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>Welcome to Your Upgraded Plan!</title>
+    <title>{{subject}}</title>
     <style>
         /* Email-safe CSS */
         body { 
@@ -45,20 +45,10 @@
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
-        .status-pending { 
-            background-color: #FEF3C7; 
-            color: #92400E; 
-            border: 1px solid #F59E0B;
-        }
         .status-approved { 
             background-color: #D1FAE5; 
             color: #065F46; 
             border: 1px solid #10B981;
-        }
-        .status-rejected { 
-            background-color: #FEE2E2; 
-            color: #991B1B; 
-            border: 1px solid #EF4444;
         }
         .header-section {
             background: linear-gradient(135deg, #FF6B35 0%, #E55A2B 100%);
@@ -74,6 +64,13 @@
             text-align: center;
             border-top: 1px solid #E5E7EB;
         }
+        .highlight-box {
+            background-color: #FEF3C7;
+            border-radius: 12px;
+            padding: 24px;
+            margin: 24px 0;
+            border-left: 4px solid #F59E0B;
+        }
         .info-box {
             background-color: #F9FAFB;
             border-radius: 12px;
@@ -81,26 +78,21 @@
             margin: 24px 0;
             border-left: 4px solid #FF6B35;
         }
-        .warning-box {
+        .plan-comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin: 24px 0;
+        }
+        .old-plan {
             background-color: #FEE2E2;
             border-radius: 12px;
-            padding: 24px;
-            margin: 24px 0;
-            border-left: 4px solid #EF4444;
+            padding: 20px;
         }
-        .success-box {
+        .new-plan {
             background-color: #D1FAE5;
             border-radius: 12px;
-            padding: 24px;
-            margin: 24px 0;
-            border-left: 4px solid #10B981;
-        }
-        .highlight-box {
-            background-color: #FEF3C7;
-            border-radius: 12px;
-            padding: 24px;
-            margin: 24px 0;
-            border-left: 4px solid #F59E0B;
+            padding: 20px;
         }
         @media only screen and (max-width: 600px) {
             .email-container {
@@ -113,77 +105,79 @@
             .header-section {
                 padding: 20px 16px !important;
             }
+            .plan-comparison {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 <body>
-    
     <div class="email-container">
         <div class="header-section">
             <h1 style="color: #ffffff; font-size: 32px; font-weight: bold; margin: 0;">Motorqe</h1>
-            <p style="color: #ffffff; margin: 8px 0 0 0; opacity: 0.95; font-size: 16px;">Plan Upgrade Successful</p>
+            <p style="color: #ffffff; margin: 8px 0 0 0; opacity: 0.95; font-size: 16px;">{{subject}}</p>
         </div>
         
         <div class="content-section">
             <h2 style="color: #374151; font-size: 28px; font-weight: 600; margin: 0 0 20px 0;">🚀 Welcome to Your Upgraded Plan!</h2>
             <p style="color: #6B7280; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
-                Hi <span style="color: #374151; font-weight: 600;">Syed Iftikhar</span>,
+                Hi <span style="color: #374151; font-weight: 600;">{{firstName}}</span>,
             </p>
             <p style="color: #6B7280; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
-                Congratulations! You've successfully upgraded your plan. Your new features and benefits are now active.
+                Congratulations! Your plan upgrade is complete. Your new features and benefits are now active.
             </p>
             
             <div style="text-align: center; margin: 24px 0;">
                 <span class="status-badge status-approved">UPGRADE COMPLETE</span>
             </div>
             
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 24px 0;">
-                <div style="background-color: #FEE2E2; border-radius: 12px; padding: 20px;">
+            <div class="plan-comparison">
+                <div class="old-plan">
                     <h3 style="color: #991B1B; font-size: 18px; font-weight: 600; margin: 0 0 12px 0;">Previous Plan</h3>
-                    <p style="color: #991B1B; margin: 0 0 8px 0; font-size: 14px;"><strong>Basic Plan</strong></p>
-                    <p style="color: #991B1B; margin: 0 0 4px 0; font-size: 14px;">• 3 listings maximum</p>
-                    <p style="color: #991B1B; margin: 0 0 4px 0; font-size: 14px;">• Standard support</p>
-                    <p style="color: #991B1B; margin: 0 0 4px 0; font-size: 14px;">• Basic analytics</p>
-                    <p style="color: #991B1B; margin: 0; font-size: 14px;"><strong>QR 36.50/month</strong></p>
+                    <p style="color: #991B1B; margin: 0 0 8px 0; font-size: 14px;"><strong>{{oldPlanName}}</strong></p>
+                    {{#each oldPlanFeatures}}
+                    <p style="color: #991B1B; margin: 0 0 4px 0; font-size: 14px;">• {{this}}</p>
+                    {{/each}}
+                    <p style="color: #991B1B; margin: 0; font-size: 14px;"><strong>{{oldPlanPrice}}</strong></p>
                 </div>
-                <div style="background-color: #D1FAE5; border-radius: 12px; padding: 20px;">
+                <div class="new-plan">
                     <h3 style="color: #065F46; font-size: 18px; font-weight: 600; margin: 0 0 12px 0;">Current Plan</h3>
-                    <p style="color: #065F46; margin: 0 0 8px 0; font-size: 14px;"><strong>Premium Plan</strong></p>
-                    <p style="color: #065F46; margin: 0 0 4px 0; font-size: 14px;">• Unlimited listings</p>
-                    <p style="color: #065F46; margin: 0 0 4px 0; font-size: 14px;">• Priority support</p>
-                    <p style="color: #065F46; margin: 0 0 4px 0; font-size: 14px;">• Advanced analytics</p>
-                    <p style="color: #065F46; margin: 0 0 4px 0; font-size: 14px;">• Featured listing credits</p>
-                    <p style="color: #065F46; margin: 0; font-size: 14px;"><strong>QR 109.99/month</strong></p>
+                    <p style="color: #065F46; margin: 0 0 8px 0; font-size: 14px;"><strong>{{newPlanName}}</strong></p>
+                    {{#each upgradeBenefits}}
+                    <p style="color: #065F46; margin: 0 0 4px 0; font-size: 14px;">• {{this}}</p>
+                    {{/each}}
+                    <p style="color: #065F46; margin: 0; font-size: 14px;"><strong>{{newPlanPrice}}</strong></p>
                 </div>
             </div>
             
             <div class="highlight-box">
                 <h3 style="color: #92400E; font-size: 20px; font-weight: 600; margin: 0 0 16px 0;">🎁 New Features Available</h3>
                 <ul style="color: #92400E; margin: 0; padding-left: 20px;">
-                    <li style="margin-bottom: 8px;">Create unlimited vehicle listings</li>
-                    <li style="margin-bottom: 8px;">Access to advanced analytics dashboard</li>
-                    <li style="margin-bottom: 8px;">Priority customer support</li>
-                    <li style="margin-bottom: 8px;">Monthly featured listing credits</li>
-                    <li>Early access to new platform features</li>
+                    {{#each upgradeBenefits}}
+                    <li style="margin-bottom: 8px;">{{this}}</li>
+                    {{/each}}
                 </ul>
             </div>
             
             <div class="info-box">
                 <h3 style="color: #374151; font-size: 20px; font-weight: 600; margin: 0 0 16px 0;">Billing Information</h3>
-                <p style="color: #6B7280; margin: 0 0 8px 0;"><strong>New Plan:</strong> Premium Plan</p>
-                <p style="color: #6B7280; margin: 0 0 8px 0;"><strong>Billing Cycle:</strong> Monthly</p>
-                <p style="color: #6B7280; margin: 0 0 8px 0;"><strong>Next Payment:</strong> January 30, 2025</p>
-                <p style="color: #6B7280; margin: 0 0 8px 0;"><strong>Amount:</strong> QR 109.99</p>
+                <p style="color: #6B7280; margin: 0 0 8px 0;"><strong>New Plan:</strong> {{newPlanName}}</p>
+                <p style="color: #6B7280; margin: 0 0 8px 0;"><strong>Billing Cycle:</strong> {{billingCycle}}</p>
+                <p style="color: #6B7280; margin: 0 0 8px 0;"><strong>Next Payment:</strong> {{nextPaymentDate}}</p>
+                <p style="color: #6B7280; margin: 0 0 8px 0;"><strong>Amount:</strong> {{newPlanPrice}}</p>
+                {{#if priceDifference}}
+                <p style="color: #6B7280; margin: 0;"><strong>Price Change:</strong> {{priceDifference}}</p>
+                {{/if}}
             </div>
             
             <div style="text-align: center; margin: 32px 0;">
-                <a href="#" class="email-btn">Explore Premium Features</a>
+                <a href="{{config.BASE_URL}}/account/plan" class="email-btn">Manage Your Plan</a>
             </div>
         </div>
         
         <div class="footer-section">
             <p style="color: #9CA3AF; font-size: 12px; margin: 0;">
-                © 2025 Motorqe.com. All rights reserved.
+                © {{currentYear}} Motorqe.com. All rights reserved.
             </p>
         </div>
     </div>

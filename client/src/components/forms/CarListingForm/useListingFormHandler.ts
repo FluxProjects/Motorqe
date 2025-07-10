@@ -4,7 +4,6 @@ import { useLocation } from "wouter";
 import { ListingFormData, AdminCarListing } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { roleMapping } from "@shared/permissions";
-import { config } from "server/config";
 
 interface MutationVariables {
   formData: ListingFormData;
@@ -167,7 +166,7 @@ export const useListingFormHandler = (onSuccess?: () => void) => {
                 firstName: user?.firstName || "User",
                 listingTitle: formData.basicInfo?.title || "Your listing",
                 adminComments: "Your listing edit has been received",
-                editLink: `${config.BASE_URL}/listings/${listingId}`,
+                editLink: `${process.env.BASE_URL}/listings/${listingId}`,
               },
             }),
           });

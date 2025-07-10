@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>Your Plan Has Expired</title>
+    <title>{{subject}}</title>
     <style>
         /* Email-safe CSS */
         body { 
@@ -45,17 +45,7 @@
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
-        .status-pending { 
-            background-color: #FEF3C7; 
-            color: #92400E; 
-            border: 1px solid #F59E0B;
-        }
-        .status-approved { 
-            background-color: #D1FAE5; 
-            color: #065F46; 
-            border: 1px solid #10B981;
-        }
-        .status-rejected { 
+        .status-expired { 
             background-color: #FEE2E2; 
             color: #991B1B; 
             border: 1px solid #EF4444;
@@ -74,13 +64,6 @@
             text-align: center;
             border-top: 1px solid #E5E7EB;
         }
-        .info-box {
-            background-color: #F9FAFB;
-            border-radius: 12px;
-            padding: 24px;
-            margin: 24px 0;
-            border-left: 4px solid #FF6B35;
-        }
         .warning-box {
             background-color: #FEE2E2;
             border-radius: 12px;
@@ -88,19 +71,19 @@
             margin: 24px 0;
             border-left: 4px solid #EF4444;
         }
+        .info-box {
+            background-color: #F9FAFB;
+            border-radius: 12px;
+            padding: 24px;
+            margin: 24px 0;
+            border-left: 4px solid #FF6B35;
+        }
         .success-box {
             background-color: #D1FAE5;
             border-radius: 12px;
             padding: 24px;
             margin: 24px 0;
             border-left: 4px solid #10B981;
-        }
-        .highlight-box {
-            background-color: #FEF3C7;
-            border-radius: 12px;
-            padding: 24px;
-            margin: 24px 0;
-            border-left: 4px solid #F59E0B;
         }
         @media only screen and (max-width: 600px) {
             .email-container {
@@ -117,68 +100,71 @@
     </style>
 </head>
 <body>
-    
     <div class="email-container">
         <div class="header-section">
             <h1 style="color: #ffffff; font-size: 32px; font-weight: bold; margin: 0;">Motorqe</h1>
-            <p style="color: #ffffff; margin: 8px 0 0 0; opacity: 0.95; font-size: 16px;">Plan Expiration Notice</p>
+            <p style="color: #ffffff; margin: 8px 0 0 0; opacity: 0.95; font-size: 16px;">{{subject}}</p>
         </div>
         
         <div class="content-section">
             <h2 style="color: #374151; font-size: 28px; font-weight: 600; margin: 0 0 20px 0;">Your Plan Has Expired</h2>
             <p style="color: #6B7280; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
-                Hi <span style="color: #374151; font-weight: 600;">Syed Iftikhar</span>,
+                Hi <span style="color: #374151; font-weight: 600;">{{firstName}}</span>,
             </p>
             <p style="color: #6B7280; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
-                Your <span style="color: #FF6B35; font-weight: 600;">Premium Plan</span> has expired. Your account has been downgraded to our free tier with limited features.
+                Your <span style="color: #FF6B35; font-weight: 600;">{{expiredPlanName}}</span> has expired. Your account has been downgraded to our free tier with limited features.
             </p>
             
             <div style="text-align: center; margin: 24px 0;">
-                <span class="status-badge status-rejected">PLAN EXPIRED</span>
+                <span class="status-badge status-expired">PLAN EXPIRED</span>
             </div>
             
             <div class="warning-box">
                 <h3 style="color: #991B1B; font-size: 20px; font-weight: 600; margin: 0 0 16px 0;">⚠️ Current Account Limitations</h3>
                 <ul style="color: #991B1B; margin: 0; padding-left: 20px;">
-                    <li style="margin-bottom: 8px;">Limited to 2 active listings</li>
-                    <li style="margin-bottom: 8px;">No featured listing privileges</li>
-                    <li style="margin-bottom: 8px;">Basic analytics only</li>
-                    <li style="margin-bottom: 8px;">Standard customer support</li>
-                    <li>Existing listings beyond limit are now hidden</li>
+                    {{#each currentLimitations}}
+                    <li style="margin-bottom: 8px;">{{this}}</li>
+                    {{/each}}
                 </ul>
             </div>
             
             <div class="info-box">
                 <h3 style="color: #374151; font-size: 20px; font-weight: 600; margin: 0 0 16px 0;">Expired Plan Details</h3>
-                <p style="color: #6B7280; margin: 0 0 8px 0;"><strong>Plan:</strong> Premium Plan</p>
-                <p style="color: #6B7280; margin: 0 0 8px 0;"><strong>Expired On:</strong> December 30, 2024</p>
-                <p style="color: #6B7280; margin: 0 0 8px 0;"><strong>Last Payment:</strong> November 30, 2024 - QR 109.99</p>
+                <p style="color: #6B7280; margin: 0 0 8px 0;"><strong>Plan:</strong> {{expiredPlanName}}</p>
+                <p style="color: #6B7280; margin: 0 0 8px 0;"><strong>Expired On:</strong> {{expiryDate}}</p>
+                <p style="color: #6B7280; margin: 0 0 8px 0;"><strong>Last Payment:</strong> {{lastPaymentDate}} - {{lastPaymentAmount}}</p>
                 <p style="color: #6B7280; margin: 0 0 8px 0;"><strong>Account Status:</strong> <span style="color: #EF4444;">Free Tier (Limited)</span></p>
             </div>
             
             <div class="success-box">
                 <h3 style="color: #065F46; font-size: 20px; font-weight: 600; margin: 0 0 16px 0;">💡 Renew Your Plan Today</h3>
-                <p style="color: #065F46; margin: 0 0 12px 0;">Reactivate your Premium features instantly:</p>
+                <p style="color: #065F46; margin: 0 0 12px 0;">Reactivate your premium features instantly:</p>
                 <ul style="color: #065F46; margin: 0; padding-left: 20px;">
-                    <li style="margin-bottom: 8px;">Unlimited listings</li>
-                    <li style="margin-bottom: 8px;">Featured placement options</li>
-                    <li style="margin-bottom: 8px;">Advanced analytics dashboard</li>
-                    <li>Priority customer support</li>
+                    {{#each renewalOptions}}
+                    <li style="margin-bottom: 8px;">
+                        <strong>{{planName}}</strong> ({{price}}):
+                        <ul style="margin: 4px 0 0 0; padding-left: 16px;">
+                            {{#each features}}
+                            <li>{{this}}</li>
+                            {{/each}}
+                        </ul>
+                    </li>
+                    {{/each}}
                 </ul>
             </div>
             
             <div style="text-align: center; margin: 32px 0;">
-                <a href="#" class="email-btn">Renew Your Plan</a>
+                <a href="{{config.BASE_URL}}/account/plans" class="email-btn">Renew Your Plan</a>
             </div>
             
             <p style="color: #6B7280; font-size: 14px; line-height: 1.6; margin: 24px 0 0 0; text-align: center;">
-                Need help choosing a plan? <a href="#" style="color: #FF6B35; text-decoration: underline;">Contact our support team</a>
+                Need help choosing a plan? <a href="{{config.BASE_URL}}/contact" style="color: #FF6B35; text-decoration: underline;">Contact our support team</a>
             </p>
         </div>
         
         <div class="footer-section">
             <p style="color: #9CA3AF; font-size: 12px; margin: 0;">
-                © 2025 Motorqe.com. All rights reserved.
+                © {{currentYear}} Motorqe.com. All rights reserved.
             </p>
         </div>
     </div>

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>Your Edit Request is Under Review</title>
+    <title>{{subject}}</title>
     <style>
         /* Email-safe CSS */
         body { 
@@ -50,16 +50,6 @@
             color: #92400E; 
             border: 1px solid #F59E0B;
         }
-        .status-approved { 
-            background-color: #D1FAE5; 
-            color: #065F46; 
-            border: 1px solid #10B981;
-        }
-        .status-rejected { 
-            background-color: #FEE2E2; 
-            color: #991B1B; 
-            border: 1px solid #EF4444;
-        }
         .header-section {
             background: linear-gradient(135deg, #FF6B35 0%, #E55A2B 100%);
             padding: 30px 24px;
@@ -81,27 +71,6 @@
             margin: 24px 0;
             border-left: 4px solid #FF6B35;
         }
-        .warning-box {
-            background-color: #FEE2E2;
-            border-radius: 12px;
-            padding: 24px;
-            margin: 24px 0;
-            border-left: 4px solid #EF4444;
-        }
-        .success-box {
-            background-color: #D1FAE5;
-            border-radius: 12px;
-            padding: 24px;
-            margin: 24px 0;
-            border-left: 4px solid #10B981;
-        }
-        .highlight-box {
-            background-color: #FEF3C7;
-            border-radius: 12px;
-            padding: 24px;
-            margin: 24px 0;
-            border-left: 4px solid #F59E0B;
-        }
         @media only screen and (max-width: 600px) {
             .email-container {
                 width: 100% !important;
@@ -117,17 +86,16 @@
     </style>
 </head>
 <body>
-    
     <div class="email-container">
         <div class="header-section">
             <h1 style="color: #ffffff; font-size: 32px; font-weight: bold; margin: 0;">Motorqe</h1>
-            <p style="color: #ffffff; margin: 8px 0 0 0; opacity: 0.95; font-size: 16px;">Edit Request Submitted</p>
+            <p style="color: #ffffff; margin: 8px 0 0 0; opacity: 0.95; font-size: 16px;">{{subject}}</p>
         </div>
         
         <div class="content-section">
             <h2 style="color: #374151; font-size: 28px; font-weight: 600; margin: 0 0 20px 0;">Your Edit Request is Under Review</h2>
             <p style="color: #6B7280; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
-                Hi <span style="color: #374151; font-weight: 600;">Syed Iftikhar</span>,
+                Hi <span style="color: #374151; font-weight: 600;">{{firstName}}</span>,
             </p>
             <p style="color: #6B7280; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
                 We've received your request to edit your listing. Our team is reviewing the changes to ensure they comply with our guidelines.
@@ -139,24 +107,26 @@
             
             <div class="info-box">
                 <h3 style="color: #374151; font-size: 20px; font-weight: 600; margin: 0 0 16px 0;">Edit Request Details</h3>
-                <p style="color: #6B7280; margin: 0 0 8px 0;"><strong>Vehicle:</strong> 2022 Toyota Camry</p>
-                <p style="color: #6B7280; margin: 0 0 8px 0;"><strong>Listing ID:</strong> #ML789456</p>
-                <p style="color: #6B7280; margin: 0 0 8px 0;"><strong>Edit Submitted:</strong> December 30, 2024</p>
-                <p style="color: #6B7280; margin: 0 0 8px 0;"><strong>Changes Made:</strong> Price update, new photos added</p>
+                <p style="color: #6B7280; margin: 0 0 8px 0;"><strong>Vehicle:</strong> {{listingTitle}}</p>
+                <p style="color: #6B7280; margin: 0 0 8px 0;"><strong>Listing ID:</strong> #{{listingId}}</p>
+                <p style="color: #6B7280; margin: 0 0 8px 0;"><strong>Edit Submitted:</strong> {{submissionDate}}</p>
+                {{#if adminComments}}
+                <p style="color: #6B7280; margin: 0 0 8px 0;"><strong>Admin Comments:</strong> {{adminComments}}</p>
+                {{/if}}
             </div>
             
             <p style="color: #6B7280; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
-                We'll notify you once the review is complete, typically within 24-48 hours.
+                We'll notify you once the review is complete, typically within {{approvalTimeframe}}.
             </p>
             
             <div style="text-align: center; margin: 32px 0;">
-                <a href="#" class="email-btn">View Current Listing</a>
+                <a href="{{editLink}}" class="email-btn">View Current Listing</a>
             </div>
         </div>
         
         <div class="footer-section">
             <p style="color: #9CA3AF; font-size: 12px; margin: 0;">
-                © 2025 Motorqe.com. All rights reserved.
+                © {{currentYear}} Motorqe.com. All rights reserved.
             </p>
         </div>
     </div>
