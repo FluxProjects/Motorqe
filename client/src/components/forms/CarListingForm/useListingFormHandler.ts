@@ -4,6 +4,7 @@ import { useLocation } from "wouter";
 import { ListingFormData, AdminCarListing } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { roleMapping } from "@shared/permissions";
+import { config } from "server/config";
 
 interface MutationVariables {
   formData: ListingFormData;
@@ -101,8 +102,8 @@ export const useListingFormHandler = (onSuccess?: () => void) => {
         is_inspected: formData.specifications?.isInspected,
         inspection_report: formData.specifications?.inspectionReport,
         user_id: formData.basicInfo?.userId
-        ? Number(formData.basicInfo.userId)
-        : user?.id, // will override below if admin posting on behalf
+          ? Number(formData.basicInfo.userId)
+          : user?.id, // will override below if admin posting on behalf
         showroom_id: formData.basicInfo?.showroomId
           ? Number(formData.basicInfo.showroomId)
           : undefined,
@@ -117,11 +118,15 @@ export const useListingFormHandler = (onSuccess?: () => void) => {
         status: formData?.status,
       };
 
-      // ========== 👑 ADMIN POSTING ON BEHALF ==========
-      if (user?.roleId > 6 && formData.basicInfo?.userId) {
+
+      // ========== 👑 ADMIN POSTING ON BEHALF ========== 
+      // Assuming payload might be undefined:
+      if (payload && formData.basicInfo?.userId) {
         console.log("👑 Admin posting on behalf of user ID:", formData.basicInfo.userId);
-        payload.user_id = formData.basicInfo.userId;
+        payload.user_id =  Number(formData.basicInfo.userId);
       }
+
+
 
       console.log("🛠 Constructed payload:", payload);
 
@@ -148,6 +153,69 @@ export const useListingFormHandler = (onSuccess?: () => void) => {
       const listingId = savedListing.id;
 
       console.log("✅ Listing saved, ID:", listingId);
+
+      // Send appropriate email notification based on whether this is a new listing or update
+      try {
+        if (listing) {
+          // Send edit request email
+          await fetch("/api/send-edit-request-email", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              userEmail: user?.email || "",
+              data: {
+                firstName: user?.firstName || "User",
+                listingTitle: formData.basicInfo?.title || "Your listing",
+                adminComments: "Your listing edit has been received",
+                editLink: `${config.BASE_URL}/listings/${listingId}`,
+              },
+            }),
+          });
+        } else {
+          // Send pending approval email
+          await fetch("/api/send-pending-approval-email", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              userEmail: user?.email || "",
+              data: {
+                firstName: user?.firstName || "User",
+                listingTitle: formData.basicInfo?.title || "Your listing",
+                approvalTimeframe: "24-48 hours",
+              },
+            }),
+          });
+
+          // Send featured ad confirmation if applicable
+          if (formData.package?.featureDuration && formData.package.featureDuration > 0) {
+            await fetch("/api/send-featured-ad-confirmation", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                userEmail: user?.email || "",
+                data: {
+                  firstName: user?.firstName || "User",
+                  listingTitle: formData.basicInfo?.title || "Your listing",
+                  featureDuration: `${formData.package.featureDuration} days`,
+                  featureBenefits: [
+                    "Increased visibility in search results",
+                    "Premium placement on the homepage",
+                    "More inquiries from potential buyers",
+                  ],
+                },
+              }),
+            });
+          }
+        }
+      } catch (emailError) {
+        console.error("❌ Failed to send listing notification email:", emailError);
+        toast({
+          title: "Warning",
+          description: "Listing saved but failed to send notification email",
+          variant: "destructive",
+        });
+      }
+
 
       // ================= CAR PARTS SAVE =================
       if (formData.carParts) {

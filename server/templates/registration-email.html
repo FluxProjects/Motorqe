@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>Welcome to Motorqe!</title>
+    <title>{{subject}}</title>
     <style>
         /* Email-safe CSS */
         body { 
@@ -36,30 +36,6 @@
         .email-btn:hover {
             background-color: #E55A2B;
         }
-        .status-badge {
-            display: inline-block;
-            padding: 6px 16px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .status-pending { 
-            background-color: #FEF3C7; 
-            color: #92400E; 
-            border: 1px solid #F59E0B;
-        }
-        .status-approved { 
-            background-color: #D1FAE5; 
-            color: #065F46; 
-            border: 1px solid #10B981;
-        }
-        .status-rejected { 
-            background-color: #FEE2E2; 
-            color: #991B1B; 
-            border: 1px solid #EF4444;
-        }
         .header-section {
             background: linear-gradient(135deg, #FF6B35 0%, #E55A2B 100%);
             padding: 30px 24px;
@@ -81,27 +57,6 @@
             margin: 24px 0;
             border-left: 4px solid #FF6B35;
         }
-        .warning-box {
-            background-color: #FEE2E2;
-            border-radius: 12px;
-            padding: 24px;
-            margin: 24px 0;
-            border-left: 4px solid #EF4444;
-        }
-        .success-box {
-            background-color: #D1FAE5;
-            border-radius: 12px;
-            padding: 24px;
-            margin: 24px 0;
-            border-left: 4px solid #10B981;
-        }
-        .highlight-box {
-            background-color: #FEF3C7;
-            border-radius: 12px;
-            padding: 24px;
-            margin: 24px 0;
-            border-left: 4px solid #F59E0B;
-        }
         @media only screen and (max-width: 600px) {
             .email-container {
                 width: 100% !important;
@@ -117,35 +72,44 @@
     </style>
 </head>
 <body>
-    
     <div class="email-container">
         <div class="header-section">
             <h1 style="color: #ffffff; font-size: 32px; font-weight: bold; margin: 0;">Motorqe</h1>
-            <p style="color: #ffffff; margin: 8px 0 0 0; opacity: 0.95; font-size: 16px;">Your Car Service Platform</p>
+            <p style="color: #ffffff; margin: 8px 0 0 0; opacity: 0.95; font-size: 16px;">{{subject}}</p>
         </div>
         
         <div class="content-section">
             <h2 style="color: #374151; font-size: 28px; font-weight: 600; margin: 0 0 20px 0;">Welcome to Motorqe!</h2>
             <p style="color: #6B7280; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
-                Hi <span style="color: #374151; font-weight: 600;">Syed Iftikhar</span>,
+                Hi <span style="color: #374151; font-weight: 600;">{{firstName}}</span>,
             </p>
             <p style="color: #6B7280; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
                 Thank you for joining Motorqe! Your account has been successfully created. You can now start listing your vehicles or browse available car services.
             </p>
-            <p style="color: #6B7280; font-size: 16px; line-height: 1.6; margin: 0 0 32px 0;">
-                To get started, please verify your email address by clicking the button below:
-            </p>
-            <div style="text-align: center; margin: 32px 0;">
-                <a href="#" class="email-btn">Verify Email Address</a>
+            
+            <div class="info-box">
+                <p style="color: #374151; margin: 0 0 16px 0; font-weight: 600;">Complete your registration:</p>
+                <p style="color: #6B7280; margin: 0 0 8px 0;">Please verify your email address to activate your account and access all features.</p>
+                <p style="color: #6B7280; margin: 0;">This link will expire in 24 hours.</p>
             </div>
+            
+            <div style="text-align: center; margin: 32px 0;">
+                <a href="{{verificationLink}}" class="email-btn">Verify Email Address</a>
+            </div>
+            
             <p style="color: #6B7280; font-size: 14px; line-height: 1.6; margin: 24px 0 0 0;">
-                If you didn't create an account with us, please ignore this email.
+                If you didn't create an account with us, please ignore this email or 
+                <a href="mailto:support@motorqe.com" style="color: #FF6B35; text-decoration: none;">contact support</a>.
             </p>
         </div>
         
         <div class="footer-section">
             <p style="color: #9CA3AF; font-size: 12px; margin: 0;">
-                © 2025 Motorqe.com. All rights reserved.
+                © {{currentYear}} Motorqe.com. All rights reserved.
+            </p>
+            <p style="color: #9CA3AF; font-size: 12px; margin: 8px 0 0 0;">
+                <a href="{{config.BASE_URL}}" style="color: #9CA3AF; text-decoration: none;">Visit our website</a> | 
+                <a href="{{config.BASE_URL}}/privacy" style="color: #9CA3AF; text-decoration: none;">Privacy Policy</a>
             </p>
         </div>
     </div>

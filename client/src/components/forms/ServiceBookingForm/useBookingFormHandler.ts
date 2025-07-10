@@ -1,4 +1,4 @@
-import { UseMutateFunction, useMutation } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation } from "wouter";
 import { ServiceBookingFormData, AdminServiceBooking } from "@shared/schema";
@@ -41,7 +41,7 @@ export const useServiceBookingFormHandler = (onSuccess?: () => void) => {
       console.log("Constructed payload:", payload);
 
       const method = booking ? "PUT" : "POST";
-      const url = booking 
+      const url = booking
         ? `/api/service-bookings/${booking.id}`
         : "/api/service-bookings";
 
@@ -59,13 +59,82 @@ export const useServiceBookingFormHandler = (onSuccess?: () => void) => {
         throw new Error(errorData.message || "Failed to save booking");
       }
 
-      return res;
+      const savedBooking = await res.json();
+
+      // Only send notifications for new bookings (not updates)
+      if (!booking) {
+        try {
+          // Fetch additional data needed for notifications
+          const [service, showroom, customer] = await Promise.all([
+            fetch(`/api/services/${formData.serviceId}`).then(res => res.json()),
+            formData.showroomId
+              ? fetch(`/api/showrooms/${formData.showroomId}`).then(res => res.json())
+              : Promise.resolve(null),
+            fetch(`/api/users/${formData.userId}`).then(res => res.json())
+          ]);
+
+          // Format date/time for display
+          const bookingDate = new Date(formData.scheduledAt);
+          const formattedDate = bookingDate.toLocaleDateString();
+          const formattedTime = bookingDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+          // Send customer confirmation email
+          await fetch("/api/send-service-booking-email", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              customerEmail: customer.email,
+              data: {
+                firstName: customer.firstName || "Customer",
+                serviceName: service.name,
+                bookingDate: formattedDate,
+                bookingTime: formattedTime,
+                garageName: showroom?.name || "Our Service Center",
+                garageAddress: showroom?.address || "Contact us for location details",
+                contactPhone: showroom?.phone,
+                preparationInstructions: service.preparationInstructions,
+              },
+            }),
+          });
+
+          if (showroom && showroom.notificationEmail) {
+            await fetch("/api/send-booking-confirmed-email", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                garageEmail: showroom.notificationEmail,
+                data: {
+                  firstName: showroom.contactPerson || "Team",
+                  serviceName: service.name,
+                  bookingDate: formattedDate,
+                  bookingTime: formattedTime,
+                  location: showroom.address,
+                  contactPhone: customer.phone || "Not provided",
+                  cancellationPolicy: "24 hours notice required",
+                },
+              }),
+            });
+          }
+
+
+        } catch (emailError) {
+          console.error('Failed to send booking notifications:', emailError);
+          // Don't fail the booking if notifications fail
+          toast({
+            title: "Warning",
+            description: "Booking saved but failed to send notifications",
+            variant: "destructive",
+          });
+        }
+      }
+
+      return savedBooking;
     },
 
     onSuccess: () => {
       console.log("Booking saved successfully");
       const role = user?.roleId ? roleMapping[user.roleId] : "CUSTOMER";
-      
+
       if (role === "ADMIN" || role === "SUPER_ADMIN") {
         navigate("/admin/bookings");
       } else if (role === "DEALER" || role === "GARAGE") {

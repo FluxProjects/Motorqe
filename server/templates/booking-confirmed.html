@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>Your Booking is Confirmed!</title>
+    <title>{{subject}}</title>
     <style>
         /* Email-safe CSS */
         body { 
@@ -45,20 +45,10 @@
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
-        .status-pending { 
-            background-color: #FEF3C7; 
-            color: #92400E; 
-            border: 1px solid #F59E0B;
-        }
-        .status-approved { 
+        .status-confirmed { 
             background-color: #D1FAE5; 
             color: #065F46; 
             border: 1px solid #10B981;
-        }
-        .status-rejected { 
-            background-color: #FEE2E2; 
-            color: #991B1B; 
-            border: 1px solid #EF4444;
         }
         .header-section {
             background: linear-gradient(135deg, #FF6B35 0%, #E55A2B 100%);
@@ -74,33 +64,12 @@
             text-align: center;
             border-top: 1px solid #E5E7EB;
         }
-        .info-box {
-            background-color: #F9FAFB;
-            border-radius: 12px;
-            padding: 24px;
-            margin: 24px 0;
-            border-left: 4px solid #FF6B35;
-        }
-        .warning-box {
-            background-color: #FEE2E2;
-            border-radius: 12px;
-            padding: 24px;
-            margin: 24px 0;
-            border-left: 4px solid #EF4444;
-        }
         .success-box {
             background-color: #D1FAE5;
             border-radius: 12px;
             padding: 24px;
             margin: 24px 0;
             border-left: 4px solid #10B981;
-        }
-        .highlight-box {
-            background-color: #FEF3C7;
-            border-radius: 12px;
-            padding: 24px;
-            margin: 24px 0;
-            border-left: 4px solid #F59E0B;
         }
         @media only screen and (max-width: 600px) {
             .email-container {
@@ -117,48 +86,53 @@
     </style>
 </head>
 <body>
-    
     <div class="email-container">
         <div class="header-section">
             <h1 style="color: #ffffff; font-size: 32px; font-weight: bold; margin: 0;">Motorqe</h1>
-            <p style="color: #ffffff; margin: 8px 0 0 0; opacity: 0.95; font-size: 16px;">Booking Confirmed!</p>
+            <p style="color: #ffffff; margin: 8px 0 0 0; opacity: 0.95; font-size: 16px;">{{subject}}</p>
         </div>
         
         <div class="content-section">
             <h2 style="color: #374151; font-size: 28px; font-weight: 600; margin: 0 0 20px 0;">🎉 Your Booking is Confirmed!</h2>
             <p style="color: #6B7280; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
-                Hi <span style="color: #374151; font-weight: 600;">Syed Iftikhar</span>,
+                Hi <span style="color: #374151; font-weight: 600;">{{firstName}}</span>,
             </p>
             <p style="color: #6B7280; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
                 Great news! Your booking request has been confirmed. Here are the details of your reservation:
             </p>
             
             <div style="text-align: center; margin: 24px 0;">
-                <span class="status-badge status-approved">CONFIRMED</span>
+                <span class="status-badge status-confirmed">CONFIRMED</span>
             </div>
             
             <div class="success-box">
                 <h3 style="color: #065F46; font-size: 20px; font-weight: 600; margin: 0 0 16px 0;">Booking Details</h3>
-                <p style="color: #065F46; margin: 0 0 8px 0;"><strong>Vehicle:</strong> 2022 Toyota Camry</p>
-                <p style="color: #065F46; margin: 0 0 8px 0;"><strong>Booking ID:</strong> #BK123456</p>
-                <p style="color: #065F46; margin: 0 0 8px 0;"><strong>Date & Time:</strong> January 15, 2025 at 10:00 AM</p>
-                <p style="color: #065F46; margin: 0 0 8px 0;"><strong>Duration:</strong> 3 days</p>
-                <p style="color: #065F46; margin: 0 0 8px 0;"><strong>Total Cost:</strong> QR 655.00</p>
-                <p style="color: #065F46; margin: 0 0 8px 0;"><strong>Provider:</strong> Mike's Car Rentals</p>
+                <p style="color: #065F46; margin: 0 0 8px 0;"><strong>Service:</strong> {{serviceName}}</p>
+                <p style="color: #065F46; margin: 0 0 8px 0;"><strong>Date:</strong> {{bookingDate}}</p>
+                <p style="color: #065F46; margin: 0 0 8px 0;"><strong>Time:</strong> {{bookingTime}}</p>
+                <p style="color: #065F46; margin: 0 0 8px 0;"><strong>Location:</strong> {{garageName}}</p>
+                <p style="color: #065F46; margin: 0 0 8px 0;"><strong>Address:</strong> {{garageAddress}}</p>
+                <p style="color: #065F46; margin: 0 0 8px 0;"><strong>Contact:</strong> {{contactPhone}}</p>
             </div>
             
+            {{#if preparationInstructions}}
             <p style="color: #6B7280; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
-                Please arrive on time and bring your valid driver's license. You'll receive pickup instructions closer to your booking date.
+                <strong>Preparation Instructions:</strong> {{preparationInstructions}}
+            </p>
+            {{/if}}
+            
+            <p style="color: #6B7280; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
+                Please arrive on time and bring any required documents. You'll receive reminder notifications before your appointment.
             </p>
             
             <div style="text-align: center; margin: 32px 0;">
-                <a href="#" class="email-btn">View Booking Details</a>
+                <a href="{{config.BASE_URL}}/bookings" class="email-btn">View My Bookings</a>
             </div>
         </div>
         
         <div class="footer-section">
             <p style="color: #9CA3AF; font-size: 12px; margin: 0;">
-                © 2025 Motorqe.com. All rights reserved.
+                © {{currentYear}} Motorqe.com. All rights reserved.
             </p>
         </div>
     </div>

@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 interface Config {
+    BASE_URL: any;
     JWT_SECRET: string;
     JWT_EXPIRES_IN: string;
     DATABASE_URL: string;

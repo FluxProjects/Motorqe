@@ -3301,6 +3301,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+
+  app.post("/api/send-service-booking-email", async (req, res) => {
+  try {
+    const { customerEmail, data } = req.body;
+    await notificationService.sendServiceBookingEmail(customerEmail, data);
+    res.json({ message: "Customer service booking email sent successfully." });
+  } catch (error) {
+    console.error("Failed to send customer service booking email:", error);
+    res.status(500).json({ message: "Failed to send customer service booking email", error });
+  }
+});
+
+app.post("/api/send-booking-confirmed-email", async (req, res) => {
+  try {
+    const { garageEmail, data } = req.body;
+    await notificationService.sendBookingConfirmedEmail(garageEmail, data);
+    res.json({ message: "Garage booking confirmed email sent successfully." });
+  } catch (error) {
+    console.error("Failed to send garage booking confirmed email:", error);
+    res.status(500).json({ message: "Failed to send garage booking confirmed email", error });
+  }
+});
+
+app.post("/api/send-pending-approval-email", async (req, res) => {
+  try {
+    const { userEmail, data } = req.body;
+    await notificationService.sendPendingApprovalEmail(userEmail, data);
+    res.json({ message: "Pending approval email sent successfully." });
+  } catch (error) {
+    console.error("Failed to send pending approval email:", error);
+    res.status(500).json({ message: "Failed to send pending approval email", error });
+  }
+});
+
+app.post("/api/send-edit-request-email", async (req, res) => {
+  try {
+    const { userEmail, data } = req.body;
+    await notificationService.sendEditRequestEmail(userEmail, data);
+    res.json({ message: "Edit request email sent successfully." });
+  } catch (error) {
+    console.error("Failed to send edit request email:", error);
+    res.status(500).json({ message: "Failed to send edit request email", error });
+  }
+});
+
+app.post("/api/send-featured-ad-confirmation", async (req, res) => {
+  try {
+    const { userEmail, data } = req.body;
+    await notificationService.sendFeaturedAdConfirmation(userEmail, data);
+    res.json({ message: "Featured ad confirmation email sent successfully." });
+  } catch (error) {
+    console.error("Failed to send featured ad confirmation email:", error);
+    res.status(500).json({ message: "Failed to send featured ad confirmation email", error });
+  }
+});
+
+
+
   const httpServer = createServer(app);
   return httpServer;
 }

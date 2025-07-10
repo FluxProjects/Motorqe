@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { storage } from "server/storage";
 import type { Request, Response } from "express";
+import { notificationService } from "server/services/notification";
 
 export const listingFeatureUpgradeRequestRoutes = Router();
 
@@ -38,9 +39,53 @@ listingFeatureUpgradeRequestRoutes.put('/:id/approve', async (req, res) => {
   try {
     const { status, remarks, adminId } = req.body;
     const requestId = Number(req.params.id);
+    
+    // Process the request first
     const result = await storage.processListingFeatureUpgradeRequest(requestId, status, adminId, remarks);
+    
+    // Fetch additional details needed for notifications
+    const [requestDetails, listing, user, adminUser] = await Promise.all([
+      storage.getListingFeatureUpgradeRequest(requestId),
+      storage.getCarListingById(result.listing_id),
+      storage.getUser(result.requested_by),
+      storage.getUser(adminId)
+    ]);
+    
+    // Send appropriate notifications based on status
+    if (status === 'approved') {
+      // Send approval notification to user
+      await notificationService.sendFeaturedAdConfirmation(
+        user.email,
+        {
+          firstName: user.first_name || 'Customer',
+          listingTitle: listing.title || 'Your listing',
+          featureDuration: requestDetails.duration_days ? `${requestDetails.duration_days} days` : '7 days',
+          featureBenefits: [
+            'Premium placement in search results',
+            'Increased visibility on homepage',
+            'Priority in customer recommendations'
+          ]
+        }
+      );
+      
+      // Send admin confirmation
+
+    } else if (status === 'rejected') {
+      // Send rejection notification to user
+      await notificationService.sendListingRejectedEmail(
+        user.email,
+        {
+          firstName: user.first_name || 'Customer',
+          listingTitle: listing.title || 'Your listing',
+          rejectionReason: remarks || 'Does not meet our featuring requirements',
+          resubmissionInstructions: 'Please review our guidelines and submit a new request if applicable'
+        }
+      );
+    }
+    
     res.json(result);
   } catch (error) {
+    console.error('Feature upgrade approval error:', error);
     res.status(500).json({ message: "Failed to process feature upgrade", error });
   }
 });
@@ -49,8 +94,27 @@ listingFeatureUpgradeRequestRoutes.put('/:id/approve', async (req, res) => {
 listingFeatureUpgradeRequestRoutes.post("/", async (req: Request, res: Response) => {
   try {
     const newRequest = await storage.createListingFeatureUpgradeRequest(req.body);
+    
+    // Fetch additional details for notification
+    const [listing, user] = await Promise.all([
+      storage.getCarListingById(newRequest.listing_id),
+      storage.getUser(newRequest.requested_by)
+    ]);
+    
+    
+    // Send confirmation to user
+    await notificationService.sendPendingApprovalEmail(
+      user.email,
+      {
+        firstName: user.first_name || 'Customer',
+        listingTitle: listing.title || 'Your listing',
+        approvalTimeframe: 'Our team will review your request within 2 business days'
+      }
+    );
+    
     res.status(201).json(newRequest);
   } catch (error) {
+    console.error('Feature upgrade request error:', error);
     res.status(500).json({ message: "Failed to create feature upgrade request", error });
   }
 });

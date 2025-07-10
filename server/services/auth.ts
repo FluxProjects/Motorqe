@@ -2,6 +2,7 @@ import { db } from "../db";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { config } from "../config";
+import { notificationService } from "./notification";
 
 export async function loginUser(email: string, password: string) {
 
@@ -85,7 +86,6 @@ export async function registerUser({
   password: string;
   role: string;
 }) {
-
   // Validate input
   if (!email || !password || !firstName || !username || !role) {
     throw new Error("All fields are required");
@@ -118,7 +118,7 @@ export async function registerUser({
     `INSERT INTO users (email, password, username, first_name, last_name, role_id, phone) 
      VALUES ($1, $2, $3, $4, $5, (SELECT id FROM roles WHERE name = $6), $7) 
      RETURNING id, first_name as "firstName", last_name as "lastName", username, email, phone, role_id as "roleId"`,
-    [email, hashedPassword, username, firstName, lastName, role, phone] // Assuming phone is optional or null
+    [email, hashedPassword, username, firstName, lastName, role, phone]
   );
 
   const newUser = insertResult[0];
@@ -132,8 +132,36 @@ export async function registerUser({
     config.JWT_SECRET,
     {
       expiresIn: config.JWT_EXPIRES_IN
-    } as jwt.SignOptions // Explicit type assertion
+    } as jwt.SignOptions
   );
+
+  // Generate verification token (you can use your existing generateToken function)
+  const verificationToken = generateToken();
+  const verificationLink = `${config.BASE_URL}/verify-email?token=${verificationToken}`;
+
+  // Store verification token in database (you'll need to add this to your users table or create a separate table)
+  await db.query(
+    `UPDATE users SET email_verification_token = $1 WHERE id = $2`,
+    [verificationToken, newUser.id]
+  );
+
+  try {
+    // Send welcome and verification email using the notification service
+    await notificationService.sendRegistrationEmail(email, {
+      firstName: firstName,
+      verificationLink: verificationLink
+    });
+
+    // You can also create a notification record if needed
+    await notificationService.createUserRegistrationNotifications(
+      newUser.id,
+      email,
+      phone || null
+    );
+  } catch (emailError) {
+    console.error('Failed to send registration email:', emailError);
+    // Don't fail the registration if email fails, just log it
+  }
 
   // Return the token and user info (excluding the password)
   const { password: _, ...publicUser } = newUser;
@@ -142,7 +170,7 @@ export async function registerUser({
     token,
     user: publicUser
   };
-}
+};
 
 export function verifyToken(token: string): any {
   try {
@@ -161,6 +189,42 @@ export async function verifyPassword(
   hashedPassword: string
 ): Promise<boolean> {
   return await bcrypt.compare(password, hashedPassword);
+}
+
+export async function requestPasswordReset(email: string) {
+  // Check if user exists
+  const result = await db.query(`SELECT id FROM users WHERE email = $1`, [email]);
+  if (result.length === 0) {
+    // Don't reveal if user doesn't exist for security
+    return { success: true };
+  }
+
+  const user = result[0];
+  
+  // Generate reset token
+  const resetToken = generateToken();
+  const resetLink = `${config.BASE_URL}/reset-password?token=${resetToken}`;
+  
+  // Store token with expiry in database
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours from now
+  await db.query(
+    `UPDATE users SET password_reset_token = $1, password_reset_expires = $2 WHERE id = $3`,
+    [resetToken, expiresAt, user.id]
+  );
+
+  try {
+    // Send password reset email
+    await notificationService.sendPasswordResetEmail(email, {
+      firstName: 'User', // You might want to fetch the actual name
+      resetLink: resetLink,
+      expiryHours: 24
+    });
+  } catch (error) {
+    console.error('Failed to send password reset email:', error);
+    throw new Error('Failed to send password reset email');
+  }
+
+  return { success: true };
 }
 
 export function generateOTP(): string {
