@@ -44,7 +44,7 @@ import Login from "./pages/Login";
 import Review from "./pages/Review";
 import Feedback from "./pages/Feedback";
 import ConfirmFeedback from "./pages/ConfirmFeedback";
-import ServiceBookingConfirmation from "./pages/ServiceBookingConfirmation";
+
 
 // 👤 Buyer Pages
 import BuyerDashboard from "./pages/buyer/BuyerDashboard";
@@ -57,6 +57,11 @@ import GarageServiceListings from "./pages/showroom/GarageServiceListings";
 import GarageServiceBookings from "./pages/showroom/GarageServiceBookings";
 import GarageMessaging from "./pages/showroom/GarageMessages";
 import GarageProfile from "./pages/showroom/GarageProfile";
+import ServiceBookingConfirmation from "./pages/ServiceBookingConfirmation";
+import CarListingConfirmation from "./pages/CarListingConfirmation";
+import FeatureAdUpgrade from "./pages/FeatureAdUpgrade";
+import FeatureUpgradeConfirmation from "./pages/FeatureUpgradeConfirmation";
+import PackageUpgradeConfirmation from "./pages/PackageUpgradeConfirmation";
 
 // 🛠️ Admin Pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -162,7 +167,6 @@ function functionStaticPage({ keyParam }: { keyParam: string }) {
           <Route path="/review" component={Review} />
           <Route path="/confirmfeedback" component={ConfirmFeedback} />
           <Route path="/feedback" component={Feedback} />
-          <Route path="/confirmedbooking" component={ServiceBookingConfirmation} />
 
           {/* ---------- Sell Car & Service--------------- */}
           <Route path="/sell-car" component={SellCar} />
@@ -260,6 +264,17 @@ function functionStaticPage({ keyParam }: { keyParam: string }) {
             </ProtectedRoute>
           </Route>
 
+          <Route path="/confirmedlisting" component={CarListingConfirmation} />
+          <Route path="/confirmedlisting/:id" component={CarListingConfirmation} />
+          
+          <Route path="/feature-ad-upgrade" component={FeatureAdUpgrade} />
+          <Route path="/feature-ad-upgrade/:id" component={FeatureAdUpgrade} />
+          <Route path="/feature-upgrade-confirmation" component={FeatureUpgradeConfirmation} />
+          <Route path="/feature-upgrade-confirmation/:id" component={FeatureUpgradeConfirmation} />
+
+          <Route path="/package-upgrade-confirmation" component={PackageUpgradeConfirmation} />
+          <Route path="/package-upgrade-confirmation/:id" component={PackageUpgradeConfirmation} />
+
           <Route path="/garage-dashboard">
             <ProtectedRoute permissions={[Permission.CREATE_SHOWROOM_PROFILE]} fallback="/">
               <GarageDashboard />
@@ -285,6 +300,9 @@ function functionStaticPage({ keyParam }: { keyParam: string }) {
               <GarageProfile />
             </ProtectedRoute>
           </Route>
+
+          <Route path="/confirmedbooking" component={ServiceBookingConfirmation} />
+          <Route path="/confirmedbooking/:id" component={ServiceBookingConfirmation} />
 
           {/* ---------- Admin Routes ---------- */}
           <Route path="/admin">

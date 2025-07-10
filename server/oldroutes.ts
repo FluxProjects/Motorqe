@@ -439,7 +439,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-
   // GET all engine capacities
   app.get("/api/engine-capacities", async (_req, res) => {
     try {
@@ -533,24 +532,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   ];
 
   // Car Listings
-  app.get("/api/car-listings", async (req, res) => {
-    console.log("Received request to /api/car-listings with query:", req.query);
-    try {
-      const filters = extractFiltersFromQuery(req.query);
-
-      console.log("Extracted filters:", filters);
-
-      const listings = await storage.getAllCarListings(filters);
-      console.log("Retrieved listings count:", listings.length);
-
-      res.json(listings);
-    } catch (error) {
-      console.error("Failed to fetch listings:", error);
-      res.status(500).json({ message: "Failed to fetch listings", error });
-    }
-  });
-
-
+  
 
   app.get("/api/car-featured", async (req, res) => {
     try {
@@ -559,23 +541,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(featuredlistings);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch listings", error });
-    }
-  });
-
-  app.get("/api/car-listings/:id", async (req, res) => {
-    try {
-      const listing = await storage.getCarListingById(Number(req.params.id));
-
-      if (listing) {
-        console.log("Fetched Car Listing:", listing); // ✅ log the full response
-        res.json(listing);
-      } else {
-        console.log(`Listing with ID ${req.params.id} not found`);
-        res.status(404).json({ message: "Listing not found" });
-      }
-    } catch (error) {
-      console.error("Error fetching listing:", error);
-      res.status(500).json({ message: "Failed to fetch listing", error });
     }
   });
 
@@ -624,6 +589,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/car-listings/status-counts", async (req, res) => {
+    try {
+        console.log("➡️ Fetching listing status counts...");
+        const counts = await storage.getListingStatusCounts();
+        console.log("✅ Counts fetched:", counts);
+        res.json(counts);
+    } catch (error) {
+        console.error("❌ Error fetching listing status counts:", error);
+        res.status(500).json({
+            message: "Failed to fetch listing status counts",
+            error: error instanceof Error ? error.message : error,
+        });
+    }
+  });
+
+  app.get("/api/car-listings", async (req, res) => {
+    console.log("Received request to /api/car-listings with query:", req.query);
+    try {
+      const filters = extractFiltersFromQuery(req.query);
+
+      console.log("Extracted filters:", filters);
+
+      const listings = await storage.getAllCarListings(filters);
+
+      console.log("Retrieved listings count:", listings.length);
+
+      res.json(listings);
+    } catch (error) {
+      console.error("Failed to fetch listings:", error);
+      res.status(500).json({ message: "Failed to fetch listings", error });
+    }
+  });
 
   app.post("/api/car-listings", async (req, res) => {
     try {
@@ -688,6 +685,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+   app.get("/api/car-listings/:id", async (req, res) => {
+    try {
+      
+      const listingId = Number(req.params.id);
+
+      console.log("➡️ Requested listingId:", listingId);
+      const listing = await storage.getCarListingById(listingId);
+
+      if (listing) {
+        console.log("Fetched Car Listing:", listing); // ✅ log the full response
+        
+        res.json(listing);
+      } else {
+        console.log(`Listing with ID ${req.params.id} not found`);
+        res.status(404).json({ message: "Listing not found" });
+      }
+    } catch (error) {
+      console.error("Error fetching listing:", error);
+      res.status(500).json({ message: "Failed to fetch listing", error });
+    }
+  });
 
   app.put("/api/car-listings/:id", async (req, res) => {
     try {
@@ -785,7 +803,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-
 
   app.put('/api/car-listings/:id/refresh', async (req, res) => {
     try {
@@ -885,7 +902,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-
 
   app.delete("/api/car-listings/:id", async (req, res) => {
     try {

@@ -490,7 +490,7 @@ const CarDetails = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {/* Images (3/4 width on md and above) */}
             <div className="md:col-span-3">
-              <CarImages images={car.images} title={car.title} />
+              <CarImages images={car.images} images360={car.images_360} interiorImages={car.interior_images} title={car.title} />
 
               {/* Action Buttons */}
             <div className="flex justify-center items-center mb-8 mt-8 space-x-2">

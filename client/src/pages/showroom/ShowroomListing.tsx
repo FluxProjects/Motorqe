@@ -60,14 +60,13 @@ export default function ShowroomListings() {
         searchQuery,
         filters,
         user_id: user?.id,
-        role: roleMapping[user?.roleId ?? 1] || "SELLER",
       });
 
       const statusParam = currentTab !== "all" ? currentTab : filters.status;
       const searchParams = new URLSearchParams();
 
       // Add role-based filtering
-      const roleName = roleMapping[user?.roleId ?? 1];
+      const roleName = roleMapping[user?.roleId ?? 2];
 
       if (!roleName) {
         console.warn(`No role mapping found for role ID: ${user?.roleId}`);
@@ -312,50 +311,44 @@ export default function ShowroomListings() {
     },
   });
 
-  const availableMakes = useMemo(() => {
-  return Array.from(
-    new Map(
-      cars
-        .filter(car => car.make?.id) // Filter out cars with undefined makes
-        .map(car => [car.make!.id, car.make!]) // Use non-null assertion safely
-    ).values()
-  );
-}, [cars]);
+ const availableMakes = Array.from(
+  new Map(
+    cars
+      .filter(car => car.make?.id)
+      .map(car => [car.make!.id, car.make!])
+  ).values()
+);
+
 
 
   // Extract unique models (optionally filter by selected make)
-  const availableModels = useMemo(() => {
-  const uniqueModels = (carsToFilter: typeof cars) =>
-    Array.from(
-      new Map(
-        carsToFilter
-          .filter(car => car.model?.id)
-          .map(car => [car.model!.id, car.model!])
-      ).values()
-    );
-
-  if (filters.model === "all" || !filters.make) {
-    return uniqueModels(cars);
-  }
-
-  return uniqueModels(
-    cars.filter(car => car.make?.id === Number(filters.make))
+ const uniqueModels = (carsToFilter: typeof cars) =>
+  Array.from(
+    new Map(
+      carsToFilter
+        .filter(car => car.model?.id)
+        .map(car => [car.model!.id, car.model!])
+    ).values()
   );
-}, [cars, filters.make, filters.model]);
+
+const availableModels =
+  filters.model === "all" || !filters.make
+    ? uniqueModels(cars)
+    : uniqueModels(cars.filter(car => car.make?.id === Number(filters.make)));
 
 
 
-const filteredCars = useMemo(() => {
-  return cars.filter((car) => {
+
+const filteredCars = cars.filter((car) => {
   // Make filter
   if (filters.make && filters.make !== "all") {
-      if (car.make?.id !== Number(filters.make)) return false;
-    }
+    if (car.make?.id !== Number(filters.make)) return false;
+  }
 
-    // Model filter
-    if (filters.model && filters.model !== "all") {
-      if (car.model?.id !== Number(filters.model)) return false;
-    }
+  // Model filter
+  if (filters.model && filters.model !== "all") {
+    if (car.model?.id !== Number(filters.model)) return false;
+  }
 
   // Status filter
   if (filters.status && filters.status !== "all") {
@@ -367,10 +360,9 @@ const filteredCars = useMemo(() => {
     if (car.category_id !== Number(filters.category)) return false;
   }
 
-
   return true;
 });
-}, [cars, filters]);
+
 
   const statistics: CarStatistic = {
     publishedCars: cars.filter((car) => car.status === "active").length,

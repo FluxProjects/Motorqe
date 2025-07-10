@@ -43,11 +43,14 @@ export function SpecsStep({ data, updateData, nextStep, prevStep }: StepProps) {
     isImported: data?.specifications?.isImported || "",
     hasInsurance: data?.specifications?.hasInsurance || "",
     insuranceExpiry: data?.specifications?.insuranceExpiry || "",
+    insuranceType: data?.specifications?.insuranceType || "",
     hasWarranty: data?.specifications?.hasWarranty || "",
     warrantyExpiry: data?.specifications?.warrantyExpiry || "",
     isInspected: data?.specifications?.isInspected || "",
+    negotiable: data?.specifications?.negotiable || "",
     inspectionReport: data?.specifications?.inspectionReport || "",
     ownerType: data?.specifications?.ownerType || "",
+    specification: data?.specifications?.specification || ""
   });
 
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
@@ -205,6 +208,24 @@ const cleanSpecifications = {
     "Brown",
   ];
 
+   const specif = [
+    "Gcc",
+    "American",
+    "Canadian",
+    "Chinese",
+    "Doha",
+    "European",
+    "Japanese",
+    "Korean",
+    "Other",
+  ];
+
+  const insType = [
+    "Comprehensive",
+    "Third-party",
+    "Full-insurance",
+  ];
+
   const handleInspectionReportUpload = (url: string) => {
     setFormData((prev) => ({
       ...prev,
@@ -231,7 +252,7 @@ const cleanSpecifications = {
 
   // Generate year options (e.g., last 30 years)
   const currentYear = new Date().getFullYear();
-  const yearOptions = Array.from({ length: 30 }, (_, i) => ({
+  const yearOptions = Array.from({ length: 80 }, (_, i) => ({
     value: String(currentYear - i),
     label: String(currentYear - i),
   }));
@@ -574,6 +595,28 @@ const cleanSpecifications = {
         </div>
       )}
 
+      {/* Insurance Type */}
+      <div>
+        <Label>Insurance Type*</Label>
+        <Select
+          value={formData.insuranceType}
+          onValueChange={(value) => handleChange("insuranceType", value)}
+          required
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select insurance type" />
+          </SelectTrigger>
+          <SelectContent>
+            {insType.map((instyp) => (
+              <SelectItem key={instyp} value={instyp}>
+                {instyp}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {formErrors.insuranceType && <p className="text-red-500 text-sm mt-1">{formErrors.insuranceType}</p>}
+      </div>
+
       {/* Has Warranty */}
       <div>
         <Label>Has Warranty*</Label>
@@ -673,6 +716,58 @@ const cleanSpecifications = {
           </label>
         </div>
         {formErrors.isImported && <p className="text-red-500 text-sm mt-1">{formErrors.isImported}</p>}
+      </div>
+
+      
+      {/* Negotiable */}
+      <div>
+        <Label>Negotiable*</Label>
+        <div className="flex items-center gap-4 mt-2">
+          <label className="flex items-center gap-1">
+            <input
+              type="radio"
+              name="negotiable"
+              value="true"
+              checked={formData.negotiable === "true"}
+              onChange={(e) => handleChange("negotiable", e.target.value)}
+              required
+            />
+            Yes
+          </label>
+          <label className="flex items-center gap-1">
+            <input
+              type="radio"
+              name="negotiable"
+              value="false"
+              checked={formData.negotiable === "false"}
+              onChange={(e) => handleChange("negotiable", e.target.value)}
+            />
+            No
+          </label>
+        </div>
+        {formErrors.negotiable && <p className="text-red-500 text-sm mt-1">{formErrors.negotiable}</p>}
+      </div>
+
+      {/* Specification */}
+      <div>
+        <Label>Regional Spec*</Label>
+        <Select
+          value={formData.specification}
+          onValueChange={(value) => handleChange("specification", value)}
+          required
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select regional spec" />
+          </SelectTrigger>
+          <SelectContent>
+            {specif.map((speci) => (
+              <SelectItem key={speci} value={speci}>
+                {speci}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {formErrors.specification && <p className="text-red-500 text-sm mt-1">{formErrors.specification}</p>}
       </div>
 
       {/* Inspection Report Upload */}

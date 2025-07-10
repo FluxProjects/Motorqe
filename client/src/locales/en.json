@@ -285,6 +285,8 @@
     "specialOffers": "Special Offers"
   },
   "car": {
+    "specification": "Specification",
+    "selectSpecification": "Select Regional Spec",
     "first": "First",
     "second": "Second",
     "third": "Third",

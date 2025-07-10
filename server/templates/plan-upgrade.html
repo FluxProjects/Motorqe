@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Welcome to Your Upgraded Plan!</title>
+    <style>
+        /* Email-safe CSS */
+        body { 
+            margin: 0; 
+            padding: 0; 
+            font-family: 'Arial', 'Helvetica', sans-serif; 
+            line-height: 1.6; 
+            background-color: #f8f9fa;
+        }
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .email-btn {
+            display: inline-block;
+            padding: 14px 28px;
+            background-color: #FF6B35;
+            color: #ffffff;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 16px;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .email-btn:hover {
+            background-color: #E55A2B;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .status-pending { 
+            background-color: #FEF3C7; 
+            color: #92400E; 
+            border: 1px solid #F59E0B;
+        }
+        .status-approved { 
+            background-color: #D1FAE5; 
+            color: #065F46; 
+            border: 1px solid #10B981;
+        }
+        .status-rejected { 
+            background-color: #FEE2E2; 
+            color: #991B1B; 
+            border: 1px solid #EF4444;
+        }
+        .header-section {
+            background: linear-gradient(135deg, #FF6B35 0%, #E55A2B 100%);
+            padding: 30px 24px;
+            text-align: center;
+        }
+        .content-section {
+            padding: 40px 24px;
+        }
+        .footer-section {
+            background-color: #F9FAFB;
+            padding: 24px;
+            text-align: center;
+            border-top: 1px solid #E5E7EB;
+        }
+        .info-box {
+            background-color: #F9FAFB;
+            border-radius: 12px;
+            padding: 24px;
+            margin: 24px 0;
+            border-left: 4px solid #FF6B35;
+        }
+        .warning-box {
+            background-color: #FEE2E2;
+            border-radius: 12px;
+            padding: 24px;
+            margin: 24px 0;
+            border-left: 4px solid #EF4444;
+        }
+        .success-box {
+            background-color: #D1FAE5;
+            border-radius: 12px;
+            padding: 24px;
+            margin: 24px 0;
+            border-left: 4px solid #10B981;
+        }
+        .highlight-box {
+            background-color: #FEF3C7;
+            border-radius: 12px;
+            padding: 24px;
+            margin: 24px 0;
+            border-left: 4px solid #F59E0B;
+        }
+        @media only screen and (max-width: 600px) {
+            .email-container {
+                width: 100% !important;
+                margin: 0 !important;
+            }
+            .content-section {
+                padding: 20px 16px !important;
+            }
+            .header-section {
+                padding: 20px 16px !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    
+    <div class="email-container">
+        <div class="header-section">
+            <h1 style="color: #ffffff; font-size: 32px; font-weight: bold; margin: 0;">Motorqe</h1>
+            <p style="color: #ffffff; margin: 8px 0 0 0; opacity: 0.95; font-size: 16px;">Plan Upgrade Successful</p>
+        </div>
+        
+        <div class="content-section">
+            <h2 style="color: #374151; font-size: 28px; font-weight: 600; margin: 0 0 20px 0;">🚀 Welcome to Your Upgraded Plan!</h2>
+            <p style="color: #6B7280; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
+                Hi <span style="color: #374151; font-weight: 600;">Syed Iftikhar</span>,
+            </p>
+            <p style="color: #6B7280; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
+                Congratulations! You've successfully upgraded your plan. Your new features and benefits are now active.
+            </p>
+            
+            <div style="text-align: center; margin: 24px 0;">
+                <span class="status-badge status-approved">UPGRADE COMPLETE</span>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 24px 0;">
+                <div style="background-color: #FEE2E2; border-radius: 12px; padding: 20px;">
+                    <h3 style="color: #991B1B; font-size: 18px; font-weight: 600; margin: 0 0 12px 0;">Previous Plan</h3>
+                    <p style="color: #991B1B; margin: 0 0 8px 0; font-size: 14px;"><strong>Basic Plan</strong></p>
+                    <p style="color: #991B1B; margin: 0 0 4px 0; font-size: 14px;">• 3 listings maximum</p>
+                    <p style="color: #991B1B; margin: 0 0 4px 0; font-size: 14px;">• Standard support</p>
+                    <p style="color: #991B1B; margin: 0 0 4px 0; font-size: 14px;">• Basic analytics</p>
+                    <p style="color: #991B1B; margin: 0; font-size: 14px;"><strong>QR 36.50/month</strong></p>
+                </div>
+                <div style="background-color: #D1FAE5; border-radius: 12px; padding: 20px;">
+                    <h3 style="color: #065F46; font-size: 18px; font-weight: 600; margin: 0 0 12px 0;">Current Plan</h3>
+                    <p style="color: #065F46; margin: 0 0 8px 0; font-size: 14px;"><strong>Premium Plan</strong></p>
+                    <p style="color: #065F46; margin: 0 0 4px 0; font-size: 14px;">• Unlimited listings</p>
+                    <p style="color: #065F46; margin: 0 0 4px 0; font-size: 14px;">• Priority support</p>
+                    <p style="color: #065F46; margin: 0 0 4px 0; font-size: 14px;">• Advanced analytics</p>
+                    <p style="color: #065F46; margin: 0 0 4px 0; font-size: 14px;">• Featured listing credits</p>
+                    <p style="color: #065F46; margin: 0; font-size: 14px;"><strong>QR 109.99/month</strong></p>
+                </div>
+            </div>
+            
+            <div class="highlight-box">
+                <h3 style="color: #92400E; font-size: 20px; font-weight: 600; margin: 0 0 16px 0;">🎁 New Features Available</h3>
+                <ul style="color: #92400E; margin: 0; padding-left: 20px;">
+                    <li style="margin-bottom: 8px;">Create unlimited vehicle listings</li>
+                    <li style="margin-bottom: 8px;">Access to advanced analytics dashboard</li>
+                    <li style="margin-bottom: 8px;">Priority customer support</li>
+                    <li style="margin-bottom: 8px;">Monthly featured listing credits</li>
+                    <li>Early access to new platform features</li>
+                </ul>
+            </div>
+            
+            <div class="info-box">
+                <h3 style="color: #374151; font-size: 20px; font-weight: 600; margin: 0 0 16px 0;">Billing Information</h3>
+                <p style="color: #6B7280; margin: 0 0 8px 0;"><strong>New Plan:</strong> Premium Plan</p>
+                <p style="color: #6B7280; margin: 0 0 8px 0;"><strong>Billing Cycle:</strong> Monthly</p>
+                <p style="color: #6B7280; margin: 0 0 8px 0;"><strong>Next Payment:</strong> January 30, 2025</p>
+                <p style="color: #6B7280; margin: 0 0 8px 0;"><strong>Amount:</strong> QR 109.99</p>
+            </div>
+            
+            <div style="text-align: center; margin: 32px 0;">
+                <a href="#" class="email-btn">Explore Premium Features</a>
+            </div>
+        </div>
+        
+        <div class="footer-section">
+            <p style="color: #9CA3AF; font-size: 12px; margin: 0;">
+                © 2025 Motorqe.com. All rights reserved.
+            </p>
+        </div>
+    </div>
+</body>
+</html>

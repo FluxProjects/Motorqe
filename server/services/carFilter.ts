@@ -38,6 +38,8 @@ const filterKeys = [
   "updated_to",
   "is_active",
   "refresh_left",
+  "is_admin",
+  "include_showroom",
 ];
 
 
@@ -51,11 +53,11 @@ export function extractFiltersFromQuery(query: any) {
     const value = query[camelKey] ?? query[snakeKey];
     if (value !== undefined && value !== "all") {
       // Convert booleans correctly
-      if (["is_featured", "is_active", "is_imported", "is_inspected", "is_business", "has_warranty", "has_insurance"].includes(key)) {
+      if (["is_featured", "is_active", "is_imported", "is_inspected", "is_business", "has_warranty", "has_insurance", "is_admin", "include_showrooms"].includes(key)) {
         filters[key] = value === "true";
       }
       // Convert numeric filters safely
-      else if (["make_id", "model_id", "category_id", "year_from", "year_to", "price_from", "price_to", "miles_from", "miles_to", "cylinder_count", "refresh_left"].includes(key)) {
+      else if (["make_id", "model_id", "category_id", "year_from", "year_to", "price_from", "price_to", "miles_from", "miles_to", "cylinder_count", "refresh_left", "user_id"].includes(key)) {
         const num = Number(value);
         if (!isNaN(num)) {
           filters[key] = num;

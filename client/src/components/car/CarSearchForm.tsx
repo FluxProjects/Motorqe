@@ -115,6 +115,19 @@ const colorOptions = [
   { value: "pink", label: "Pink" },
 ];
 
+const specifi = [
+  { value: "gcc", label: "GCC" },
+  { value: "american", label: "American" },
+  { value: "canadian", label: "Canadian" },
+  { value: "chinese", label: "Chinese" },
+  { value: "doha", label: "Doha" },
+  { value: "european", label: "European" },
+  { value: "japaense", label: "Japanese" },
+  { value: "korean", label: "Korean" },
+  { value: "other", label: "Other" },
+];
+
+
 const interiorColorOptions = [
   { value: "black", label: "Black" },
   { value: "beige", label: "Beige" },
@@ -304,6 +317,7 @@ const CarSearchForm = ({ is_garage }: CarSearchFormProps) => {
         "tinted",
         "category",
         "is_imported",
+        "specification"
       ].includes(fieldName);
     }
     if (activeTab === "scrap") {
@@ -325,6 +339,7 @@ const CarSearchForm = ({ is_garage }: CarSearchFormProps) => {
         "condition",
         "is_featured",
         "is_imported",
+        "specification",
         "has_warranty",
         "has_insurance",
       ].includes(fieldName);
@@ -348,6 +363,7 @@ const CarSearchForm = ({ is_garage }: CarSearchFormProps) => {
         "condition",
         "is_featured",
         "is_imported",
+        "specification",
         "has_warranty",
         "has_insurance",
         "owner_type",
@@ -1287,6 +1303,28 @@ const CarSearchForm = ({ is_garage }: CarSearchFormProps) => {
                               </SelectItem>
                             </SelectContent>
                           </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
+
+                   {/* Specification */}
+                  {showField("specification") && (
+                    <FormField
+                      control={form.control}
+                      name="specification"
+                      render={({ field }) => (
+                        <FormItem className="flex-[1_0_calc(20%-16px)] min-w-[200px] max-w-[calc(20%-16px)]">
+                          <FormLabel>{t("car.specification")}</FormLabel>
+                          <FormControl>
+                            <MultiSelect
+                              options={specifi}
+                              selected={field.value || []}
+                              onChange={field.onChange}
+                              placeholder={t("car.selectSpecification")}
+                            />
+                          </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}

@@ -20,6 +20,14 @@ export interface ICarListingStorage {
     deleteCarListing(id: number): Promise<void>;
     incrementListingViews(id: number): Promise<void>;
     updateListingStatus(id: number, status: 'draft' | 'pending' | 'active' | 'sold' | 'expired' | 'reject'): Promise<void>;
+    getListingStatusCounts(): Promise<{
+        pending: number;
+        active: number;
+        sold: number;
+        rejected: number;
+        expired: number;
+        total: number;
+    }>;
     getSimilarCarListings(
         listingId: string,
         limit: number
@@ -61,7 +69,10 @@ export const CarListingStorage = {
             owner_type?: string;
             has_warranty?: string;
             has_insurance?: string;
+            insurance_type?: string;
             is_inspected?: string;
+            specification?: string;
+            negotiable?: string;
 
             updated_from?: string;
             updated_to?: string;
@@ -72,9 +83,11 @@ export const CarListingStorage = {
             status?: string;
             is_active?: string;
 
-            refresg_left?: string;
+            refresh_left?: string;
 
             user_id?: number;
+            includeShowroom?: boolean;
+            is_admin?: boolean;
         } = {},
         sortBy?: keyof CarListing,
         sortOrder: 'asc' | 'desc' = 'asc'
@@ -85,60 +98,60 @@ export const CarListingStorage = {
         package_name?: string;
         package_description?: string;
         package_price?: number;
+        showroom_id?: number;
+        showroom_name?: string;
+        showroom_name_ar?: string;
+        showroom_logo?: string;
+        showroom_location?: string;
+        showroom_phone?: string;
+        showroom_timing?: string;
     })[]> {
         console.log('--- START: getAllCarListings ---');
         console.log('Incoming filter parameters:', JSON.stringify(filter, null, 2));
-        console.log('Incoming sort parameters:', { sortBy, sortOrder });
 
         let baseQuery = `
-            SELECT 
-                cl.*, 
-
-                -- Promotion details
-                lp.id AS promotion_id,
-                lp.package_id, 
-                lp.start_date, 
-                lp.end_date, 
-                lp.is_active,
-                lp.transaction_id,
-
-                -- Package details
-                p.name AS package_name,
-                p.name_ar AS package_name_ar,
-                p.description AS package_description,
-                p.description_ar AS package_description_ar,
-                p.plan AS package_plan,
-                p.price AS package_price,
-                p.currency AS package_currency,
-                p.duration_days AS package_duration_days,
-                p.is_featured AS package_is_featured,
-                p.feature_duration AS package_feature_duration,
-                p.photo_limit AS package_photo_limit,
-                p.no_of_refresh AS package_no_of_refresh,
-
-                -- Showroom details
-                s.id AS showroom_id,
-                s.user_id AS showroom_user_id,
-                s.name AS showroom_name,
-                s.name_ar AS showroom_name_ar,
-                s.description AS showroom_description,
-                s.description_ar AS showroom_description_ar,
-                s.logo AS showroom_logo,
-                s.phone AS showroom_phone,
-                s.location AS showroom_location,
-                s.timing AS showroom_timing
-
-            FROM car_listings cl
-
-            LEFT JOIN listing_promotions lp ON cl.id = lp.listing_id AND lp.end_date > NOW()
-            LEFT JOIN promotion_packages p ON lp.package_id = p.id
-            LEFT JOIN showrooms s ON cl.is_business = true AND cl.showroom_id = s.id
-        `;
-
+        SELECT 
+            cl.*, 
+            lp.id AS promotion_id,
+            lp.package_id, 
+            lp.start_date, 
+            lp.end_date, 
+            lp.is_active,
+            lp.transaction_id,
+            p.name AS package_name,
+            p.name_ar AS package_name_ar,
+            p.description AS package_description,
+            p.description_ar AS package_description_ar,
+            p.plan AS package_plan,
+            p.price AS package_price,
+            p.currency AS package_currency,
+            p.duration_days AS package_duration_days,
+            p.is_featured AS package_is_featured,
+            p.feature_duration AS package_feature_duration,
+            p.photo_limit AS package_photo_limit,
+            p.no_of_refresh AS package_no_of_refresh,
+            s.id AS showroom_id,
+            s.user_id AS showroom_user_id,
+            s.name AS showroom_name,
+            s.name_ar AS showroom_name_ar,
+            s.description AS showroom_description,
+            s.description_ar AS showroom_description_ar,
+            s.logo AS showroom_logo,
+            s.phone AS showroom_phone,
+            s.location AS showroom_location,
+            s.timing AS showroom_timing
+        FROM car_listings cl
+        LEFT JOIN listing_promotions lp ON cl.id = lp.listing_id AND lp.end_date > NOW()
+        LEFT JOIN promotion_packages p ON lp.package_id = p.id
+        LEFT JOIN showrooms s ON cl.showroom_id = s.id
+    `;
 
         const whereClauses: string[] = [];
         const values: any[] = [];
         let paramIndex = 1;
+
+        const isAdmin = filter.is_admin ?? false;
+        delete filter.is_admin;
 
         // Process filters
         for (const key in filter) {
@@ -197,6 +210,12 @@ export const CarListingStorage = {
                             console.log(`Added category filter: category = ${value}`);
                             paramIndex++;
                             break;
+                        case 'specification':
+                            whereClauses.push(`cl.specification = $${paramIndex}`);
+                            values.push(value);
+                            console.log(`Added specification filter: specification = ${value}`);
+                            paramIndex++;
+                            break;
                         case 'miles_from':
                             whereClauses.push(`cl.mileage >= $${paramIndex}`);
                             values.push(Number(value));
@@ -209,8 +228,8 @@ export const CarListingStorage = {
                             console.log(`Added mileage filter: mileage <= ${Number(value)}`);
                             paramIndex++;
                             break;
-                        case 'fuel_tyoe':
-                            whereClauses.push(`cl.fuel_tyoe = $${paramIndex}`);
+                        case 'fuel_type':
+                            whereClauses.push(`cl.fuel_type = $${paramIndex}`);
                             values.push(value);
                             console.log(`Added fuel_tyoe filter: fuel_tyoe = ${value}`);
                             paramIndex++;
@@ -221,10 +240,10 @@ export const CarListingStorage = {
                             console.log(`Added transmission filter: transmission = ${value}`);
                             paramIndex++;
                             break;
-                        case 'engline_capacity_id':
-                            whereClauses.push(`cl.engline_capacity_id = $${paramIndex}`);
+                        case 'engine_capacity':
+                            whereClauses.push(`cl.engine_capacity_id = $${paramIndex}`);
                             values.push(value);
-                            console.log(`Added engline_capacity_id filter: engline_capacity_id = ${value}`);
+                            console.log(`Added engine_capacity_id filter: engine_capacity_id = ${value}`);
                             paramIndex++;
                             break;
                         case 'cylinder_count':
@@ -252,9 +271,9 @@ export const CarListingStorage = {
                             paramIndex++;
                             break;
                         case 'condition':
-                            whereClauses.push(`cl.condition <= $${paramIndex}`);
+                            whereClauses.push(`cl.condition = $${paramIndex}`);
                             values.push(value);
-                            console.log(`Added condition filter: condition <= ${value}`);
+                            console.log(`Added condition filter: condition = ${value}`);
                             paramIndex++;
                             break;
                         case 'location':
@@ -267,6 +286,12 @@ export const CarListingStorage = {
                             whereClauses.push(`cl.is_featured = $${paramIndex}`);
                             values.push(value);
                             console.log(`Added featured filter: is_featured = ${value}`);
+                            paramIndex++;
+                            break;
+                        case 'negotiable':
+                            whereClauses.push(`cl.negotiable = $${paramIndex}`);
+                            values.push(value);
+                            console.log(`Added imported filter: negotiable = ${value}`);
                             paramIndex++;
                             break;
                         case 'is_imported':
@@ -297,6 +322,12 @@ export const CarListingStorage = {
                             whereClauses.push(`cl.has_insurance = $${paramIndex}`);
                             values.push(value);
                             console.log(`Added imported filter: has_insurance = ${value}`);
+                            paramIndex++;
+                            break;
+                        case 'insurance_type':
+                            whereClauses.push(`cl.insurance_type = $${paramIndex}`);
+                            values.push(value);
+                            console.log(`Added imported filter: insurance_type = ${value}`);
                             paramIndex++;
                             break;
                         case 'status':
@@ -343,6 +374,22 @@ export const CarListingStorage = {
                             }
                             break;
                         }
+                        case 'is_business':
+                            // Handle boolean filter properly
+                            if (value === 'true' || value === true) {
+                                whereClauses.push(`cl.is_business = true`);
+                            } else if (value === 'false' || value === false) {
+                                whereClauses.push(`cl.is_business = false`);
+                            }
+                            console.log(`Added is_business filter: is_business = ${value}`);
+                            break;
+
+                        case 'showroom_id':
+                            whereClauses.push(`cl.showroom_id = $${paramIndex}`);
+                            values.push(value);
+                            console.log(`Added showroom_id filter: showroom_id = ${value}`);
+                            paramIndex++;
+                            break;
                         default:
                             const column = ['id', 'created_at', 'updated_at'].includes(key) ? `cl.${key}` : key;
                             whereClauses.push(`${column} = $${paramIndex}`);
@@ -357,11 +404,17 @@ export const CarListingStorage = {
             }
         }
 
-        if (!filter.user_id) {
-            if (!filter.status || filter.status === 'all') {
-                whereClauses.push(`cl.status NOT IN ('pending', 'draft', 'reject', 'expired')`);
-            }
+        // Replace the existing condition with:
+        const shouldExcludeDefaultStatuses =
+            !isAdmin &&
+            !filter.user_id &&
+            (!filter.status || filter.status === 'all');
+
+        if (shouldExcludeDefaultStatuses) {
+            whereClauses.push(`cl.status NOT IN ('pending', 'draft', 'reject', 'expired')`);
+            console.log('Applying default status exclusion filter');
         }
+
 
         // Build WHERE clause
         if (whereClauses.length > 0) {
@@ -405,6 +458,7 @@ export const CarListingStorage = {
             console.log('First row (sample):', result.slice(0, 1));
 
             console.log('--- END: getAllCarListings ---');
+
             return result;
         } catch (error) {
             console.error('Database query failed:', error);
@@ -438,7 +492,10 @@ export const CarListingStorage = {
             owner_type?: string;
             has_warranty?: string;
             has_insurance?: string;
+            insurance_type?: string;
+            negotiable?: string;
             is_inspected?: string;
+            specification?: string;
             updated_from?: string;
             updated_to?: string;
             is_business?: string;
@@ -513,6 +570,11 @@ export const CarListingStorage = {
                             values.push(value);
                             paramIndex++;
                             break;
+                        case 'specification':
+                            whereClauses.push(`cl.specification = $${paramIndex}`);
+                            values.push(value);
+                            paramIndex++;
+                            break;
                         case 'miles_from':
                             whereClauses.push(`cl.mileage >= $${paramIndex}`);
                             values.push(Number(value));
@@ -573,6 +635,11 @@ export const CarListingStorage = {
                             values.push(value === 'true');
                             paramIndex++;
                             break;
+                        case 'negotiable':
+                            whereClauses.push(`cl.negotiable = $${paramIndex}`);
+                            values.push(value === 'true');
+                            paramIndex++;
+                            break;
                         case 'is_imported':
                             whereClauses.push(`cl.is_imported = $${paramIndex}`);
                             values.push(value === 'true');
@@ -590,6 +657,11 @@ export const CarListingStorage = {
                             break;
                         case 'has_insurance':
                             whereClauses.push(`cl.has_insurance = $${paramIndex}`);
+                            values.push(value === 'true');
+                            paramIndex++;
+                            break;
+                        case 'insurance_type':
+                            whereClauses.push(`cl.insurance_type = $${paramIndex}`);
                             values.push(value === 'true');
                             paramIndex++;
                             break;
@@ -964,6 +1036,38 @@ export const CarListingStorage = {
     async updateListingStatus(id: number, status: 'draft' | 'pending' | 'active' | 'sold' | 'expired' | 'reject'): Promise<void> {
         await db.query('UPDATE car_listings SET status = $1 WHERE id = $2', [status, id]);
     },
+
+    async getListingStatusCounts(): Promise<{
+        pending: number;
+        active: number;
+        sold: number;
+        rejected: number;
+        expired: number;
+        total: number;
+    }> {
+        const result = await db.query(`
+            SELECT 
+                COUNT(*) FILTER (WHERE status = 'pending') as pending,
+                COUNT(*) FILTER (WHERE status = 'active') as active,
+                COUNT(*) FILTER (WHERE status = 'sold') as sold,
+                COUNT(*) FILTER (WHERE status = 'reject') as rejected,
+                COUNT(*) FILTER (WHERE status = 'expired') as expired,
+                COUNT(*) as total
+            FROM car_listings
+        `);
+        console.log("storage result:", result);
+        const counts = result[0];
+        console.log("storage counts:", counts);
+        return {
+            pending: Number(counts.pending),
+            active: Number(counts.active),
+            sold: Number(counts.sold),
+            rejected: Number(counts.rejected),
+            expired: Number(counts.expired),
+            total: Number(counts.total),
+        };
+    },
+
 
     async getSimilarCarListings(
         listingId: string,

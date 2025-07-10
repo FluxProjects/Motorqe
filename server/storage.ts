@@ -12,6 +12,8 @@ import { ICarPartStorage, CarPartStorage } from "./storage/carParts";
 import { ICarServiceStorage, CarServiceStorage } from "./storage/carServices";
 import { ICarTyreStorage, CarTyreStorage } from "./storage/carTyres";
 import { IFavoriteStorage, FavoriteStorage } from "./storage/favourites";
+import { IListingFeatureUpgradeRequestStorage, ListingFeatureUpgradeRequestStorage } from "./storage/listingFeatureUpgradeRequest";
+import { IListingPackageUpgradeRequestStorage, ListingPackageUpgradeRequestStorage } from "./storage/listingPackageUpgradeRequests";
 import { IListingPromotionStorage, ListingPromotionStorage } from "./storage/listingPromotions";
 import { IMessageStorage, MessageStorage } from "./storage/messages";
 import { IPromotionPackageStorage, PromotionPackageStorage } from "./storage/promotionPackages";
@@ -52,6 +54,8 @@ export interface IStorage
     ICarServiceStorage,
     ICarTyreStorage,
     IFavoriteStorage,
+    IListingFeatureUpgradeRequestStorage,
+    IListingPackageUpgradeRequestStorage,
     IListingPromotionStorage,
     IMessageStorage,
     IPromotionPackageStorage,
@@ -92,6 +96,8 @@ export const storage: IStorage = {
   ...CarServiceStorage,
   ...CarTyreStorage,
   ...FavoriteStorage,
+  ...ListingFeatureUpgradeRequestStorage,
+  ...ListingPackageUpgradeRequestStorage,
   ...ListingPromotionStorage,
   ...MessageStorage,
   ...PromotionPackageStorage,

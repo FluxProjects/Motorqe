@@ -41,9 +41,12 @@ console.log("editing listingId",listingId);
     enabled: !!listingId && isAuthenticated,
   });
 
-  const isOwner = listing && user?.id === listing.user_id;
+  const canEdit =
+  listing &&
+  (user?.id === listing?.user_id || (user?.roleId ?? 0) > 6);
 
   if (!isAuthenticated) {
+    console.log("not Authenticated");
     return null; // Prevent flash before redirect
   }
 
@@ -68,7 +71,7 @@ console.log("editing listingId",listingId);
     );
   }
 
-  if (listingId && listing && !isOwner) {
+  if (listingId && listing && !canEdit) {
     return (
       <div className="text-center mt-10 text-red-500">
         {t("errors.unauthorizedEdit")}
@@ -89,7 +92,7 @@ console.log("editing listingId",listingId);
         <div className="md:flex md:gap-6">
           <div className="w-full">
             <ListingForm
-              listing={listingId && listing && isOwner ? listing : undefined}
+              listing={listingId && listing && canEdit ? listing : undefined}
             />
           </div>
         </div>

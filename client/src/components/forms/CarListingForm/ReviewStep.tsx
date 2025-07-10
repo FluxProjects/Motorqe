@@ -236,6 +236,22 @@ export function ReviewStep({
           </div>
 
           <div>
+            <Label>{t("listing.negotiable")}</Label>
+            <p>
+              {formData.specifications?.negotiable === "true"
+                ? t("listing.yes")
+                : formData.specifications?.negotiable === "false"
+                ? t("listing.no")
+                : t("listing.notSpecified")}
+            </p>
+          </div>
+
+          <div>
+            <Label>{t("listing.specification")}</Label>
+            <p>{formData.specifications?.specification}</p>
+          </div>
+
+          <div>
             <Label>{t("listing.isInspected")}</Label>
             <p>
               {formData.specifications?.isInspected === "true"
@@ -269,6 +285,10 @@ export function ReviewStep({
           ? formData.specifications.insuranceExpiry
           : t("listing.notSpecified")}
       </p>
+    </div>
+    <div>
+      <Label>{t("listing.InsuranceType")}</Label>
+      <p>{formData.specifications?.insuranceType}</p>
     </div>
   </>
 )}
@@ -328,7 +348,7 @@ export function ReviewStep({
                   key={key}
                   className="bg-muted px-3 py-1 rounded-full text-sm"
                 >
-                  {`${key.replace(/([A-Z])/g, " $1").replace(/^./, str => str.toUpperCase())}: ${value}`}
+                  {`${key.replace(/([A-Z])/g, " $1").replace(/^./, str => str.toUpperCase())}: QR ${value}`}
                 </span>
               ) : null
             ))}
@@ -396,32 +416,90 @@ export function ReviewStep({
       )}
 
       {/* Media (Images) */}
-      <div className="space-y-4">
-        <h3 className="font-medium">{t("listing.images")}</h3>
-        {(formData.media?.length ?? 0) > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {formData.media?.map((mediaItem, index) => (
-              <div key={index}>
-                {typeof mediaItem === "string" ? (
-                  <img
-                    src={mediaItem}
-                    alt={`Preview ${index + 1}`}
-                    className="rounded-md aspect-square object-cover"
-                  />
-                ) : (
-                  <div className="flex justify-center items-center text-gray-500">
-                    <span>
-                      {t("listing.file")} {index + 1}
-                    </span>
-                  </div>
-                )}
+<div className="space-y-6">
+
+  {/* Main Images */}
+  <div className="space-y-2">
+    <h3 className="font-medium">{t("listing.images")}</h3>
+    {(formData.media?.length ?? 0) > 0 ? (
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        {formData.media?.map((mediaItem, index) => (
+          <div key={index}>
+            {typeof mediaItem === "string" ? (
+              <img
+                src={mediaItem}
+                alt={`Preview ${index + 1}`}
+                className="rounded-md aspect-square object-cover"
+              />
+            ) : (
+              <div className="flex justify-center items-center text-gray-500">
+                <span>
+                  {t("listing.file")} {index + 1}
+                </span>
               </div>
-            ))}
+            )}
           </div>
-        ) : (
-          <p>{t("listing.noImages")}</p>
-        )}
+        ))}
       </div>
+    ) : (
+      <p>{t("listing.noImages")}</p>
+    )}
+  </div>
+
+  {/* Interior Images (if available) */}
+  {formData.interiorImages && formData.interiorImages.length > 0 && (
+    <div className="space-y-2">
+      <h3 className="font-medium">{t("listing.interiorImages")}</h3>
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        {formData.interiorImages.map((image, index) => (
+          <div key={index}>
+            {typeof image === "string" ? (
+              <img
+                src={image}
+                alt={`Interior ${index + 1}`}
+                className="rounded-md aspect-square object-cover"
+              />
+            ) : (
+              <div className="flex justify-center items-center text-gray-500">
+                <span>
+                  {t("listing.file")} {index + 1}
+                </span>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  )}
+
+  {/* 360 Images (if available) */}
+  {formData.images360 && formData.images360.length > 0 && (
+    <div className="space-y-2">
+      <h3 className="font-medium">{t("listing.images360")}</h3>
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        {formData.images360.map((image, index) => (
+          <div key={index}>
+            {typeof image === "string" ? (
+              <img
+                src={image}
+                alt={`360° ${index + 1}`}
+                className="rounded-md aspect-square object-cover"
+              />
+            ) : (
+              <div className="flex justify-center items-center text-gray-500">
+                <span>
+                  {t("listing.file")} {index + 1}
+                </span>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  )}
+
+</div>
+
 
       {/* Review Action Buttons */}
       <div className="flex justify-between pt-4">

@@ -71,7 +71,6 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at"),
 });
 
-
 export const insertUserSchema = createInsertSchema(users, {
   roleId: roleSchema,
 }).pick({
@@ -103,7 +102,6 @@ export const insertUserSchema = createInsertSchema(users, {
   loginCount: true,
 
 });
-
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -296,7 +294,6 @@ export const insertCarEngineCapacitySchema = createInsertSchema(carEngineCapacit
 export type InsertCarEngineCapacity = z.infer<typeof insertCarEngineCapacitySchema>;
 export type CarEngineCapacity = typeof carEngineCapacities.$inferSelect;
 
-
 // =============================================
 // SERVICES TABLE
 // Stores available services (Maintenance, Detailing, etc.)
@@ -360,10 +357,12 @@ export const carListings = pgTable("car_listings", {
 
   // Media and status
   images: text("images").array(),
-  image360: text("image360"),
+  interior_images: text("interior_images").array(),
+  images360: text("images360").array(),
   status: text("status").default("draft").notNull().$type<"draft" | "pending" | "active" | "sold" | "expired" | "rejected">(),
   isActive: boolean("is_active").default(true),
   isFeatured: boolean("is_featured").default(false),
+  featuredUntil: timestamp("featured_until"), // when featured status should expire
   isImported: boolean("is_imported").default(false),
 
   // Ownership and insurance
@@ -375,12 +374,14 @@ export const carListings = pgTable("car_listings", {
   insuranceExpiry: timestamp("insurance_expiry"),
   isInspected: boolean("is_inspected").default(false),
   inspectionReport: text("inspection_report"),
+  negotiable: boolean("negotiable"),
 
   isBusiness: boolean("is_business").default(false),
   showroomId: integer("showroom_id"),
   listingType: text("listing_type").$type<"sale" | "exchange" | "both">(),
   refreshLeft: text("refresh_left"),
   lastRefresh: timestamp("refresh_left"),
+  specification: text("specification").$type<"gcc" | "american" | "candadian" | "chinese" | "doha" | "european" | "korean" | "other">(),
 
   // System info
   views: integer("views").default(0),
@@ -425,10 +426,12 @@ export const insertCarListingSchema = createInsertSchema(carListings).pick({
 
   // Media and status
   images: true,
-  image360: true,
+  interior_images: true,
+  images360: true,
   status: true,
   isActive: true,
   isFeatured: true,
+  featuredUntil: true,
   isImported: true,
 
   // Ownership and insurance
@@ -441,9 +444,11 @@ export const insertCarListingSchema = createInsertSchema(carListings).pick({
   listingType: true,
   isInspected:true,
   inspectionReport: true,
+  negotiable: true,
 
   refreshLeft: true,
   lastRefresh: true,
+  specification: true,
 
   isBusiness: true,
   showroomId: true,
@@ -1227,7 +1232,7 @@ export const servicePromotionPackages = pgTable("service_promotion_packages", {
   descriptionAr: text("description_ar"),
   plan: text("plan"),
   price: integer("price").notNull(),
-  currency: text("currency").default("USD"),
+  currency: text("currency").default("QAR"),
   durationDays: integer("duration_days").notNull(),
   isFeatured: boolean("is_featured").default(false),
   priority: integer("priority").default(0),       // Higher = more prominent
@@ -1278,6 +1283,62 @@ export const insertListingPromotionSchema = createInsertSchema(listingPromotions
 
 export type InsertListingPromotion = z.infer<typeof insertListingPromotionSchema>;
 export type ListingPromotion = typeof listingPromotions.$inferSelect;
+
+export const listingFeatureUpgradeRequests = pgTable("listing_feature_upgrade_requests", {
+  id: serial("id").primaryKey(),
+  listingId: integer("listing_id").references(() => carListings.id).notNull(),
+  requestedBy: integer("requested_by").references(() => users.id).notNull(),
+  requestedDays: integer("requested_days").notNull(),
+  price: integer("price"),
+  currency: text("currency").default("QAR"),
+  status: text("status").default("pending").notNull().$type<"pending" | "approved" | "rejected">(),
+  adminId: integer("admin_id").references(() => users.id),
+  remarks: text("remarks"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at"),
+});
+
+export const insertListingFeatureUpgradeRequestSchema = createInsertSchema(listingFeatureUpgradeRequests).pick({
+  listingId: true,
+  requestedBy: true,
+  requestedDays: true,
+  price: true,
+  currency: true,
+  status: true,
+  adminId: true,
+  remarks: true,
+});
+
+export type InsertListingFeatureUpgradeRequest = z.infer<typeof insertListingFeatureUpgradeRequestSchema>;
+export type ListingFeatureUpgradeRequest = typeof listingFeatureUpgradeRequests.$inferSelect;
+
+export const listingPackageUpgradeRequests = pgTable("listing_package_upgrade_requests", {
+  id: serial("id").primaryKey(),
+  listingId: integer("listing_id").references(() => carListings.id).notNull(),
+  requestedBy: integer("requested_by").references(() => users.id).notNull(),
+  requestedPackageId: integer("requested_package_id").references(() => promotionPackages.id).notNull(),
+  price: integer("price"),
+  currency: text("currency").default("QAR"),
+  status: text("status").default("pending").notNull().$type<"pending" | "approved" | "rejected">(),
+  adminId: integer("admin_id").references(() => users.id),
+  remarks: text("remarks"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at"),
+});
+
+export const insertListingPackageUpgradeRequestSchema = createInsertSchema(listingPackageUpgradeRequests).pick({
+  listingId: true,
+  requestedBy: true,
+  requestedPackageId: true,
+  price: true,
+  currency: true,
+  status: true,
+  adminId: true,
+  remarks: true,
+});
+
+export type InsertListingPackageUpgradeRequest = z.infer<typeof insertListingPackageUpgradeRequestSchema>;
+export type ListingPackageUpgradeRequest = typeof listingPackageUpgradeRequests.$inferSelect;
 
 export const servicePromotions = pgTable("service_promotions", {
   id: serial("id").primaryKey(),
@@ -1375,6 +1436,8 @@ export type ListingFormData = {
     price?: string;
     currency?: string;
     location?: string;
+    userId?: string;
+    showroomId?: string;
   };
   specifications?: {
     year?: string;
@@ -1393,12 +1456,15 @@ export type ListingFormData = {
     condition?: string;
     ownerType?: string;
     isImported?: string;
+    specification?: "gcc" | "american" | "candadian" | "chinese" | "doha" | "european" | "korean" | "other";
     hasInsurance?: string;
     insuranceExpiry?: string;
+    insuranceType?: string;
     hasWarranty?: string;
     warrantyExpiry?: string;
     isInspected?: string;
     inspectionReport?: string | undefined;
+    negotiable?: string;
   };
   features?: string[];
 
@@ -1425,6 +1491,9 @@ export type ListingFormData = {
   };
 
   media?: File[] | string[]; // Files before upload or URLs after upload
+  interiorImages?: File[] | string[];
+  images360?: File[] | string[];
+  
   status: "draft" | "active" | "pending" | "reject" | "sold";
   refreshLeft?: number;
   package?: {
@@ -1489,6 +1558,9 @@ export interface AdminCarListingFilters {
   ownerType?: string;
   hasWarranty?: string;
   hasInsurance?: string;
+  insuranceType?: string;
+  specification?: string;
+  negotiable?: boolean;
   // Promotion
   hasPromotion?: boolean;
   packageType?: string;
@@ -1534,10 +1606,13 @@ export interface CarListingFilters {
   isImported?: string;
   isFeatured?: string;
   isInspected?: string;
+  specification?: string;
   // Ownership and insurance
   ownerType?: string[];
   hasWarranty?: string;
   hasInsurance?: string;
+  insuranceType?: string;
+  negotiable?: boolean;
   isBusiness?: boolean | string;
   userId?: string;
   // Sorting and Pagination
@@ -1578,11 +1653,13 @@ export interface AdminCarListing {
   locationAr?: string;
 
   images?: string[];
-  image360?: string;
+  interior_images?: string[];
+  images_360?: string[];
 
   status: 'draft' | 'active' | 'pending' | 'reject' | 'sold';
   is_active?: string;
   is_featured?: string;
+  featured_until?: Date;
   is_imported?: string;
 
   owner_type?: 'first' | 'second' | 'third' | 'fourth' | 'fifth';
@@ -1591,9 +1668,12 @@ export interface AdminCarListing {
   has_insurance?: string;
   insurance_type?: 'comprehensive' | 'third-party' | 'none';
   insurance_expiry?: Date;
+  negotiable?: string; 
+  showroom_id?: string;
   is_business?: string;
   is_inspected?: string;
   inspection_report?: string;
+  specification?: "gcc" | "american" | "candadian" | "chinese" | "doha" | "european" | "korean" | "other";
 
   views?: number;
   refresh_left?: number;

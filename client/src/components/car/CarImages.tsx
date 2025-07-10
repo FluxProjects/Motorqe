@@ -1,18 +1,48 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import { PanoViewer } from "@/components/ui/pano-view";
+
 
 interface ImageGalleryProps {
   images: string[] | string;
+  images360?: string[] | string;
+  interiorImages?: string[] | string;
   title?: string;
   is_garage?: boolean;
 }
 
-export function CarImages({ images, title, is_garage = false }: ImageGalleryProps) {
-  const imageArray = Array.isArray(images) ? images : [images];
+export function CarImages({
+  images,
+  images360,
+  interiorImages,
+  title,
+  is_garage = false
+}: ImageGalleryProps) {
+  // Normalize all inputs to arrays
+  const exteriorArray = Array.isArray(images) ? images : [images];
+  const interiorArray = interiorImages ? (Array.isArray(interiorImages) ? interiorImages : [interiorImages]) : [];
+  const images360Array = images360 ? (Array.isArray(images360) ? images360 : [images360]) : [];
+
+  // Build available tabs dynamically
+  const availableTabs = useMemo(() => {
+    const tabs = [];
+    if (images360Array.length > 0) tabs.push("360");
+    if (exteriorArray.length > 0) tabs.push("exterior");
+    if (interiorArray.length > 0) tabs.push("interior");
+    return tabs;
+  }, [images360Array, exteriorArray, interiorArray]);
+
+  const [activeTab, setActiveTab] = useState<string>(availableTabs[0] || "exterior");
   const [selectedImage, setSelectedImage] = useState(0);
-  const [activeTab, setActiveTab] = useState("360");
   const [imageError, setImageError] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Dynamically set imageArray based on tab
+  const imageArray = useMemo(() => {
+    if (activeTab === "360") return images360Array;
+    if (activeTab === "interior") return interiorArray;
+    return exteriorArray;
+  }, [activeTab, images360Array, interiorArray, exteriorArray]);
 
   const getImageUrl = (path: string) => {
     try {
@@ -28,7 +58,6 @@ export function CarImages({ images, title, is_garage = false }: ImageGalleryProp
   const nextImage = () => setSelectedImage((prev) => (prev + 1) % imageArray.length);
   const prevImage = () => setSelectedImage((prev) => (prev - 1 + imageArray.length) % imageArray.length);
 
-  // Close modal on ESC
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.key === "Escape") setIsModalOpen(false);
   }, []);
@@ -44,12 +73,18 @@ export function CarImages({ images, title, is_garage = false }: ImageGalleryProp
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isModalOpen, handleKeyDown]);
 
+  // Reset selectedImage when tab changes
+  useEffect(() => {
+    setSelectedImage(0);
+    setImageError(false);
+  }, [activeTab]);
+
   return (
     <div className="mb-6">
-      {/* Tab Navigation */}
-      {!is_garage && (
+      {/* Dynamic Tabs */}
+      {!is_garage && availableTabs.length > 1 && (
         <div className="flex mb-3 bg-gray-100 rounded-lg p-1">
-          {["360", "exterior", "interior"].map((tab) => (
+          {availableTabs.map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -59,7 +94,7 @@ export function CarImages({ images, title, is_garage = false }: ImageGalleryProp
                   : "text-gray-600 hover:text-gray-900"
               }`}
             >
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              {tab === "360" ? "360° View" : tab.charAt(0).toUpperCase() + tab.slice(1)}
             </button>
           ))}
         </div>
@@ -68,13 +103,24 @@ export function CarImages({ images, title, is_garage = false }: ImageGalleryProp
       {/* Main Image */}
       {imageArray.length > 0 && (
         <div className="relative mb-3 group cursor-zoom-in">
-          <img
-            src={getImageUrl(imageArray[selectedImage])}
-            alt={`${title || 'Car'} ${activeTab} view`}
-            className="w-full h-96 object-cover rounded-lg"
-            onClick={() => setIsModalOpen(true)}
-            onError={() => setImageError(true)}
-          />
+          {activeTab === "360" ? (
+            // 360° viewer using native image drag or third-party viewer if needed
+           <div className="w-full h-[500px] rounded-lg overflow-hidden">
+    <PanoViewer
+      src={getImageUrl(imageArray[selectedImage])}
+      width="100%"
+      height="100%"
+    />
+  </div>
+          ) : (
+            <img
+              src={getImageUrl(imageArray[selectedImage])}
+              alt={`${title || 'Car'} ${activeTab} view`}
+              className="w-full h-96 object-cover rounded-lg"
+              onClick={() => setIsModalOpen(true)}
+              onError={() => setImageError(true)}
+            />
+          )}
           {imageError && (
             <div className="absolute inset-0 bg-gray-100 flex items-center justify-center rounded-lg">
               <span className="text-gray-500">Image failed to load</span>
@@ -122,7 +168,7 @@ export function CarImages({ images, title, is_garage = false }: ImageGalleryProp
         </div>
       )}
 
-      {/* Full-Screen Modal for Zoom */}
+      {/* Full-Screen Modal */}
       {isModalOpen && (
         <div
           className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50"

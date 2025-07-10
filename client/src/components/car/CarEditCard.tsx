@@ -59,8 +59,8 @@ console.log("car", car);
     },
   });
 
-  const currentPackage = packages.find((pkg) => pkg.id === car.package_id);
-
+  const currentPackage = packages.find((pkg) => pkg.id === car?.package_id);
+console.log("currentPackage", currentPackage);
   const getBorderClass = () =>
     car.is_featured ? "border-2 border-orange-500" : "";
 
@@ -259,12 +259,53 @@ console.log("car", car);
     },
   });
 
+  const submitPackageUpgradeRequest = async (pkg: PromotionPackage) => {
+    if (!user?.id) return;
+
+    try {
+      const response = await fetch("/api/listing-package-upgrade/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          listingId: car.id,
+          requestedBy: user.id,
+          requestedPackageId: pkg.id,
+          price: pkg.price,
+          currency: pkg.currency,
+        }),
+      });
+
+      if (!response.ok) throw new Error("Failed to submit upgrade request");
+
+      const data = await response.json();
+      
+      toast({
+        title: t("common.success"),
+        description: "Package upgrade request submitted successfully",
+      });
+      
+      setShowUpgradePlans(false);
+      navigate(`/package-upgrade-confirmation/${data.id}`);
+
+    } catch (error) {
+      toast({
+        title: t("common.error"),
+        description: error instanceof Error ? error.message : "Failed to submit request",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleAction = async (actionType: string, pkg?: PromotionPackage) => {
     let confirmText = "Are you sure?";
     switch (actionType) {
       case "upgrade":
-        confirmText = `Are you sure you want to upgrade to ${pkg?.name} package for $${pkg?.price}?`;
-        break;
+        if (!pkg) return;
+        confirmText = `Are you sure you want to request upgrade to ${pkg.name} package for ${pkg.price} ${pkg.currency || "QAR"}?`;
+        if (window.confirm(confirmText)) {
+          await submitPackageUpgradeRequest(pkg);
+        }
+        return;
       case "feature":
         confirmText = "Are you sure you want to feature this ad?";
         break;
@@ -282,6 +323,8 @@ console.log("car", car);
 
     performAction.mutate({ id: car.id, action: actionType, package: pkg });
   };
+
+
 
   return (
     <>
@@ -370,7 +413,7 @@ console.log("car", car);
 
             <button
               className="flex-1 bg-blue-900 text-white py-3 px-2 rounded-xl text-xs hover:opacity-90 flex flex-col items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-              onClick={() => car.is_featured ? handleRefresh() : window.open(`/sell-car/${car.id}`, '_blank')}
+              onClick={() => car.is_featured ? handleRefresh() : navigate(`/sell-car/${car.id}`)}
               disabled={
                 (car.is_featured && (car.status === "sold" || car.status === "pending" || car.refresh_left <= 0)) ||
                 (!car.is_featured && (car.status === "sold" || car.status === "pending"))
@@ -483,16 +526,15 @@ console.log("car", car);
     <div className="p-6">
       <DialogTitle className="text-xl font-bold mb-4">Upgrade Your Listing Plan</DialogTitle>
       <ListingPlanCards
-        packageslist={packages.filter(pkg => 
-          pkg.is_active && 
-          (!car.package_id || pkg.priority > currentPackage?.priority)
-        )}
-        selectedPackageId={car.package_id}
-        onSelect={(selectedPackage) => {
-          handleAction("upgrade", selectedPackage);
-          setShowUpgradePlans(false);
-        }}
-      />
+              packageslist={packages.filter(pkg => 
+                pkg.is_active && 
+                (!car.package_id || pkg.price > currentPackage?.price)
+              )}
+              selectedPackageId={car.package_id}
+              onSelect={(selectedPackage) => {
+                handleAction("upgrade", selectedPackage);
+              }}
+            />
     </div>
   </DialogContent>
 </Dialog>

@@ -13,9 +13,51 @@ import {
   SelectValue
 } from "@/components/ui/select";
 import GoogleMaps from "@/components/ui/google-maps";
+import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 
 export function BasicInfoStep({ nextStep }: StepProps) {
-  const { control, register, handleSubmit, getValues, setValue } = useFormContext<ListingFormData>();
+  const { control, register, handleSubmit, getValues, setValue, watch } = useFormContext<ListingFormData>();
+  const [sellerType, setSellerType] = useState<string>("");
+  const { user } = useAuth();
+
+   // Fetch private sellers
+  const { data: users = [] } = useQuery({
+    queryKey: ["get-users"],
+    queryFn: async () => {
+      const res = await fetch("/api/get-users");
+      console.log("res", res);
+      const data = await res.json();
+      console.log("data", data);
+      return data.filter((u: any) => u.role_id === 2);
+    },
+  });
+
+  console.log("user", users);
+  
+
+  // Fetch showrooms
+  const { data: showrooms = [] } = useQuery({
+    queryKey: ["showrooms"],
+    queryFn: async () => {
+      const res = await fetch("/api/showrooms");
+      return res.json();
+    },
+    enabled: sellerType === "showroom",
+  });
+
+  // If showroom is selected, auto-assign showroom.user_id
+  useEffect(() => {
+    if (sellerType !== "showroom") return;
+    const selectedShowroomId = getValues("basicInfo.showroomId");
+    if (!selectedShowroomId) return;
+
+    const showroom = showrooms.find((s: any) => s.id === selectedShowroomId);
+    if (showroom) {
+      setValue("basicInfo.userId", showroom.user_id);
+    }
+  }, [sellerType, showrooms, getValues, setValue, watch("basicInfo.showroomId")]);
 
   const handleMapClick = ({ lat, lng }: { lat: number; lng: number }) => {
     const locationString = `${lat},${lng}`;
@@ -31,12 +73,113 @@ export function BasicInfoStep({ nextStep }: StepProps) {
     return [];
   })();
 
+  useEffect(() => {
+  if (user?.roleId > 6) {
+    if (getValues("basicInfo.showroomId")) {
+      setSellerType("showroom");
+    } else if (getValues("basicInfo.userId")) {
+      setSellerType("private");
+    }
+  }
+}, [user?.roleId, getValues, setSellerType]);
+
+
   const onSubmit = (data: ListingFormData) => {
     nextStep();
   };
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+      {/* Conditionally show if admin/manager (roleId > 6) */}
+      {user?.roleId > 6 && (
+        <>
+          {/* Seller Type */}
+          <div>
+            <Label>Seller Type*</Label>
+            <Select
+              value={sellerType}
+              onValueChange={(value) => {
+                setSellerType(value);
+                // Reset on change
+                setValue("basicInfo.userId", undefined);
+                setValue("basicInfo.showroomId", undefined);
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select Seller Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="private">Private Seller</SelectItem>
+                <SelectItem value="showroom">Showroom</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Private Seller User Selection */}
+          {sellerType === "private" && (
+            <div>
+              <Label>Select Private Seller*</Label>
+              <Controller
+                name="basicInfo.userId"
+                control={control}
+                defaultValue={getValues("basicInfo.userId")}
+                render={({ field }) => (
+                  <Select
+                    value={field.value ? String(field.value) : ""}
+                    onValueChange={(value) => field.onChange(Number(value))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select User" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {users.map((u: any) => (
+                        <SelectItem key={u.id} value={String(u.id)}>
+                          {u.first_name} {u.last_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </div>
+          )}
+
+          {/* Showroom Selection */}
+          {sellerType === "showroom" && (
+            <div>
+              <Label>Select Showroom*</Label>
+              <Controller
+                name="basicInfo.showroomId"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    value={field.value ? String(field.value) : ""}
+                    onValueChange={(value) => {
+                      field.onChange(Number(value));
+                      const selectedShowroom = showrooms.find((s: any) => s.id === Number(value));
+                      if (selectedShowroom) {
+                        setValue("basicInfo.userId", selectedShowroom.user_id);
+                      }
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Showroom" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {showrooms.map((s: any) => (
+                        <SelectItem key={s.id} value={String(s.id)}>
+                          {s.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </div>
+          )}
+        </>
+      )}
 
       {/* Listing Type */}
       <div>

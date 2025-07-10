@@ -165,7 +165,7 @@ const Header = ({ openAuthModal }: HeaderProps) => {
           href="/"
           className="text-primary font-bold text-2xl flex items-center gap-2"
         >
-          <img src={settingsData?.logo} alt={settingsData?.site_name} />
+          <img src={settingsData?.logo || "/src/assets/logo.png"} alt={settingsData?.site_name} />
         </Link>
 
         {/* Search Bar - Desktop */}

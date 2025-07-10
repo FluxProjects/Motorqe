@@ -6,20 +6,11 @@ import { Permission } from "@shared/permissions";
 import { useListingFormHandler } from "./useListingFormHandler";
 import { ListingFormSteps } from "./ListingFormSteps";
 import { ProgressHeader } from "@/components/layout/ProgressHeader";
-import { ListingFormData, AdminCarListing } from "@shared/schema";
-import { calculateDurationDays } from "@/lib/utils";
+import { ListingFormData, AdminCarListing, User } from "@shared/schema";
+import { calculateDurationDays, getListingSteps } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 
-const steps = [
-  "Select Plan",
-  "Car Detail",
-  "Specifications",
-  "Features",
-  "Spare Parts",
-  "Car Tyres",
-  "Media",
-  "Review",
-];
+
 
 interface Props {
   listing?: AdminCarListing | null;
@@ -27,13 +18,23 @@ interface Props {
 }
 
 export function ListingForm({ listing, onSuccess }: Props) {
-  const [step, setStep] = useState(listing ? 1 : 0);
+
   const methods = useForm<ListingFormData>();
   const { reset, handleSubmit : rhfHandleSubmit, getValues } = methods;
   const {user} = useAuth();
 
   // Calculate duration days from package dates
-  
+  const stepTitles = getListingSteps(listing, user);
+const [step, setStep] = useState(0);
+
+const nextStep = () =>
+  setStep((prev) => Math.min(prev + 1, stepTitles.length - 1));
+const prevStep = () =>
+  setStep((prev) => Math.max(prev - 1, 0));
+
+const skipPricing = listing?.id !== undefined || user?.roleId === 3;
+const displayedStep = skipPricing ? step + 1 : step;
+
 
   // Initialize form with listing data if in edit mode
   useEffect(() => {
@@ -52,6 +53,13 @@ export function ListingForm({ listing, onSuccess }: Props) {
         price: listing.price?.toString(),
         currency: listing.currency || "QR",
         location: listing.location,
+        userId: user && user.roleId > 6 && listing.user_id
+        ? listing.user_id.toString()
+        : user?.id
+          ? user.id.toString()
+          : undefined,
+        showroomId: listing.showroom_id,
+
       },
       specifications: {
         year: listing.year?.toString(),
@@ -73,12 +81,16 @@ export function ListingForm({ listing, onSuccess }: Props) {
         ownerType: listing.owner_type,
         condition: listing.condition,
         isImported: listing.is_imported?.toString(),
+        specification: listing.specification,
         hasInsurance: listing.has_insurance?.toString(),
+        insuranceType: listing.insurance_type,
         insuranceExpiry: listing.insurance_expiry?.toString(),
         hasWarranty: listing.has_warranty?.toString(),
         warrantyExpiry: listing.warranty_expiry?.toString(), 
         isInspected: listing.is_inspected?.toString(),
         inspectionReport: listing.inspection_report || undefined,
+        negotiable: listing.negotiable,
+        
       },
       carParts: {
         engineOil: listing.carParts?.engine_oil,
@@ -101,6 +113,24 @@ export function ListingForm({ listing, onSuccess }: Props) {
         rearTyrePrice: listing.carTyres?.rear_tyre_price,
       },
       media: listing.images?.map((img) => {
+        try {
+          return typeof img === "string" && img.startsWith("{")
+            ? JSON.parse(img)
+            : { path: img, relativePath: img };
+        } catch {
+          return { path: img, relativePath: img };
+        }
+      }) || [],
+      interiorImages: listing.interior_images?.map((img) => {
+        try {
+          return typeof img === "string" && img.startsWith("{")
+            ? JSON.parse(img)
+            : { path: img, relativePath: img };
+        } catch {
+          return { path: img, relativePath: img };
+        }
+      }) || [],
+      images360: listing.images_360?.map((img) => {
         try {
           return typeof img === "string" && img.startsWith("{")
             ? JSON.parse(img)
@@ -134,16 +164,19 @@ export function ListingForm({ listing, onSuccess }: Props) {
     reset({ ...currentData, ...newData });
   };
 
-  const nextStep = () =>
-    setStep((prev) => Math.min(prev + 1, steps.length - 1));
-  const prevStep = () => setStep((prev) => Math.max(prev - 1, 0));
 
   const { mutate } = useListingFormHandler(onSuccess);
 
 
-  const onSubmitHandler = (action: 'draft' | 'publish') =>
+ const onSubmitHandler = (action: 'draft' | 'publish') =>
   rhfHandleSubmit(async (data) => {
-    const status = (action === 'publish' ? 'pending' : 'draft') as ListingFormData['status'];
+    const status =
+      action === 'publish'
+        ? (user?.roleId ?? 0) > 6
+          ? 'active'
+          : 'pending'
+        : 'draft';
+
     const payload = {
       ...data,
       status,
@@ -162,17 +195,19 @@ export function ListingForm({ listing, onSuccess }: Props) {
   });
 
 
+
   return (
     <FormProvider {...methods}>
       <Card className="mx-auto mt-2 shadow-none border-none">
         <ProgressHeader
-          currentStep={step}
-          totalSteps={steps.length}
-          stepTitles={steps}
+          currentStep={skipPricing ? step : step}
+          totalSteps={stepTitles.length}
+          stepTitles={stepTitles}
         />
         <PermissionGuard permission={Permission.CREATE_LISTINGS}>
           <ListingFormSteps
             step={step}
+            skipPricing={skipPricing}
             data={methods.getValues()} // Pass current form values
             updateData={updateData}
             nextStep={nextStep}

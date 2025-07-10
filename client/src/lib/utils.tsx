@@ -2,12 +2,27 @@ import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { Role } from "@shared/permissions";
 import { UseFormReturn } from "react-hook-form";
-import { CarEngineCapacity, CarService } from "@shared/schema";
+import { AdminCarListing, CarEngineCapacity, CarService, User } from "@shared/schema";
 import { t } from "i18next";
 import { Badge } from "@/components/ui/badge";
 
 import { format, addHours } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
+
+export const getListingSteps = (listing?: AdminCarListing | null, user?: User | null) => {
+  const skipPricing = listing?.id !== undefined || user?.roleId === 3;
+  return [
+    ...(skipPricing ? [] : ["Select Plan"]),
+    "Car Detail",
+    "Specifications",
+    "Features",
+    "Spare Parts",
+    "Car Tyres",
+    "Media",
+    "Review",
+  ];
+};
+
 
 export function formatServiceTimeRange(startTime: string): string {
   const [hours, minutes] = startTime.split(":").map(Number);

@@ -17,96 +17,111 @@ export const useListingFormHandler = (onSuccess?: () => void) => {
   const { toast } = useToast();
 
   return useMutation<
-    Response, // Return type
-    Error, // Error type
-    MutationVariables, // Variables type
-    unknown // Context type
+    Response,
+    Error,
+    MutationVariables,
+    unknown
   >({
     mutationFn: async ({ formData, listing }) => {
       console.log("➡️ Mutation started");
       console.log("📦 Received formData:", formData);
       console.log("🆔 Listing:", listing);
 
-      // Set default package if no packageId is found
+      // Set default package if none provided
       if (!formData.package?.packageId && !listing?.package_id) {
         formData.package = {
           packageId: "2",
           durationDays: 45,
           packagePrice: "150",
           noOfRefresh: 1,
+          featureDuration: 5,
         };
       }
 
       let endDate = new Date();
       if (formData.package?.durationDays) {
-        const durationDays = Number(formData.package?.durationDays);
-        console.log("Duration Days", durationDays);
+        const durationDays = Number(formData.package.durationDays);
         if (!isNaN(durationDays)) {
           endDate.setDate(endDate.getDate() + durationDays);
         }
       } else if (listing?.end_date) {
-        // Use existing end date if editing and no new duration specified
-        endDate = new Date(listing?.end_date);
+        endDate = new Date(listing.end_date);
       }
 
+      let featuredUntil: Date | undefined;
+      if (formData.package?.featureDuration && formData.package.featureDuration > 0) {
+        featuredUntil = new Date();
+        featuredUntil.setDate(featuredUntil.getDate() + Number(formData.package.featureDuration));
+      } else if (listing?.featured_until) {
+        featuredUntil = new Date(listing.featured_until);
+      }
+
+      // =========== 🛠 PAYLOAD CONSTRUCTION ===========
       const payload = {
         listing_type: formData.basicInfo?.listingType,
         title: formData.basicInfo?.title,
-        title_ar: formData.basicInfo?.title,
+        title_ar: formData.basicInfo?.titleAr,
         description: formData.basicInfo?.description,
         description_ar: formData.basicInfo?.descriptionAr,
         price: formData.basicInfo?.price,
         year: formData.specifications?.year,
-
         make_id: formData.specifications?.makeId,
         model_id: formData.specifications?.modelId,
         category_id: formData.specifications?.categoryId,
-
         mileage: formData.specifications?.mileage,
         fuel_type: formData.specifications?.fuelType,
         transmission: formData.specifications?.transmission,
         engine_capacity_id: formData.specifications?.engineCapacityId,
         cylinder_count: formData.specifications?.cylinderCount,
         wheel_drive: formData.specifications?.wheelDrive,
-
         color: formData.specifications?.color,
         interior_color: formData.specifications?.interiorColor,
         tinted: formData.specifications?.tinted,
-
         location: formData.basicInfo?.location,
         condition: formData.specifications?.condition,
-
         images: formData.media ?? [],
-
+        interior_images: formData.interiorImages ?? [],
+        images_360: formData.images360 ?? [],
         owner_type: formData.specifications?.ownerType,
         featureIds: formData.features?.map((id: string) => Number(id)) ?? [],
+        is_featured: !!formData.package?.featureDuration && formData.package.featureDuration > 0,
+        featured_until: featuredUntil ? featuredUntil.toISOString() : null,
         is_imported: formData.specifications?.isImported,
+        negotiable: formData.specifications?.negotiable,
+        specification: formData.specifications?.specification,
         has_insurance: formData.specifications?.hasInsurance,
         insurance_expiry: formData.specifications?.insuranceExpiry
-          ? new Date(
-            listing?.insurance_expiry ? listing.insurance_expiry : new Date()
-          ).toISOString()
+          ? new Date(formData.specifications.insuranceExpiry).toISOString()
           : new Date().toISOString(),
+        insurance_type: formData.specifications?.insuranceType,
         has_warranty: formData.specifications?.hasWarranty,
         warranty_expiry: formData.specifications?.warrantyExpiry
-          ? new Date(
-            listing?.warranty_expiry ? listing.warranty_expiry : new Date()
-          ).toISOString()
-
+          ? new Date(formData.specifications.warrantyExpiry).toISOString()
           : new Date().toISOString(),
         is_inspected: formData.specifications?.isInspected,
         inspection_report: formData.specifications?.inspectionReport,
-
-        user_id: user?.id,
+        user_id: formData.basicInfo?.userId
+        ? Number(formData.basicInfo.userId)
+        : user?.id, // will override below if admin posting on behalf
+        showroom_id: formData.basicInfo?.showroomId
+          ? Number(formData.basicInfo.showroomId)
+          : undefined,
+        is_business: formData.basicInfo?.showroomId ? true : undefined,
         package_id: formData.package?.packageId
           ? Number(formData.package.packageId)
-          : listing?.package_id, // Fallback to existing package
+          : listing?.package_id,
         start_date: listing?.start_date
           ? new Date(listing.start_date).toISOString()
           : new Date().toISOString(),
         end_date: endDate.toISOString(),
         status: formData?.status,
       };
+
+      // ========== 👑 ADMIN POSTING ON BEHALF ==========
+      if (user?.roleId > 6 && formData.basicInfo?.userId) {
+        console.log("👑 Admin posting on behalf of user ID:", formData.basicInfo.userId);
+        payload.user_id = formData.basicInfo.userId;
+      }
 
       console.log("🛠 Constructed payload:", payload);
 
@@ -134,19 +149,16 @@ export const useListingFormHandler = (onSuccess?: () => void) => {
 
       console.log("✅ Listing saved, ID:", listingId);
 
-      // =============================
-      // Save Car Parts if provided
-      // =============================
+      // ================= CAR PARTS SAVE =================
       if (formData.carParts) {
         try {
           const partsPayload = { ...formData.carParts, listingId };
-
           const partsMethod = listing?.carParts?.id ? "PUT" : "POST";
           const partsUrl = listing?.carParts?.id
-            ? `/api/car-parts/${listing.carParts?.id}`
-            : `/api/car-parts`;
+            ? `/api/car-parts/${listing.carParts.id}`
+            : "/api/car-parts";
 
-          console.log(`🛠 Sending ${partsMethod} request to ${partsUrl} with payload:`, partsPayload);
+          console.log(`🛠 Saving car parts: ${partsMethod} ${partsUrl}`, partsPayload);
 
           const partsRes = await fetch(partsUrl, {
             method: partsMethod,
@@ -155,8 +167,8 @@ export const useListingFormHandler = (onSuccess?: () => void) => {
           });
 
           if (!partsRes.ok) {
-            const partsError = await partsRes.json().catch(() => ({}));
-            console.error("❌ Failed to save car parts:", partsError);
+            const errorData = await partsRes.json().catch(() => ({}));
+            console.error("❌ Failed to save car parts:", errorData);
             toast({
               title: "Warning",
               description: "Listing saved, but failed to save car parts",
@@ -170,19 +182,16 @@ export const useListingFormHandler = (onSuccess?: () => void) => {
         }
       }
 
-      // =============================
-      // Save Car Tyres if provided
-      // =============================
+      // ================= CAR TYRES SAVE =================
       if (formData.carTyres) {
         try {
           const tyresPayload = { ...formData.carTyres, listingId };
-
           const tyresMethod = listing?.carTyres?.id ? "PUT" : "POST";
           const tyresUrl = listing?.carTyres?.id
-            ? `/api/car-tyres/${listing?.carTyres?.id}`
-            : `/api/car-tyres`;
+            ? `/api/car-tyres/${listing.carTyres.id}`
+            : "/api/car-tyres";
 
-          console.log(`🛠 Sending ${tyresMethod} request to ${tyresUrl} with payload:`, tyresPayload);
+          console.log(`🛠 Saving car tyres: ${tyresMethod} ${tyresUrl}`, tyresPayload);
 
           const tyresRes = await fetch(tyresUrl, {
             method: tyresMethod,
@@ -191,8 +200,8 @@ export const useListingFormHandler = (onSuccess?: () => void) => {
           });
 
           if (!tyresRes.ok) {
-            const tyresError = await tyresRes.json().catch(() => ({}));
-            console.error("❌ Failed to save car tyres:", tyresError);
+            const errorData = await tyresRes.json().catch(() => ({}));
+            console.error("❌ Failed to save car tyres:", errorData);
             toast({
               title: "Warning",
               description: "Listing saved, but failed to save car tyres",
@@ -207,30 +216,26 @@ export const useListingFormHandler = (onSuccess?: () => void) => {
       }
 
       console.log("✅ All processes complete");
-      return res;
 
+      return savedListing;
     },
 
-    onSuccess: (variables) => {
+    onSuccess: (savedListing) => {
       console.log("🎉 Mutation succeeded, handling redirection");
       const role = user?.roleId ? roleMapping[user.roleId] : "DEALER";
-      console.log("👤 User role:", role);
+      const listingId = savedListing?.id;
 
-      if (role === "SELLER") {
-        navigate("/seller-dashboard/listings");
+      if (role === "SELLER" || role === "DEALER") {
+        navigate(`/confirmedlisting/${listingId}`);
       } else if (role === "ADMIN" || role === "SUPER_ADMIN") {
         navigate("/admin/listings");
-      } else if (role === "DEALER") {
-        navigate("/showroom-dashboard/listings");
-      } else if (role === "GARAGE") {
-        navigate("/garage-dashboard/listings");
       }
 
-      console.log("✅ Redirect complete");
       toast({
         title: "Success",
-        description: variables ? "Listing updated" : "Listing created",
+        description: savedListing ? "Listing updated" : "Listing created",
       });
+
       onSuccess?.();
     },
 
@@ -243,5 +248,4 @@ export const useListingFormHandler = (onSuccess?: () => void) => {
       });
     },
   });
-
 };
