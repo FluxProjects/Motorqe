@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { config } from "../config";
 import { notificationService } from "./notification";
+const { BASE_URL } = config;
 
 export async function loginUser(email: string, password: string) {
 
@@ -137,13 +138,14 @@ export async function registerUser({
 
   // Generate verification token (you can use your existing generateToken function)
   const verificationToken = generateToken();
-  const verificationLink = `${config.BASE_URL}/verify-email?token=${verificationToken}`;
+  const verificationLink = `${BASE_URL}/verify-email?token=${verificationToken}`;
 
   // Store verification token in database (you'll need to add this to your users table or create a separate table)
-  await db.query(
-    `UPDATE users SET email_verification_token = $1 WHERE id = $2`,
-    [verificationToken, newUser.id]
-  );
+  const updateResult = await db.query(
+  `UPDATE users SET verification_token = $1 WHERE id = $2 RETURNING verification_token`,
+  [verificationToken, newUser.id]
+);
+console.log("Verification token stored:", updateResult[0]);
 
   try {
     // Send welcome and verification email using the notification service
@@ -180,6 +182,56 @@ export function verifyToken(token: string): any {
   }
 };
 
+export async function verifyEmailToken(token: string) {
+  try {
+    // Check if token exists and is not expired
+    const result = await db.query(
+      `SELECT id, email, is_email_verified as "isEmailVerified" 
+       FROM users 
+       WHERE verification_token = $1;`,
+      [token]
+    );
+
+    if (result.length === 0) {
+      return { 
+        isValid: false, 
+        message: "Invalid or expired token",
+        redirectUrl: `${BASE_URL}/verify-email/invalid`
+      };
+    }
+
+    const user = result[0];
+
+    // If email is already verified, no need to verify again
+    if (user.isEmailVerified) {
+      return { 
+        isValid: false, 
+        message: "Email already verified",
+        redirectUrl: `${BASE_URL}/verify-email/already-verified`
+      };
+    }
+
+    // Update user as verified and clear the token
+    await db.query(
+      `UPDATE users 
+       SET is_email_verified = true
+       WHERE id = $1`,
+      [user.id]
+    );
+
+    return { 
+      isValid: true, 
+      message: "Email verified successfully",
+      email: user.email,
+      redirectUrl: `${BASE_URL}/verify-email/success`
+    };
+  } catch (error) {
+    console.error("Error verifying email token:", error);
+    throw new Error("Failed to verify email token");
+  }
+}
+
+
 export async function hashPassword(password: string): Promise<string> {
   return await bcrypt.hash(password, 10);
 }
@@ -203,7 +255,7 @@ export async function requestPasswordReset(email: string) {
   
   // Generate reset token
   const resetToken = generateToken();
-  const resetLink = `${config.BASE_URL}/reset-password?token=${resetToken}`;
+  const resetLink = `${BASE_URL}/api/auth/reset-password?token=${resetToken}`;
   
   // Store token with expiry in database
   const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours from now

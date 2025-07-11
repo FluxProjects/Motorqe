@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { storage } from "../storage";
 import type { Request, Response } from "express";
-import { generateOTP, generateToken, verifyToken, hashPassword, loginUser, registerUser } from "../services/auth";
+import { generateOTP, generateToken, verifyToken, hashPassword, loginUser, registerUser, verifyEmailToken } from "../services/auth";
 import { notificationService } from "../services/notification";
 
 export const authRoutes = Router();
@@ -90,6 +90,38 @@ authRoutes.post("/register", async (req: Request, res: Response) => {
             return res.status(409).json({ message: err.message });
         }
         res.status(500).json({ message: err.message || "An unexpected error occurred" });
+    }
+});
+
+// /api/auth/verify-token
+authRoutes.get("/verify-token", async (req: Request, res: Response) => {
+    try {
+        const { token } = req.query;
+
+        if (!token) {
+            return res.status(400).json({ message: "Token is required" });
+        }
+
+        const verificationResult = await verifyEmailToken(token as string);
+        
+        if (!verificationResult.isValid) {
+            return res.status(401).json({ 
+                success: false,
+                message: verificationResult.message 
+            });
+        }
+
+        res.json({
+            success: true,
+            message: verificationResult.message,
+            email: verificationResult.email
+        });
+    } catch (error) {
+        console.error("Token verification error:", error);
+        res.status(500).json({ 
+            success: false,
+            message: "Failed to verify token" 
+        });
     }
 });
 

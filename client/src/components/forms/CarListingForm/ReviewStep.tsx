@@ -422,7 +422,7 @@ export function ReviewStep({
   <div className="space-y-2">
     <h3 className="font-medium">{t("listing.images")}</h3>
     {(formData.media?.length ?? 0) > 0 ? (
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {formData.media?.map((mediaItem, index) => (
           <div key={index}>
             {typeof mediaItem === "string" ? (
@@ -450,7 +450,7 @@ export function ReviewStep({
   {formData.interiorImages && formData.interiorImages.length > 0 && (
     <div className="space-y-2">
       <h3 className="font-medium">{t("listing.interiorImages")}</h3>
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {formData.interiorImages.map((image, index) => (
           <div key={index}>
             {typeof image === "string" ? (
@@ -476,7 +476,7 @@ export function ReviewStep({
   {formData.images360 && formData.images360.length > 0 && (
     <div className="space-y-2">
       <h3 className="font-medium">{t("listing.images360")}</h3>
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {formData.images360.map((image, index) => (
           <div key={index}>
             {typeof image === "string" ? (

@@ -91,8 +91,10 @@
             
             <div class="info-box">
                 <h3 style="color: #374151; font-size: 20px; font-weight: 600; margin: 0 0 16px 0;">Listing Details</h3>
-                <p style="color: #6B7280; margin: 0 0 8px 0;"><strong>Vehicle:</strong> {{listingTitle}}</p>
-                <p style="color: #6B7280; margin: 0 0 8px 0;"><strong>Submitted:</strong> {{submissionDate}}</p>
+                <p style="color: #6B7280; margin: 0 0 8px 0;"><strong>Listing Title:</strong> {{listingTitle}}</p>
+                <p style="color: #6B7280; margin: 0 0 8px 0;"><strong>Vehicle:</strong> {{listing.year}} {{listing.make_name}} {{listing.model_name}}</p>
+                <p style="color: #6B7280; margin: 0 0 8px 0;"><strong>Listing Price:</strong> {{listing.price}}</p>
+                <p style="color: #6B7280; margin: 0 0 8px 0;"><strong>Submitted:</strong> {{listing.created_at}}</p>
                 {{#if listingId}}
                 <p style="color: #6B7280; margin: 0 0 8px 0;"><strong>Listing ID:</strong> #{{listingId}}</p>
                 {{/if}}

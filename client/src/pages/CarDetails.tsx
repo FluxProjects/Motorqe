@@ -613,12 +613,19 @@ const CarDetails = () => {
                 </div>
 
                 <div className="flex items-center justify-between mb-6">
-                  <div className="text-3xl font-bold text-blue-900">
-                    {car.currency || "QR"}{" "}
-                    {car.price != null
-                      ? Number(car.price).toLocaleString("en-US", { maximumFractionDigits: 0 })
-                      : "0"}
-                  </div>
+                  <div className="text-3xl font-bold text-blue-900 flex items-center gap-2">
+  {car.currency || "QR"}{" "}
+  {car.price != null
+    ? Number(car.price).toLocaleString("en-US", { maximumFractionDigits: 0 })
+    : "0"}
+
+  {car.negotiable && (
+    <span className="ml-1 rounded-full bg-green-100 text-green-800 text-xs px-2 py-0.5">
+      Negotiable
+    </span>
+  )}
+</div>
+
                 </div>
 
                 <div className="space-y-2 text-sm">
@@ -661,6 +668,10 @@ const CarDetails = () => {
                   <div className="flex justify-between">
                     <span className="text-gray-600">Condition:</span>
                     <span className="font-medium">{car.condition}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Wheel Drive:</span>
+                    <span className="font-medium">{car.wheel_drive}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Engine Size:</span>
@@ -770,7 +781,7 @@ const CarDetails = () => {
                     </div>
                   </div>
 
-                  {(car?.showroom?.address || car?.showroom?.addressAr) && (
+                  {(car?.showroom?.address || car?.showroom?.address_ar) && (
                     <div className="flex space-x-2 mb-4">
                       <Button
                         size="xs"
@@ -778,7 +789,7 @@ const CarDetails = () => {
                         className="pt-2 pb-2 flex-1 rounded-full bg-orange-500 text-white"
                         onClick={() =>
                           handleLocationMap(
-                            car?.showroom?.address || car?.showroom?.addressAr
+                            car?.showroom?.address || car?.showroom?.address_ar
                           )
                         }
                       >
@@ -790,7 +801,7 @@ const CarDetails = () => {
                         className="pt-2 pb-2 flex-1 rounded-full bg-orange-500 text-white"
                         onClick={() =>
                           handleGetDirection(
-                            car?.showroom?.address || car?.showroom?.addressAr
+                            car?.showroom?.address || car?.showroom?.address_ar
                           )
                         }
                       >
@@ -807,12 +818,6 @@ const CarDetails = () => {
                       </div>
                     ) : null}
 
-                    {car?.location ? (
-                      <div>
-                        <span className="text-gray-600">City:</span>{" "}
-                        {car?.location}
-                      </div>
-                    ) : null}
                   </div>
 
                   {car?.showroom?.timing && (

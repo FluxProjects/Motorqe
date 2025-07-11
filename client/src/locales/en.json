@@ -555,8 +555,11 @@
   },
   "listing": {
     "status": "Listing Status",
+    "negotiable": "Negotiable",
     "hasInsurance": "Insured",
     "insuranceExpiry": "Insurance Expiry",
+    "insuranceType": "Insurance Type",
+    "interiorImages": "Interior Images",
     "inspectionReport": "Inspection Report",
     "hasWarranty": "Warranty",
     "warrantyExpiry": "Warranty Expiry",

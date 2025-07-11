@@ -4,6 +4,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { handleApiError } from "@/lib/utils";
 import { UseFormReturn } from "react-hook-form";
 import { LoginFormValues } from "@/components/forms/AuthForm/AuthSchemas";
+import { User } from "@shared/schema";
+import { useState } from "react";
 
 export const useLoginHandler = () => {
   const navigate = useNavigate();
@@ -32,9 +34,17 @@ export const useLoginHandler = () => {
       }
 
       const data = await response.json();
+      
+      // Store auth data
       localStorage.setItem("authToken", data.token);
+      localStorage.setItem("refreshToken", data.refreshToken || ""); // If your API provides one
       localStorage.setItem("user", JSON.stringify(data.user));
       setUser(data.user);
+
+      // Get redirect destination (priority order)
+      const searchParams = new URLSearchParams(window.location.search);
+      const redirectTo = searchParams.get('redirectTo');
+      const fromPath = history.state?.from?.pathname; // From ProtectedRoute
 
       const dashboardByRole = {
         BUYER: "/buyer-dashboard",
@@ -46,13 +56,27 @@ export const useLoginHandler = () => {
         SUPER_ADMIN: "/admin",
       } as const;
 
-      type RoleKey = keyof typeof dashboardByRole;
-      const role = data.user?.roleId as RoleKey;
-      const dashboardPath = dashboardByRole[role];
-      navigate(dashboardPath);
+      // Determine where to redirect
+      const role = data.user?.roleId as keyof typeof dashboardByRole;
+      const defaultPath = dashboardByRole[role] || "/";
+      const destination = redirectTo || fromPath || defaultPath;
+
+      // Clear any sensitive data from URL before redirecting
+      const cleanDestination = destination.split('?')[0];
+      
+      navigate(cleanDestination, {
+        replace: true,
+        state: null // Clear any sensitive state
+      });
       
       return { success: true };
     } catch (error) {
+      // Clear auth data on failed login
+      localStorage.removeItem("authToken");
+      localStorage.removeItem("refreshToken");
+      localStorage.removeItem("user");
+      setUser(null);
+      
       handleApiError(error, form);
       throw error;
     }

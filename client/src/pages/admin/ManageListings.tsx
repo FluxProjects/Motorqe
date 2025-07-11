@@ -378,10 +378,13 @@ const ManageListings = () => {
       rejected: { label: "Rejected", color: "bg-red-500" },
     };
 
+      const badge = statusMap[status] || { label: status || "Unknown", color: "bg-gray-400" };
+
+
     return (
-      <Badge className={`${statusMap[status].color} text-white`}>
-        {statusMap[status].label}
-      </Badge>
+      <Badge className={`${badge.color} text-white`}>
+      {badge.label}
+    </Badge>
     );
   };
 

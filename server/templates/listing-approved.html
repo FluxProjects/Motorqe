@@ -107,16 +107,17 @@
             
             <div class="success-box">
                 <h3 style="color: #065F46; font-size: 20px; font-weight: 600; margin: 0 0 16px 0;">Your Live Listing</h3>
-                <p style="color: #065F46; margin: 0 0 8px 0;"><strong>Vehicle:</strong> {{listingTitle}}</p>
-                <p style="color: #065F46; margin: 0 0 8px 0;"><strong>Listing ID:</strong> #{{listingId}}</p>
-                <p style="color: #065F46; margin: 0 0 8px 0;"><strong>Went Live:</strong> {{currentDate}}</p>
-                {{#if featureDuration}}
-                <p style="color: #065F46; margin: 0 0 8px 0;"><strong>Featured Until:</strong> {{featureEndDate}}</p>
+                <p style="color: #065F46; margin: 0 0 8px 0;"><strong>Listing Title:</strong> {{listingTitle}}</p>
+                <p style="color: #065F46; margin: 0 0 8px 0;"><strong>Listing ID:</strong> #{{listing.id}}</p>
+                <p style="color: #065F46; margin: 0 0 8px 0;"><strong>Vehicle:</strong> {{listing.year}} {{listing.make_name}} {{listing.model_name}}</p>
+                <p style="color: #065F46; margin: 0 0 8px 0;"><strong>Went Live:</strong> {{listing.created_at}}</p>
+                {{#if listing.is_featured}}
+                <p style="color: #065F46; margin: 0 0 8px 0;"><strong>Featured Until:</strong> {{listing.featured_until}}</p>
                 {{/if}}
             </div>
             
             <div style="text-align: center; margin: 32px 0;">
-                <a href="{{config.BASE_URL}}/listings/{{listingId}}" class="email-btn">View Your Listing</a>
+                <a href="{{listingLink}}" class="email-btn">View Your Listing</a>
             </div>
             
             {{#if featureBenefits}}

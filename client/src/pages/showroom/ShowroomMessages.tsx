@@ -2,31 +2,25 @@ import {
   Search,
   Send,
   MoreHorizontal,
-  MessageCircle,
-  Users,
-  Heart,
-  Calendar,
   User,
-  LogOut,
   Inbox,
   Mail,
   MailOpen,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useState, useEffect, useRef } from "react";
 import ShowroomNavigation from "@/components/showroom/ShowroomNavigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTranslation } from "react-i18next";
-import { MessageSquareText, Phone, MessageSquareOff, ShieldAlert, UserX } from "lucide-react";
+import {
+  MessageSquareText,
+  Phone,
+  MessageSquareOff,
+  ShieldAlert,
+  UserX,
+} from "lucide-react";
 
 interface Message {
   id: number;
@@ -42,7 +36,7 @@ interface Message {
 
 export default function ShowroomMessaging() {
   const { t } = useTranslation();
-  const { user, isAuthenticated } = useAuth();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<"inbox" | "sent" | "unread">(
     "inbox"
@@ -264,7 +258,10 @@ export default function ShowroomMessaging() {
         lastMessage: message.content,
         lastMessageDate: message.created_at,
         subject: message.type,
-        avatar: otherUsername.substring(0, 2).toUpperCase(),
+        avatar:
+          typeof otherUsername === "string"
+            ? otherUsername.substring(0, 2).toUpperCase()
+            : "??",
         messages: [message],
         unread: message.status === "unread" && message.receiver_id === user?.id,
       });
@@ -322,13 +319,11 @@ export default function ShowroomMessaging() {
     };
   }, [showActions]);
 
-
-  console.log('API Response:', messages);
-console.log('Filtered Messages:', filteredMessages);
-console.log('Conversations:', conversations);
+  console.log("API Response:", messages);
+  console.log("Filtered Messages:", filteredMessages);
+  console.log("Conversations:", conversations);
 
   if (isLoading) return <div>Loading...</div>;
-  
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -493,10 +488,10 @@ console.log('Conversations:', conversations);
                       <div className="w-12 h-12 bg-gray-300 rounded flex items-center justify-center">
                         <div className="text-xs font-semibold text-gray-600">
                           {selectedMessage.sender_id === user?.id
-                            ? selectedMessage.receiver_username
+                            ? (selectedMessage.receiver_username ?? "??")
                                 .substring(0, 2)
                                 .toUpperCase()
-                            : selectedMessage.sender_username
+                            : (selectedMessage.sender_username ?? "??")
                                 .substring(0, 2)
                                 .toUpperCase()}
                         </div>
@@ -639,7 +634,9 @@ console.log('Conversations:', conversations);
                     >
                       <Mail className="w-4 h-4 text-blue-900" />
                       <span>
-                        {selectedMessage.status === "read" ? "Mark as unread" : "Mark as read"}
+                        {selectedMessage.status === "read"
+                          ? "Mark as unread"
+                          : "Mark as read"}
                       </span>
                     </button>
 

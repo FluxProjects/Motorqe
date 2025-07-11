@@ -1,5 +1,5 @@
 import { storage } from '../storage';
-import { type InsertMessage } from '@shared/schema';
+import { AdminCarListing, CarListing, type InsertMessage } from '@shared/schema';
 import nodemailer from 'nodemailer';
 import fs from 'fs';
 import path from 'path';
@@ -287,8 +287,9 @@ class NotificationService {
   async sendPendingApprovalEmail(to: string, context: {
     firstName: string;
     listingTitle: string;
+    submissionDate: string;
     approvalTimeframe: string;
-    listing: string;
+    listing: AdminCarListing;
     additionalContext: string;
   }): Promise<void> {
     await this.sendEmail({
@@ -306,6 +307,7 @@ class NotificationService {
     firstName: string;
     listingTitle: string;
     listingLink: string;
+    listing: AdminCarListing;
   }): Promise<void> {
     await this.sendEmail({
       to,
@@ -321,8 +323,10 @@ class NotificationService {
   async sendListingRejectedEmail(to: string, context: {
     firstName: string;
     listingTitle: string;
+    listingLink: string;
     rejectionReason: string;
     resubmissionInstructions: string;
+    listing: AdminCarListing;
   }): Promise<void> {
     await this.sendEmail({
       to,
@@ -340,6 +344,7 @@ class NotificationService {
     listingTitle: string;
     adminComments: string;
     editLink: string;
+    listing: AdminCarListing;
   }): Promise<void> {
     await this.sendEmail({
       to,
@@ -594,11 +599,12 @@ class NotificationService {
   async sendPlanUpgradeEmail(to: string, context: {
     firstName: string;
     oldPlanName: string;
+    oldPlanFeatures: any[];
     newPlanName: string;
     upgradeBenefits: string[];
     effectiveDate: string;
     priceDifference?: string;
-    listing?: string[];
+    listing?: AdminCarListing;
   }): Promise<void> {
     await this.sendEmail({
       to,

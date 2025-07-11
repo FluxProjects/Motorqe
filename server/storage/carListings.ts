@@ -332,8 +332,10 @@ export const CarListingStorage = {
                             break;
                         case 'status':
                             if (value && value !== 'all') {
+                                const normalizedStatus = value === 'rejected' ? 'reject' : value;
                                 whereClauses.push(`cl.status = $${paramIndex}`);
-                                values.push(value);
+                                values.push(normalizedStatus);
+                                console.log(`Added status filter: status = ${normalizedStatus}`);
                                 paramIndex++;
                             }
                             break;
@@ -748,7 +750,19 @@ export const CarListingStorage = {
 
     async getCarListingById(id: number): Promise<(CarListingWithFeatures & { currentPackage?: ListingPromotion; showroom?: Showroom; carParts?: CarPart; carTyres?: CarTyre; }) | undefined> {
         // Fetch base listing
-        const listingResult = await db.query(`SELECT * FROM car_listings WHERE id = $1`, [id]);
+        const listingResult = await db.query(
+            `
+            SELECT 
+                cl.*,
+                cmk.name AS make_name,
+                cml.name AS model_name
+            FROM car_listings cl
+            LEFT JOIN car_makes cmk ON cmk.id = cl.make_id
+            LEFT JOIN car_models cml ON cml.id = cl.model_id
+            WHERE cl.id = $1
+            `,
+            [id]
+        );
         const listing = listingResult[0];
         if (!listing) return undefined;
 

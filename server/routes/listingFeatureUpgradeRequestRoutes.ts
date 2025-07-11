@@ -39,10 +39,10 @@ listingFeatureUpgradeRequestRoutes.put('/:id/approve', async (req, res) => {
   try {
     const { status, remarks, adminId } = req.body;
     const requestId = Number(req.params.id);
-    
+
     // Process the request first
     const result = await storage.processListingFeatureUpgradeRequest(requestId, status, adminId, remarks);
-    
+
     // Fetch additional details needed for notifications
     const [requestDetails, listing, user, adminUser] = await Promise.all([
       storage.getListingFeatureUpgradeRequest(requestId),
@@ -50,7 +50,7 @@ listingFeatureUpgradeRequestRoutes.put('/:id/approve', async (req, res) => {
       storage.getUser(result.requested_by),
       storage.getUser(adminId)
     ]);
-    
+
     // Send appropriate notifications based on status
     if (status === 'approved') {
       // Send approval notification to user
@@ -67,7 +67,7 @@ listingFeatureUpgradeRequestRoutes.put('/:id/approve', async (req, res) => {
           ]
         }
       );
-      
+
       // Send admin confirmation
 
     } else if (status === 'rejected') {
@@ -78,11 +78,12 @@ listingFeatureUpgradeRequestRoutes.put('/:id/approve', async (req, res) => {
           firstName: user.first_name || 'Customer',
           listingTitle: listing.title || 'Your listing',
           rejectionReason: remarks || 'Does not meet our featuring requirements',
-          resubmissionInstructions: 'Please review our guidelines and submit a new request if applicable'
+          resubmissionInstructions: 'Please review our guidelines and submit a new request if applicable',
+          listing
         }
       );
     }
-    
+
     res.json(result);
   } catch (error) {
     console.error('Feature upgrade approval error:', error);
@@ -94,24 +95,39 @@ listingFeatureUpgradeRequestRoutes.put('/:id/approve', async (req, res) => {
 listingFeatureUpgradeRequestRoutes.post("/", async (req: Request, res: Response) => {
   try {
     const newRequest = await storage.createListingFeatureUpgradeRequest(req.body);
-    
+
     // Fetch additional details for notification
     const [listing, user] = await Promise.all([
       storage.getCarListingById(newRequest.listing_id),
       storage.getUser(newRequest.requested_by)
     ]);
-    
-    
+
+    if (!listing) {
+      throw new Error(`Listing with ID ${newRequest.listing_id} not found`);
+    }
+
+    if (!user) {
+      throw new Error(`User with ID ${newRequest.requested_by} not found`);
+    }
+
+
     // Send confirmation to user
     await notificationService.sendPendingApprovalEmail(
       user.email,
       {
         firstName: user.first_name || 'Customer',
         listingTitle: listing.title || 'Your listing',
-        approvalTimeframe: 'Our team will review your request within 2 business days'
+        approvalTimeframe: 'Our team will review your request within 2 business days',
+        submissionDate: listing.created_at.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+        }),
+        listing, // pass full object
+        additionalContext: ''
       }
     );
-    
+
     res.status(201).json(newRequest);
   } catch (error) {
     console.error('Feature upgrade request error:', error);

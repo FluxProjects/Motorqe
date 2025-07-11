@@ -1,7 +1,9 @@
 import { db } from "../db";
 import {
   ListingPackageUpgradeRequest,
-  InsertListingPackageUpgradeRequest
+  InsertListingPackageUpgradeRequest,
+  AdminCarListing,
+  PromotionPackage
 } from "@shared/schema";
 
 export interface IListingPackageUpgradeRequestStorage {
@@ -10,12 +12,20 @@ export interface IListingPackageUpgradeRequestStorage {
   getListingPackageUpgradeRequests(status?: string): Promise<any[]>;
   createListingPackageUpgradeRequest(data: InsertListingPackageUpgradeRequest): Promise<ListingPackageUpgradeRequest>;
   updateListingPackageUpgradeRequest(id: number, updates: Partial<InsertListingPackageUpgradeRequest>): Promise<ListingPackageUpgradeRequest | undefined>;
-  processListingPackageUpgradeRequest(
+ processListingPackageUpgradeRequest(
     requestId: number,
     status: 'approved' | 'rejected',
     adminId: number,
     remarks?: string
-  ): Promise<{ success: boolean }>;
+): Promise<{
+    success: boolean,
+    data: {
+        request: any[],
+        listing: AdminCarListing,
+        promotion: PromotionPackage
+    }
+}>;
+
   deleteListingPackageUpgradeRequest(id: number): Promise<void>;
 }
 
@@ -124,12 +134,19 @@ export const ListingPackageUpgradeRequestStorage: IListingPackageUpgradeRequestS
     return result[0];
   },
 
-  async processListingPackageUpgradeRequest(
-  requestId: number,
-  status: 'approved' | 'rejected',
-  adminId: number,
-  remarks?: string
-): Promise<{ success: boolean }> {
+ async processListingPackageUpgradeRequest(
+    requestId: number,
+    status: 'approved' | 'rejected',
+    adminId: number,
+    remarks?: string
+): Promise<{
+    success: boolean,
+    data: {
+        request: any[],
+        listing: AdminCarListing,
+        promotion: PromotionPackage
+    }
+}> {
   await db.query('BEGIN');
 
   try {
@@ -140,64 +157,46 @@ export const ListingPackageUpgradeRequestStorage: IListingPackageUpgradeRequestS
       `SELECT * FROM listing_package_upgrade_requests WHERE id = $1`,
       [requestId]
     );
-    console.log("✅ resultRequest:", resultRequest);
-
-    const request = resultRequest[0]; // adjust if your abstraction returns rows directly
-
-    if (!request) {
-      throw new Error(`❌ Request with id ${requestId} not found`);
-    }
-    console.log(`✅ Found request with id=${requestId} for listing_id=${request.listing_id}`);
+    const request = resultRequest[0];
+    if (!request) throw new Error(`Request with id ${requestId} not found`);
 
     // 2️⃣ Update the upgrade request status
-    const updateRequestResult = await db.query(
+    const [updatedRequest] = await db.query(
       `UPDATE listing_package_upgrade_requests 
        SET status = $1, admin_id = $2, remarks = $3, updated_at = NOW()
        WHERE id = $4
-       RETURNING id`,
+       RETURNING *`,
       [status, adminId, remarks ?? null, requestId]
     );
-    console.log("✅ updateRequestResult:", updateRequestResult);
+    if (!updatedRequest) throw new Error(`Failed to update listing_package_upgrade_request with id ${requestId}`);
 
-    if (updateRequestResult.length === 0) {
-      throw new Error(`❌ Failed to update listing_package_upgrade_request with id ${requestId}`);
-    }
+    let updatedListing = null;
+    let promotionRecord = null;
 
     if (status === "approved") {
-      console.log("🛠️ Status is approved, proceeding with package application.");
-
       // 3️⃣ Fetch the package details
-      const resultPackage = await db.query(
+      const [packageDetails] = await db.query(
         `SELECT * FROM promotion_packages WHERE id = $1`,
         [request.requested_package_id]
       );
-      console.log("✅ resultPackage:", resultPackage);
-
-      const packageDetails = resultPackage[0];
-      if (!packageDetails) {
-        throw new Error(`❌ Promotion package with id ${request.requested_package_id} not found`);
-      }
+      if (!packageDetails) throw new Error(`Promotion package with id ${request.requested_package_id} not found`);
 
       // 4️⃣ Check if listing exists
-      const resultListingCheck = await db.query(
+      const [listingExists] = await db.query(
         `SELECT id FROM car_listings WHERE id = $1`,
         [request.listing_id]
       );
-      console.log("✅ resultListingCheck:", resultListingCheck);
-
-      if (resultListingCheck.length === 0) {
-        throw new Error(`❌ Listing with id ${request.listing_id} does not exist.`);
-      }
+      if (!listingExists) throw new Error(`Listing with id ${request.listing_id} does not exist.`);
 
       // 5️⃣ Update the listing with package details
-      console.log(`🔄 Updating car_listings for listing_id=${request.listing_id} with package effects`);
-      const updateListingResult = await db.query(
+      [updatedListing] = await db.query(
         `UPDATE car_listings
          SET is_featured = $1,
              featured_until = NOW() + ($2 || ' days')::INTERVAL,
-             refresh_left = COALESCE(refresh_left, 0) + $3
+             refresh_left = COALESCE(refresh_left, 0) + $3,
+             updated_at = NOW()
          WHERE id = $4
-         RETURNING id`,
+         RETURNING *`,
         [
           packageDetails.is_featured,
           packageDetails.feature_duration ?? 0,
@@ -205,42 +204,37 @@ export const ListingPackageUpgradeRequestStorage: IListingPackageUpgradeRequestS
           request.listing_id
         ]
       );
-      console.log("✅ updateListingResult:", updateListingResult);
-
-      if (updateListingResult.length === 0) {
-        throw new Error(`❌ Failed to update car_listings for listing_id ${request.listing_id}`);
-      }
+      if (!updatedListing) throw new Error(`Failed to update car_listings for listing_id ${request.listing_id}`);
 
       // 6️⃣ Handle listing_promotions record
-      const resultPromotion = await db.query(
-        `SELECT id FROM listing_promotions 
+      const existingPromotion = await db.query(
+        `SELECT * FROM listing_promotions 
          WHERE listing_id = $1 AND is_active = true AND end_date > NOW()
          LIMIT 1`,
         [request.listing_id]
       );
-      console.log("✅ resultPromotion:", resultPromotion);
 
-      const existingPromotion = resultPromotion[0];
-      if (existingPromotion) {
-        console.log(`🔄 Updating existing listing_promotion id=${existingPromotion.id}`);
-        await db.query(
+      if (existingPromotion[0]) {
+        [promotionRecord] = await db.query(
           `UPDATE listing_promotions
            SET package_id = $1,
                end_date = end_date + ($2 || ' days')::INTERVAL,
                updated_at = NOW()
-           WHERE id = $3`,
+           WHERE id = $3
+           RETURNING *`,
           [
             packageDetails.id,
             packageDetails.duration_days ?? 0,
-            existingPromotion.id
+            existingPromotion[0].id
           ]
         );
       } else {
-        console.log(`➕ Inserting new listing_promotion for listing_id=${request.listing_id}`);
-        await db.query(
+        [promotionRecord] = await db.query(
           `INSERT INTO listing_promotions (
-            listing_id, package_id, start_date, end_date, is_active
-          ) VALUES ($1, $2, NOW(), NOW() + ($3 || ' days')::INTERVAL, true)`,
+            listing_id, package_id, start_date, end_date, is_active, created_at, updated_at
+          ) VALUES (
+            $1, $2, NOW(), NOW() + ($3 || ' days')::INTERVAL, true, NOW(), NOW()
+          ) RETURNING *`,
           [
             request.listing_id,
             packageDetails.id,
@@ -251,15 +245,23 @@ export const ListingPackageUpgradeRequestStorage: IListingPackageUpgradeRequestS
     }
 
     await db.query('COMMIT');
-    console.log(`✅ processListingPackageUpgradeRequest completed successfully for requestId=${requestId}`);
-    return { success: true };
+
+    return {
+      success: true,
+      data: {
+        request: updatedRequest,
+        listing: updatedListing,
+        promotion: promotionRecord
+      }
+    };
 
   } catch (error) {
     await db.query('ROLLBACK');
     console.error(`❌ Failed to process package upgrade for requestId=${requestId}:`, error);
     throw error;
   }
-},
+}
+,
 
   async deleteListingPackageUpgradeRequest(id) {
     await db.query(`DELETE FROM listing_package_upgrade_requests WHERE id = $1`, [id]);

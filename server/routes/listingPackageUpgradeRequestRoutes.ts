@@ -36,63 +36,126 @@ listingPackageUpgradeRequestRoutes.put('/:id/approve', async (req, res) => {
   try {
     const { status, remarks, adminId } = req.body;
     const requestId = Number(req.params.id);
-    
-    // First get the request details before processing
+
+    // 1️⃣ Get the original request details before processing
     const requestDetails = await storage.getListingPackageUpgradeRequest(requestId);
-    
-    // Process the request
-    const result = await storage.processListingPackageUpgradeRequest(requestId, status, adminId, remarks);
-    
-    // Fetch additional details needed for notifications
-    const [listing, user, currentPackage, newPackage] = await Promise.all([
-      storage.getCarListingById(result.listing_id),
-      storage.getUser(result.requested_by),
-      storage.getListingPromotionsByListingId(result.listing_id),
-      storage.getPromotionPackage(requestDetails.requested_package_id)
-    ]);
-    
-    // Rest of your notification code...
+    if (!requestDetails) {
+      return res.status(404).json({ message: `Request with id ${requestId} not found.` });
+    }
+
+    // 2️⃣ Get current active promotion BEFORE processing to capture the previous plan
+    const activePromotionBefore = await storage.getListingPromotionsByListingId(requestDetails.listing_id);
+
+    console.log("activePromotionBefore", activePromotionBefore);
+
+    // 3️⃣ Process the request
+    const { success, data } = await storage.processListingPackageUpgradeRequest(requestId, status, adminId, remarks);
+    console.log("✅ processListingPackageUpgradeRequest result:", data);
+
+    // 4️⃣ Fetch additional details for notifications if approved
     if (status === 'approved') {
+      const [listing, user, newPackage] = await Promise.all([
+        storage.getCarListingById(data.request.listing_id),
+        storage.getUser(data.request.requested_by),
+        storage.getPromotionPackage(requestDetails.requested_package_id)
+      ]);
+
+      // 5️⃣ Determine previous plan details using promotion BEFORE upgrade
+      let currentPackage = null;
+      if (activePromotionBefore) {
+        currentPackage = await storage.getPromotionPackage(activePromotionBefore.package_id);
+      }
+
+      console.log("currentPackage", currentPackage);
+
+      if (!currentPackage) {
+      console.error(`❌ Package with ID ${activePromotionBefore.package_id} not found. Aborting.`);
+      return res.status(404).json({ message: `Package with ID ${activePromotionBefore.package_id} not found` });
+    }
+
+        const oldPlanName = currentPackage.name || 'Current Package';
+        const oldPlanFeatures = [
+          `Duration: ${currentPackage.duration_days ?? 'N/A'} days`,
+          `Refreshes: ${currentPackage.no_of_refresh ?? 'N/A'}`,
+          `Featured Duration: ${currentPackage.feature_duration ?? 0} days`
+        ];
+        const oldPlanPrice = `$${currentPackage.price ?? 0}`;
+
+
+       if (!user) {
+      console.error(`❌ User with ID ${data.request.requested_by} not found. Aborting.`);
+      return res.status(404).json({ message: `User with ID ${data.request.requested_by} not found` });
+    }
+
+      // 6️⃣ Send upgrade email
       await notificationService.sendPlanUpgradeEmail(
         user.email,
         {
           firstName: user.first_name || 'Customer',
-          oldPlanName: currentPackage?.name || 'Current Package',
+          oldPlanName,
+          oldPlanFeatures,
+          oldPlanPrice,
           newPlanName: newPackage?.name || 'Upgraded Package',
           upgradeBenefits: [
-            `Duration: ${newPackage?.duration_days} days (was ${currentPackage?.duration_days})`,
-            `Refreshes: ${newPackage?.no_of_refresh} (was ${currentPackage?.no_of_refresh})`,
-            `Featured Duration: ${newPackage?.feature_duration} days (was ${currentPackage?.feature_duration || 0})`
+            `Duration: ${newPackage?.duration_days} days`,
+            `Refreshes: ${newPackage?.no_of_refresh}`,
+            `Featured Duration: ${newPackage?.feature_duration ?? 0} days`
           ],
-          effectiveDate: new Date().toLocaleDateString(),
+          newPlanPrice: `$${newPackage?.price ?? 0}`,
           priceDifference: `$${(newPackage?.price || 0) - (currentPackage?.price || 0)}`,
-          listing: listing
+          effectiveDate: new Date().toLocaleDateString(),
+          billingCycle: 'One-time',
+          nextPaymentDate: 'N/A',
+          listing
         }
       );
-      // ... rest of the approval code
     }
 
-    res.json(result);
+    // 7️⃣ Return to frontend
+    return res.json({
+      success,
+      data
+    });
 
   } catch (error) {
-    console.error('Package upgrade approval error:', error);
-    res.status(500).json({ message: "Failed to process package upgrade", error });
+    console.error('❌ Package upgrade approval error:', error);
+    return res.status(500).json({ message: "Failed to process package upgrade", error: error.message });
   }
 });
+
+
 
 // POST create a new package upgrade request
 listingPackageUpgradeRequestRoutes.post("/", async (req: Request, res: Response) => {
   try {
     const newRequest = await storage.createListingPackageUpgradeRequest(req.body);
-    
+    console.log("newrequest", newRequest);
     // Fetch additional details for notification
-    const [listing, user, currentPackage, newPackage] = await Promise.all([
+    const [listing, user, currentPackages, newPackage] = await Promise.all([
       storage.getCarListingById(newRequest.listing_id),
-      storage.getUser(newRequest.user_id),
+      storage.getUser(newRequest.requested_by),
       storage.getListingPromotionsByListingId(newRequest.listing_id),
       storage.getPromotionPackage(newRequest.requested_package_id)
     ]);
+
+        const currentPackage = currentPackages[0];
+
     
+    if (!user) {
+      console.error(`❌ User with ID ${newRequest.requested_by} not found. Aborting.`);
+      return res.status(404).json({ message: `User with ID ${newRequest.requested_by} not found` });
+    }
+
+    if (!listing) {
+      console.error(`❌ Listing with ID ${newRequest.listing_id} not found. Aborting.`);
+      return res.status(404).json({ message: `Listing with ID ${newRequest.listing_id} not found` });
+    }
+
+    if (!newPackage) {
+      console.error(`❌ Promotion Package with ID ${newRequest.requested_package_id} not found. Aborting.`);
+      return res.status(404).json({ message: `Promotion Package with ID ${newRequest.requested_package_id} not found` });
+    }
+
     // Send confirmation to user
     await notificationService.sendPendingApprovalEmail(
       user.email,

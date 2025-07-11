@@ -1,4 +1,5 @@
 // src/utils/auth/handlers/registerHandler.ts
+
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { handleApiError } from "@/lib/utils";
@@ -43,7 +44,7 @@ export const useRegisterHandler = () => {
           role: uppercaseRole,
           roleId: roleId,
           businessName: values.businessName,
-          tlicense: values.tlicense,
+          tlicense: values.tLicense,
           termsAgreement: values.termsAgreement,
         }),
       });
@@ -57,12 +58,12 @@ export const useRegisterHandler = () => {
         };
       }
 
-      // 2️⃣ Parse user and token
+      // 2️⃣ Parse user data
       const data = await registerResponse.json();
       const registeredUser = data.user;
-      console.log("user registered", registeredUser);
+      console.log("✅ User registered", registeredUser);
 
-      // 3️⃣ Conditionally create garage or showroom based on role
+      // 3️⃣ Conditionally create garage or showroom if applicable
       if (uppercaseRole === "GARAGE" || uppercaseRole === "DEALER") {
         const isGarage = uppercaseRole === "GARAGE";
 
@@ -74,7 +75,7 @@ export const useRegisterHandler = () => {
           body: JSON.stringify({
             name: values.businessName,
             tLicense: values.tLicense,
-            isGarage: isGarage,
+            isGarage,
             phone: values.phone,
             userId: registeredUser.id,
           }),
@@ -89,25 +90,11 @@ export const useRegisterHandler = () => {
           };
         }
 
-        console.log("Showroom/Garage created successfully");
+        console.log("✅ Showroom/Garage created successfully");
       }
 
-      // 4️⃣ Set auth token and user, navigate
-      localStorage.setItem("authToken", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
-      setUser(data.user);
-
-      if (data.user.roleId === 1) {
-        navigate("/buyer-dashboard");
-      } else if ([2, 3].includes(data.user.roleId)) {
-        navigate("/showroom-dashboard");
-      } else if (data.user.roleId === 4) {
-        navigate("/garage-dashboard");
-      } else if ([5, 6, 7, 8].includes(data.user.roleId)) {
-        navigate("/admin");
-      } else {
-        navigate("/");
-      }
+      // 4️⃣ Instead of auto-login, redirect to check-email page
+      navigate(`/check-email?email=${encodeURIComponent(registeredUser.email)}`);
 
       return { success: true };
     } catch (error) {
