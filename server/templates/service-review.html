@@ -21,6 +21,10 @@
       text-align: center;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
     }
+     .header-section {
+            padding: 30px 24px;
+            text-align: center;
+        }
     h1 {
       margin: 0;
       font-size: 26px;
@@ -64,6 +68,11 @@
 </head>
 <body>
   <div class="container">
+    <div class="header-section">
+            <img src="{{config.BASE_URL}}/src/assets/logo.png" alt="Motorqe Logo" width="150" style="max-width: 100%; height: auto;">
+            <p style="color: #000000; margin: 12px 0 0 0; opacity: 0.95; font-size: 16px;">{{subject}}</p>
+     </div>
+
     <h1>Car Service Booking Review</h1>
     <p class="subtitle">Now rate this provider in seconds with just a few clicks</p>
 
