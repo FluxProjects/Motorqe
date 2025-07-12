@@ -180,10 +180,18 @@ class NotificationService {
     await storage.createNotification(adminNotification);
   }
 
-  async sendOTP(email: string, otp: string): Promise<void> {
-    // In a real app, implement your email sending logic here
-    console.log(`OTP for ${email}: ${otp}`); // For development only
-  }
+  async sendOTP(to: string, context: {
+  firstName: string;
+  otp: string;
+}): Promise<void> {
+  await this.sendEmail({
+    to,
+    subject: 'Your Motorqe Password Reset OTP',
+    template: 'reset-password', // reference your saved template name
+    context
+  });
+}
+
 
   
 
@@ -584,6 +592,11 @@ class NotificationService {
     listingTitle: string;
     featureDuration: string;
     featureBenefits: string[];
+    oldFeatureDetails?: any[];
+    upgradeBenefits: string[];
+    effectiveDate?: string;
+    priceDifference?: string;
+    listing?: AdminCarListing;
   }): Promise<void> {
     await this.sendEmail({
       to,
@@ -601,8 +614,8 @@ class NotificationService {
     oldPlanName: string;
     oldPlanFeatures: any[];
     newPlanName: string;
-    upgradeBenefits: string[];
-    effectiveDate: string;
+    upgradeBenefits?: string[];
+    effectiveDate?: string;
     priceDifference?: string;
     listing?: AdminCarListing;
   }): Promise<void> {

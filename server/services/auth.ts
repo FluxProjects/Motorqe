@@ -174,13 +174,22 @@ console.log("Verification token stored:", updateResult[0]);
   };
 };
 
-export function verifyToken(token: string): any {
-  try {
-    return jwt.verify(token, config.JWT_SECRET);
-  } catch (error) {
-    return null;
-  }
-};
+// export function Reset(token: string): any {
+//   try {
+//     return jwt.verify(token, config.JWT_SECRET);
+//   } catch (error) {
+//     return null;
+//   }
+// };
+
+export async function verifyResetToken(token: string): Promise<boolean> {
+    const result = await db.query(`
+        SELECT 1 FROM password_reset_tokens
+        WHERE token = $1 AND expires_at > NOW() AND used = false
+    `, [token]);
+    return result.length > 0;
+}
+
 
 export async function verifyEmailToken(token: string) {
   try {

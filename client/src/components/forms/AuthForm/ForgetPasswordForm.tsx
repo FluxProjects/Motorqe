@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useTranslation } from "react-i18next";
-import { useState } from "react";
 
 // Step 1: Request OTP
 const forgotPasswordStep1Schema = z.object({
@@ -149,7 +148,7 @@ export const ForgotPasswordForm = ({
               )}
             />
 
-            <div className="flex justify-between">
+            <div className="flex gap-4 justify-between">
               <Button
                 type="button"
                 variant="link"

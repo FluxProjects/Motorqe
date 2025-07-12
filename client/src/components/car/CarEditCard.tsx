@@ -26,6 +26,15 @@ interface CarEditCardProps {
   car: AdminCarListing;
 }
 
+export interface FeaturePlan {
+  id: number;                // Unique ID for the feature plan
+  duration: number;          // Duration in days (e.g., 7, 14, 30)
+  price: number;             // Price of the feature plan
+  currency?: string;         // Currency (e.g., "QAR"), optional fallback
+  benefits?: string[];       // Optional list of benefits (["Top placement", "Highlight"])
+}
+
+
 export default function CarEditCard({ car }: CarEditCardProps) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -296,7 +305,8 @@ console.log("currentPackage", currentPackage);
     }
   };
 
-  const handleAction = async (actionType: string, pkg?: PromotionPackage) => {
+
+  const handleAction = async (actionType: string, pkg?: PromotionPackage, featurePlan?: FeaturePlan ) => {
     let confirmText = "Are you sure?";
     switch (actionType) {
       case "upgrade":
@@ -307,8 +317,9 @@ console.log("currentPackage", currentPackage);
         }
         return;
       case "feature":
-        confirmText = "Are you sure you want to feature this ad?";
-        break;
+        if (!featurePlan) return; // Ensure you have featurePlan passed
+        confirmText = `Are you sure you want to feature this ad for ${featurePlan.duration} days at ${featurePlan.price} ${featurePlan.currency || "QAR"}?`;
+        return;
       case "sold":
         confirmText = "Are you sure you want to mark this car as sold?";
         break;
@@ -457,7 +468,7 @@ console.log("currentPackage", currentPackage);
 
             <button
               className="flex-1 bg-green-600 text-white py-3 px-2 rounded-xl text-xs hover:bg-green-700 flex flex-col items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-              onClick={() => handleAction("feature")}
+              onClick={() => navigate(`/feature-ad-upgrade/${car.id}`)}
               disabled={
                 actionInProgress ||
                 car.status === "sold" ||

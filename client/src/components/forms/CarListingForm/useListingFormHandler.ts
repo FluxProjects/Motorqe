@@ -56,6 +56,16 @@ export const useListingFormHandler = (onSuccess?: () => void) => {
         featuredUntil = new Date(listing.featured_until);
       }
 
+      // Determine effective user_id
+      const effectiveUserId = formData.basicInfo?.userId
+        ? Number(formData.basicInfo.userId)
+        : user?.id;
+
+      // If seller or dealer and updating, force status to PENDING
+      if (listing && (effectiveUserId === 2 || effectiveUserId === 3)) {
+        formData.status = "pending";
+      }
+
       // =========== 🛠 PAYLOAD CONSTRUCTION ===========
       const payload = {
         listing_type: formData.basicInfo?.listingType,
@@ -124,8 +134,6 @@ export const useListingFormHandler = (onSuccess?: () => void) => {
         console.log("👑 Admin posting on behalf of user ID:", formData.basicInfo.userId);
         payload.user_id =  Number(formData.basicInfo.userId);
       }
-
-
 
       console.log("🛠 Constructed payload:", payload);
 

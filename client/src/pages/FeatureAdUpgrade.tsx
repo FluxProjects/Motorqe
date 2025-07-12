@@ -91,7 +91,7 @@ export default function FeatureAdUpgrade() {
       console.log("Created feature upgrade request:", data);
 
       // Navigate using the new request's ID
-      navigate(`/feature-upgrade-confirmation/${data.id}`);
+      navigate(`/feature-upgrade-confirmation/${data.id}?price=${selectedPlan.price}&currency=${selectedPlan.currency || "QAR"}`);
     } catch (err) {
       console.error(err);
       alert("Failed to submit request. Please try again.");

@@ -556,6 +556,7 @@
   "listing": {
     "status": "Listing Status",
     "negotiable": "Negotiable",
+    "specification":"Regional Specification",
     "hasInsurance": "Insured",
     "insuranceExpiry": "Insurance Expiry",
     "insuranceType": "Insurance Type",

@@ -287,7 +287,7 @@ export function ReviewStep({
       </p>
     </div>
     <div>
-      <Label>{t("listing.InsuranceType")}</Label>
+      <Label>{t("listing.insuranceType")}</Label>
       <p>{formData.specifications?.insuranceType}</p>
     </div>
   </>

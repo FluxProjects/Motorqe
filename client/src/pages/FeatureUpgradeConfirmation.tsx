@@ -12,6 +12,12 @@ export default function FeatureUpgradeConfirmation() {
   const [showroom, setShowroom] = useState(null);
   const [, navigate] = useLocation();
   const { id: requestId } = useParams();
+  const [location] = useLocation();
+const queryString = window.location.search;
+const params = new URLSearchParams(queryString);
+const price = params.get("price");
+const currency = params.get("currency") || "QAR";
+
 
   // Redirect unauthenticated users
   useEffect(() => {
@@ -248,9 +254,9 @@ export default function FeatureUpgradeConfirmation() {
 
                   <div className="text-neutral-800 font-bold">Price:</div>
                   <div className="text-neutral-800 font-medium">
-                    QR{" "}
-                    {featureRequest?.price != null
-                      ? Number(featureRequest.price).toLocaleString("en-US")
+                    {currency}{" "}
+                    {price != null
+                      ? Number(price).toLocaleString("en-US")
                       : "-"}
                   </div>
 
@@ -265,8 +271,8 @@ export default function FeatureUpgradeConfirmation() {
               <div className="bg-blue-900 text-white p-4 text-center">
                 <div className="text-xl justify-end items-end text-right font-bold">
                   Total Price:{" "}
-                  {featureRequest?.price != null
-                    ? Number(featureRequest.price).toLocaleString("en-US")
+                  {price != null
+                    ? Number(price).toLocaleString("en-US")
                     : "-"}
                 </div>
               </div>

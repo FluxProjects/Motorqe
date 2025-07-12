@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { storage } from "../storage";
 import type { Request, Response } from "express";
-import { generateOTP, generateToken, verifyToken, hashPassword, loginUser, registerUser, verifyEmailToken } from "../services/auth";
+import { generateOTP, generateToken, verifyResetToken, hashPassword, loginUser, registerUser, verifyEmailToken } from "../services/auth";
 import { notificationService } from "../services/notification";
 
 export const authRoutes = Router();
@@ -15,7 +15,7 @@ authRoutes.get("/me", async (req: Request, res: Response) => {
             return res.status(200).json(null);
         }
 
-        const decoded = verifyToken(token);
+        const decoded = verifyEmailToken(token);
         if (!decoded || !decoded.id) {
             return res.status(200).json(null);
         }
@@ -136,124 +136,122 @@ authRoutes.post("/logout", async (_req: Request, res: Response) => {
     }
 });
 
+// Request OTP
 authRoutes.post("/forgot-password", async (req: Request, res: Response) => {
-    try {
-        const { email } = req.body;
-
-        if (!email) {
-            return res.status(400).json({ message: "Email is required" });
-        }
-
-        // Security: Don't reveal if email exists
-        const user = await storage.getUserByEmail(email);
-        if (!user) {
-            return res.json({
-                success: true,
-                message: "If this email exists, we've sent an OTP",
-                token: generateToken() // Return a token anyway for security
-            });
-        }
-
-        const otp = generateOTP();
-        const token = generateToken();
-
-        await storage.createPasswordResetToken(email, otp, token);
-        await notificationService.sendOTP(email, otp);
-
-        res.json({
-            success: true,
-            message: "OTP sent to email",
-            token
-        });
-    } catch (error) {
-        console.error("Forgot password error:", error);
-        res.status(500).json({ message: "Failed to process request" });
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
     }
+
+    const user = await storage.getUserByEmail(email);
+    const otp = generateOTP();
+    const token = generateToken();
+
+    if (user) {
+      await storage.createPasswordResetToken(email, otp, token);
+
+      await notificationService.sendOTP(email, {
+        firstName: user.first_name || "Customer",
+        otp
+      });
+    }
+
+    // Always respond with success for security
+    return res.json({
+      success: true,
+      message: "If this email exists, we've sent an OTP",
+      token
+    });
+  } catch (error) {
+    console.error("Forgot password error:", error);
+    res.status(500).json({ message: "Failed to process request" });
+  }
 });
 
 // Verify OTP
 authRoutes.post("/verify-otp", async (req: Request, res: Response) => {
-    try {
-        const { email, otp, token } = req.body;
-
-        if (!email || !otp || !token) {
-            return res.status(400).json({ message: "All fields are required" });
-        }
-
-        const isValid = await storage.verifyPasswordResetToken(email, otp, token);
-        if (!isValid) {
-            return res.status(401).json({ message: "Invalid OTP" });
-        }
-
-        const verificationToken = generateToken();
-        await storage.createPasswordResetToken(email, otp, verificationToken);
-
-        res.json({
-            success: true,
-            message: "OTP verified",
-            verificationToken
-        });
-    } catch (error) {
-        console.error("OTP verification error:", error);
-        res.status(500).json({ message: "Failed to verify OTP" });
+  try {
+    const { email, otp, token } = req.body;
+    if (!email || !otp || !token) {
+      return res.status(400).json({ message: "All fields are required" });
     }
+
+    const isValid = await storage.verifyPasswordResetToken(email, otp, token);
+    if (!isValid) {
+      return res.status(401).json({ message: "Invalid OTP or expired" });
+    }
+
+    const verificationToken = generateToken();
+    await storage.createPasswordResetToken(email, otp, verificationToken);
+
+    return res.json({
+      success: true,
+      message: "OTP verified",
+      verificationToken
+    });
+  } catch (error) {
+    console.error("OTP verification error:", error);
+    res.status(500).json({ message: "Failed to verify OTP" });
+  }
 });
 
-// Reset password
+// Reset Password
 authRoutes.post("/reset-password", async (req: Request, res: Response) => {
-    try {
-        const { email, newPassword, token } = req.body;
-
-        if (!email || !newPassword || !token) {
-            return res.status(400).json({ message: "All fields are required" });
-        }
-
-        // Verify token exists and is valid
-        const result = await verifyToken(token);
-
-        if (result.length === 0) {
-            return res.status(401).json({ message: "Invalid or expired token" });
-        }
-
-        // Update password
-        const hashedPassword = await hashPassword(newPassword);
-        await storage.updateUserPasswordByEmail(email, hashedPassword)
-
-        // Invalidate the token
-        await storage.invalidateResetToken(token);
-
-        res.json({
-            success: true,
-            message: "Password reset successfully"
-        });
-    } catch (error) {
-        console.error("Password reset error:", error);
-        res.status(500).json({ message: "Failed to reset password" });
+  try {
+    const { email, newPassword, token } = req.body;
+    if (!email || !newPassword || !token) {
+      return res.status(400).json({ message: "All fields are required" });
     }
+
+    const isValid = await verifyResetToken(token);
+    if (!isValid) {
+      return res.status(401).json({ message: "Invalid or expired token" });
+    }
+
+    const hashedPassword = await hashPassword(newPassword);
+    await storage.updateUserPasswordByEmail(email, hashedPassword);
+
+    await storage.invalidateResetToken(token);
+
+    return res.json({
+      success: true,
+      message: "Password reset successfully"
+    });
+  } catch (error) {
+    console.error("Password reset error:", error);
+    res.status(500).json({ message: "Failed to reset password" });
+  }
 });
 
 // Resend OTP
 authRoutes.post("/resend-otp", async (req: Request, res: Response) => {
-    try {
-        const { email } = req.body;
-
-        if (!email) {
-            return res.status(400).json({ message: "Email is required" });
-        }
-
-        const otp = generateOTP();
-        const token = generateToken();
-
-        await storage.createPasswordResetToken(email, otp, token);
-        await notificationService.sendOTP(email, otp);
-
-        res.json({
-            success: true,
-            message: "New OTP sent to email",
-            token
-        });
-    } catch (error) {
-        console.error("Resend OTP error:", error);
-        res.status(500).json({ message: "Failed to resend OTP" });
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
     }
+
+    const user = await storage.getUserByEmail(email);
+    const otp = generateOTP();
+    const token = generateToken();
+
+    if (user) {
+      await storage.createPasswordResetToken(email, otp, token);
+
+      await notificationService.sendOTP(email, {
+        firstName: user.first_name || "Customer",
+        otp
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: "If this email exists, a new OTP has been sent",
+      token
+    });
+  } catch (error) {
+    console.error("Resend OTP error:", error);
+    res.status(500).json({ message: "Failed to resend OTP" });
+  }
 });

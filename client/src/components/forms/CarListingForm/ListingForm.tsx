@@ -89,7 +89,7 @@ const displayedStep = skipPricing ? step + 1 : step;
         warrantyExpiry: listing.warranty_expiry?.toString(), 
         isInspected: listing.is_inspected?.toString(),
         inspectionReport: listing.inspection_report || undefined,
-        negotiable: listing.negotiable,
+        negotiable: listing.negotiable?.toString(),
         
       },
       carParts: {

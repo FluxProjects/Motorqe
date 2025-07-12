@@ -57,16 +57,24 @@ listingPackageUpgradeRequestRoutes.put('/:id/approve', async (req, res) => {
       const [listing, user, newPackage] = await Promise.all([
         storage.getCarListingById(data.request.listing_id),
         storage.getUser(data.request.requested_by),
-        storage.getPromotionPackage(requestDetails.requested_package_id)
+        storage.getPromotionPackage(data.request.requested_package_id)
       ]);
 
       // 5️⃣ Determine previous plan details using promotion BEFORE upgrade
-      let currentPackage = null;
-      if (activePromotionBefore) {
-        currentPackage = await storage.getPromotionPackage(activePromotionBefore.package_id);
-      }
+      const currentPackage = await storage.getPromotionPackage(activePromotionBefore[0].package_id);
+
 
       console.log("currentPackage", currentPackage);
+
+      if (!listing) {
+        console.error(`❌ Listing with ID ${data.request.listing_id} not found. Aborting.`);
+        return res.status(404).json({ message: `Listing with ID ${data.request.listing_id} not found.` });
+      }
+
+      if (!user) {
+        console.error(`❌ User with ID ${data.request.requested_by} not found. Aborting.`);
+        return res.status(404).json({ message: `User with ID ${data.request.requested_by} not found.` });
+      }
 
       if (!currentPackage) {
       console.error(`❌ Package with ID ${activePromotionBefore.package_id} not found. Aborting.`);
@@ -111,6 +119,36 @@ listingPackageUpgradeRequestRoutes.put('/:id/approve', async (req, res) => {
       );
     }
 
+    if (status === 'rejected') {
+        const [listing, user] = await Promise.all([
+          storage.getCarListingById(data.request.listing_id),
+          storage.getUser(data.request.requested_by)
+        ]);
+
+        if (!listing) {
+          console.error(`❌ Listing with ID ${data.request.listing_id} not found. Aborting.`);
+          return res.status(404).json({ message: `Listing with ID ${data.request.listing_id} not found.` });
+        }
+
+        if (!user) {
+          console.error(`❌ User with ID ${data.request.requested_by} not found. Aborting.`);
+          return res.status(404).json({ message: `User with ID ${data.request.requested_by} not found.` });
+        }
+
+        const rejectionReason = remarks || 'No specific reason provided.';
+        const resubmissionInstructions = 'Please review your package request and submit the required corrections for re-evaluation.';
+        const listingLink = `${process.env.FRONTEND_URL}/sell-car/${listing.id}`;
+
+        await notificationService.sendListingRejectedEmail(user.email, {
+          firstName: user.first_name || 'Customer',
+          listingTitle: listing.title || 'Your Listing',
+          listingLink,
+          rejectionReason,
+          resubmissionInstructions,
+          listing
+        });
+    }
+
     // 7️⃣ Return to frontend
     return res.json({
       success,
@@ -122,7 +160,6 @@ listingPackageUpgradeRequestRoutes.put('/:id/approve', async (req, res) => {
     return res.status(500).json({ message: "Failed to process package upgrade", error: error.message });
   }
 });
-
 
 
 // POST create a new package upgrade request

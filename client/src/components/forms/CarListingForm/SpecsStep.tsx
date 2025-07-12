@@ -42,10 +42,14 @@ export function SpecsStep({ data, updateData, nextStep, prevStep }: StepProps) {
     condition: data?.specifications?.condition || "used",
     isImported: data?.specifications?.isImported || "",
     hasInsurance: data?.specifications?.hasInsurance || "",
-    insuranceExpiry: data?.specifications?.insuranceExpiry || "",
+    insuranceExpiry: data?.specifications?.insuranceExpiry
+  ? new Date(data.specifications.insuranceExpiry).toISOString().slice(0, 10)
+  : "",
     insuranceType: data?.specifications?.insuranceType || "",
     hasWarranty: data?.specifications?.hasWarranty || "",
-    warrantyExpiry: data?.specifications?.warrantyExpiry || "",
+    warrantyExpiry: data?.specifications?.warrantyExpiry
+  ? new Date(data.specifications.warrantyExpiry).toISOString().slice(0, 10)
+  : "",
     isInspected: data?.specifications?.isInspected || "",
     negotiable: data?.specifications?.negotiable || "",
     inspectionReport: data?.specifications?.inspectionReport || "",
@@ -661,6 +665,7 @@ const cleanSpecifications = {
       )}
 
       {/* Is Inspected */}
+      
       <div>
         <Label>Is Inspected*</Label>
         <div className="flex items-center gap-4 mt-2">
@@ -688,6 +693,7 @@ const cleanSpecifications = {
         </div>
         {formErrors.isInspected && <p className="text-red-500 text-sm mt-1">{formErrors.isInspected}</p>}
       </div>
+       
 
         {/* Is Imported */}
       <div>
@@ -728,7 +734,7 @@ const cleanSpecifications = {
               type="radio"
               name="negotiable"
               value="true"
-              checked={formData.negotiable === "true"}
+              checked={formData.negotiable.toString() === "true"}
               onChange={(e) => handleChange("negotiable", e.target.value)}
               required
             />
@@ -739,7 +745,7 @@ const cleanSpecifications = {
               type="radio"
               name="negotiable"
               value="false"
-              checked={formData.negotiable === "false"}
+              checked={formData.negotiable.toString() === "false"}
               onChange={(e) => handleChange("negotiable", e.target.value)}
             />
             No
