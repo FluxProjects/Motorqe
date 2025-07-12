@@ -144,7 +144,7 @@
         
         <div class="footer-section">
             <p style="color: #9CA3AF; font-size: 12px; margin: 0;">
-                © {{currentYear}} Motorqe.com. All rights reserved.
+                © {{#if currentYear}}{{currentYear}}{{else}}{{date "YYYY"}}{{/if}} Motorqe.com. All rights reserved.
             </p>
         </div>
     </div>
